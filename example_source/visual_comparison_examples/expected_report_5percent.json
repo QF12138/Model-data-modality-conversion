@@ -1,0 +1,599 @@
+{
+  "checked_at": "2026-07-11T11:03:35",
+  "files_before": [
+    {
+      "name": "borehole_points.csv",
+      "format": ".csv",
+      "vertices": 8,
+      "faces": 0,
+      "bounds": {
+        "min_x": 1000.0,
+        "max_x": 1070.0,
+        "min_y": 2000.0,
+        "max_y": 2035.0,
+        "min_z": 100.0,
+        "max_z": 115.0,
+        "span_x": 70.0,
+        "span_y": 35.0,
+        "span_z": 15.0
+      },
+      "parse_ok": true,
+      "parse_message": "解析成功"
+    },
+    {
+      "name": "geologic_boundary.geojson",
+      "format": ".geojson",
+      "vertices": 5,
+      "faces": 0,
+      "bounds": {
+        "min_x": 2000.0,
+        "max_x": 2080.0,
+        "min_y": 3000.0,
+        "max_y": 3060.0,
+        "min_z": 0.0,
+        "max_z": 0.0,
+        "span_x": 80.0,
+        "span_y": 60.0,
+        "span_z": 0.0
+      },
+      "parse_ok": true,
+      "parse_message": "解析成功"
+    },
+    {
+      "name": "tunnel_model.obj",
+      "format": ".obj",
+      "vertices": 8,
+      "faces": 6,
+      "bounds": {
+        "min_x": 500000.0,
+        "max_x": 500100.0,
+        "min_y": 3400000.0,
+        "max_y": 3400050.0,
+        "min_z": 1000.0,
+        "max_z": 1020.0,
+        "span_x": 100.0,
+        "span_y": 50.0,
+        "span_z": 20.0
+      },
+      "parse_ok": true,
+      "parse_message": "解析成功"
+    }
+  ],
+  "files_after": [
+    {
+      "name": "borehole_points.csv",
+      "format": ".csv",
+      "vertices": 7,
+      "faces": 0,
+      "bounds": {
+        "min_x": 1001.0,
+        "max_x": 1061.0,
+        "min_y": 2000.0,
+        "max_y": 2030.0,
+        "min_z": 100.0,
+        "max_z": 112.0,
+        "span_x": 60.0,
+        "span_y": 30.0,
+        "span_z": 12.0
+      },
+      "parse_ok": true,
+      "parse_message": "解析成功"
+    },
+    {
+      "name": "geologic_boundary.geojson",
+      "format": ".geojson",
+      "vertices": 5,
+      "faces": 0,
+      "bounds": {
+        "min_x": 2001.0,
+        "max_x": 2084.0,
+        "min_y": 3000.0,
+        "max_y": 3062.0,
+        "min_z": 0.0,
+        "max_z": 0.0,
+        "span_x": 83.0,
+        "span_y": 62.0,
+        "span_z": 0.0
+      },
+      "parse_ok": true,
+      "parse_message": "解析成功"
+    },
+    {
+      "name": "tunnel_model.obj",
+      "format": ".obj",
+      "vertices": 8,
+      "faces": 6,
+      "bounds": {
+        "min_x": 500002.0,
+        "max_x": 500103.0,
+        "min_y": 3400000.0,
+        "max_y": 3400050.0,
+        "min_z": 1000.0,
+        "max_z": 1020.0,
+        "span_x": 101.0,
+        "span_y": 50.0,
+        "span_z": 20.0
+      },
+      "parse_ok": true,
+      "parse_message": "解析成功"
+    }
+  ],
+  "comparisons": [
+    {
+      "dimension": "模型尺度",
+      "metric": "borehole_points.csv 对角线长度",
+      "value_before": "79.69",
+      "value_after": "68.15",
+      "deviation": 0.144817,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "警告",
+      "message": "模型尺度偏差 14.48%，超过阈值 5.0%"
+    },
+    {
+      "dimension": "模型尺度",
+      "metric": "borehole_points.csv 顶点数",
+      "value_before": 8,
+      "value_after": 7,
+      "deviation": 0.125,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "警告",
+      "message": "顶点数变化 12.50%"
+    },
+    {
+      "dimension": "空间范围",
+      "metric": "borehole_points.csv X 跨度",
+      "value_before": "70",
+      "value_after": "60",
+      "deviation": 0.142857,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "警告",
+      "message": "X 跨度 范围偏差 14.29%"
+    },
+    {
+      "dimension": "空间范围",
+      "metric": "borehole_points.csv Y 跨度",
+      "value_before": "35",
+      "value_after": "30",
+      "deviation": 0.142857,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "警告",
+      "message": "Y 跨度 范围偏差 14.29%"
+    },
+    {
+      "dimension": "空间范围",
+      "metric": "borehole_points.csv Z 跨度",
+      "value_before": "15",
+      "value_after": "12",
+      "deviation": 0.2,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "严重",
+      "message": "Z 跨度 范围偏差 20.00%"
+    },
+    {
+      "dimension": "坐标位置",
+      "metric": "borehole_points.csv 模型中心偏移",
+      "value_before": "(1035, 2018, 107.5)",
+      "value_after": "(1031, 2015, 106)",
+      "deviation": 0.062115,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "警告",
+      "message": "中心偏移 4.95（相对跨度 6.21%）"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "borehole_points.csv X 轴 min",
+      "value_before": "1000",
+      "value_after": "1001",
+      "deviation": 0.012549,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "X 轴 min 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "borehole_points.csv X 轴 max",
+      "value_before": "1070",
+      "value_after": "1061",
+      "deviation": 0.112942,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "警告",
+      "message": "X 轴 max 边界偏差 11.29%"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "borehole_points.csv Y 轴 min",
+      "value_before": "2000",
+      "value_after": "2000",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Y 轴 min 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "borehole_points.csv Y 轴 max",
+      "value_before": "2035",
+      "value_after": "2030",
+      "deviation": 0.062746,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "警告",
+      "message": "Y 轴 max 边界偏差 6.27%"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "borehole_points.csv Z 轴 min",
+      "value_before": "100",
+      "value_after": "100",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Z 轴 min 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "borehole_points.csv Z 轴 max",
+      "value_before": "115",
+      "value_after": "112",
+      "deviation": 0.037647,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Z 轴 max 边界一致"
+    },
+    {
+      "dimension": "属性映射",
+      "metric": "borehole_points.csv 属性字段保留率",
+      "value_before": "7 字段",
+      "value_after": "6 字段",
+      "deviation": 0.142857,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "警告",
+      "message": "保留 6/7 字段，丢失 1 个"
+    },
+    {
+      "dimension": "属性映射",
+      "metric": "borehole_points.csv 丢失属性字段",
+      "value_before": "density",
+      "value_after": "无",
+      "deviation": 1.0,
+      "threshold": 0.0,
+      "passed": false,
+      "severity": "严重",
+      "message": "转换后丢失属性字段：density"
+    },
+    {
+      "dimension": "模型尺度",
+      "metric": "geologic_boundary.geojson 对角线长度",
+      "value_before": "100",
+      "value_after": "103.6",
+      "deviation": 0.036002,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "模型尺度一致"
+    },
+    {
+      "dimension": "模型尺度",
+      "metric": "geologic_boundary.geojson 顶点数",
+      "value_before": 5,
+      "value_after": 5,
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "顶点数变化 0.00%"
+    },
+    {
+      "dimension": "空间范围",
+      "metric": "geologic_boundary.geojson X 跨度",
+      "value_before": "80",
+      "value_after": "83",
+      "deviation": 0.0375,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "X 跨度 范围一致"
+    },
+    {
+      "dimension": "空间范围",
+      "metric": "geologic_boundary.geojson Y 跨度",
+      "value_before": "60",
+      "value_after": "62",
+      "deviation": 0.033333,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Y 跨度 范围一致"
+    },
+    {
+      "dimension": "空间范围",
+      "metric": "geologic_boundary.geojson Z 跨度",
+      "value_before": "0",
+      "value_after": "0",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Z 跨度 范围一致"
+    },
+    {
+      "dimension": "坐标位置",
+      "metric": "geologic_boundary.geojson 模型中心偏移",
+      "value_before": "(2040, 3030, 0)",
+      "value_after": "(2042, 3031, 0)",
+      "deviation": 0.026926,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "中心偏移 2.693（相对跨度 2.69%）"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "geologic_boundary.geojson X 轴 min",
+      "value_before": "2000",
+      "value_after": "2001",
+      "deviation": 0.01,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "X 轴 min 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "geologic_boundary.geojson X 轴 max",
+      "value_before": "2080",
+      "value_after": "2084",
+      "deviation": 0.04,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "X 轴 max 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "geologic_boundary.geojson Y 轴 min",
+      "value_before": "3000",
+      "value_after": "3000",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Y 轴 min 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "geologic_boundary.geojson Y 轴 max",
+      "value_before": "3060",
+      "value_after": "3062",
+      "deviation": 0.02,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Y 轴 max 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "geologic_boundary.geojson Z 轴 min",
+      "value_before": "0",
+      "value_after": "0",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Z 轴 min 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "geologic_boundary.geojson Z 轴 max",
+      "value_before": "0",
+      "value_after": "0",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Z 轴 max 边界一致"
+    },
+    {
+      "dimension": "属性映射",
+      "metric": "geologic_boundary.geojson 属性字段保留率",
+      "value_before": "4 字段",
+      "value_after": "4 字段",
+      "deviation": 0.25,
+      "threshold": 0.05,
+      "passed": false,
+      "severity": "警告",
+      "message": "保留 3/4 字段，丢失 1 个"
+    },
+    {
+      "dimension": "属性映射",
+      "metric": "geologic_boundary.geojson 丢失属性字段",
+      "value_before": "source",
+      "value_after": "无",
+      "deviation": 1.0,
+      "threshold": 0.0,
+      "passed": false,
+      "severity": "严重",
+      "message": "转换后丢失属性字段：source"
+    },
+    {
+      "dimension": "模型尺度",
+      "metric": "tunnel_model.obj 对角线长度",
+      "value_before": "113.6",
+      "value_after": "114.5",
+      "deviation": 0.007761,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "模型尺度一致"
+    },
+    {
+      "dimension": "模型尺度",
+      "metric": "tunnel_model.obj 顶点数",
+      "value_before": 8,
+      "value_after": 8,
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "顶点数变化 0.00%"
+    },
+    {
+      "dimension": "空间范围",
+      "metric": "tunnel_model.obj X 跨度",
+      "value_before": "100",
+      "value_after": "101",
+      "deviation": 0.01,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "X 跨度 范围一致"
+    },
+    {
+      "dimension": "空间范围",
+      "metric": "tunnel_model.obj Y 跨度",
+      "value_before": "50",
+      "value_after": "50",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Y 跨度 范围一致"
+    },
+    {
+      "dimension": "空间范围",
+      "metric": "tunnel_model.obj Z 跨度",
+      "value_before": "20",
+      "value_after": "20",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Z 跨度 范围一致"
+    },
+    {
+      "dimension": "坐标位置",
+      "metric": "tunnel_model.obj 模型中心偏移",
+      "value_before": "(5e+05, 3.4e+06, 1010)",
+      "value_after": "(5.001e+05, 3.4e+06, 1010)",
+      "deviation": 0.022011,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "中心偏移 2.5（相对跨度 2.20%）"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "tunnel_model.obj X 轴 min",
+      "value_before": "5e+05",
+      "value_after": "5e+05",
+      "deviation": 0.017609,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "X 轴 min 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "tunnel_model.obj X 轴 max",
+      "value_before": "5.001e+05",
+      "value_after": "5.001e+05",
+      "deviation": 0.026414,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "X 轴 max 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "tunnel_model.obj Y 轴 min",
+      "value_before": "3.4e+06",
+      "value_after": "3.4e+06",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Y 轴 min 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "tunnel_model.obj Y 轴 max",
+      "value_before": "3.4e+06",
+      "value_after": "3.4e+06",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Y 轴 max 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "tunnel_model.obj Z 轴 min",
+      "value_before": "1000",
+      "value_after": "1000",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Z 轴 min 边界一致"
+    },
+    {
+      "dimension": "关键边界",
+      "metric": "tunnel_model.obj Z 轴 max",
+      "value_before": "1020",
+      "value_after": "1020",
+      "deviation": 0.0,
+      "threshold": 0.05,
+      "passed": true,
+      "severity": "提示",
+      "message": "Z 轴 max 边界一致"
+    }
+  ],
+  "dimension_results": {
+    "坐标位置": {
+      "total": 3,
+      "passed": 2,
+      "failed": 1,
+      "pass_rate": 0.6667
+    },
+    "空间范围": {
+      "total": 9,
+      "passed": 6,
+      "failed": 3,
+      "pass_rate": 0.6667
+    },
+    "属性映射": {
+      "total": 4,
+      "passed": 0,
+      "failed": 4,
+      "pass_rate": 0.0
+    },
+    "模型尺度": {
+      "total": 6,
+      "passed": 4,
+      "failed": 2,
+      "pass_rate": 0.6667
+    },
+    "关键边界": {
+      "total": 18,
+      "passed": 16,
+      "failed": 2,
+      "pass_rate": 0.8889
+    }
+  },
+  "score": 70,
+  "grade": "合格",
+  "total_checks": 40,
+  "passed_checks": 28
+}

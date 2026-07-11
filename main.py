@@ -17,6 +17,9 @@ from function.batch_conversion import (
     build_batch_report, create_batch_from_paths, format_summary,
     get_manager, scan_directory_flat, size_fmt, WORKFLOW_STEPS,
 )
+from function.visual_comparison import (
+    COMPARISON_DIMENSIONS, VIEW_MODES, build_comparison_report, extract_snapshot,
+)
 from function.rule_template_library import (
     DATA_SOURCES,
     PROJECT_TYPES,
@@ -940,7 +943,7 @@ class GeoConversionApp(tk.Tk):
         # 数据预处理 & 地质语义编码模块隐藏"预览检查"页签
         preview_btn = self.page_buttons.get("预览检查")
         if preview_btn:
-            if self._is_preprocessing_module() or self._is_semantic_module() or self._is_template_module() or self._is_batch_module():
+            if self._is_preprocessing_module() or self._is_semantic_module() or self._is_template_module() or self._is_batch_module() or self._is_comparison_module():
                 preview_btn.pack_forget()
             elif not preview_btn.winfo_ismapped():
                 preview_btn.pack(side="left", before=self.page_buttons["任务与追溯"])
@@ -989,6 +992,10 @@ class GeoConversionApp(tk.Tk):
         if self._is_batch_module() and self.current_page == "预览检查":
             self.current_page = "工作台"
             self._render_batch_page()
+            self._refresh_content_scrollregion()
+            return
+        if self._is_comparison_module() and self.current_page == "工作台":
+            self._render_comparison_page()
             self._refresh_content_scrollregion()
             return
         if self._is_quality_module() and self.current_page == "工作台":
@@ -2039,6 +2046,201 @@ class GeoConversionApp(tk.Tk):
                     row=ri, column=1, sticky="w", padx=10, pady=2)
         tk.Frame(root, bg=self.BG, height=18).grid(row=2, column=0, sticky="ew")
 
+    def _render_comparison_page(self) -> None:
+        """可视化预览与对比检查模块专用工作台。"""
+        root = tk.Frame(self.content_host, bg=self.BG)
+        root.grid(row=0, column=0, sticky="ew")
+        root.columnconfigure(0, weight=1)
+
+        report = self.quality_report or {}
+        score = int(report.get("score", 0) or 0)
+        comps = report.get("comparisons", []) if isinstance(report.get("comparisons"), list) else []
+        dim_results = report.get("dimension_results", {}) if isinstance(report.get("dimension_results"), dict) else {}
+
+        # 顶部指标
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for idx in range(4):
+            summary.columnconfigure(idx, weight=1)
+        failed_count = report.get("total_checks", 0) - report.get("passed_checks", 0)
+        summary_items = (
+            ("对比评分", f"{score if self.run_completed else '--'}", "坐标 · 范围 · 属性 · 尺度 · 边界", self.TEAL),
+            ("通过率", f"{report.get('passed_checks', 0)}/{report.get('total_checks', 0)}" if self.run_completed else "待检查", "五项维度综合对比", self.GREEN if not failed_count else self.AMBER),
+            ("偏差项", f"{failed_count} 项" if self.run_completed else "待检查", "超出阈值的对比指标", self.RED if failed_count else self.GREEN),
+            ("预览模式", "2D+3D+剖切", "叠加·并排·剖切·热图", self.PURPLE),
+        )
+        for idx, item in enumerate(summary_items):
+            self._metric_card(summary, *item).grid(
+                row=0, column=idx, sticky="nsew",
+                padx=(0 if idx == 0 else 4, 0 if idx == 3 else 4),
+            )
+
+        work = tk.Frame(root, bg=self.BG)
+        work.grid(row=1, column=0, sticky="nsew")
+        work.columnconfigure(0, weight=32)
+        work.columnconfigure(1, weight=36)
+        work.columnconfigure(2, weight=32)
+
+        # 左：文件输入 + 快照预览
+        left_card = self._card(work)
+        left_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        left_card.columnconfigure(0, weight=1)
+        left_card.rowconfigure(3, weight=1)
+        self._card_header(left_card, "转换前后数据")
+        tk.Label(
+            left_card,
+            text="加载转换前后的模型文件对。优先识别 before/after 文件夹或文件名；无法识别时按前后各半分组。",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font,
+            justify="left", wraplength=360,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 9))
+
+        btn_row = tk.Frame(left_card, bg=self.PANEL)
+        btn_row.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 8))
+        ttk.Button(btn_row, text="添加文件", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(btn_row, text="加载示例", style="Blue.TButton", command=self._load_comparison_sample_data).pack(side="left", padx=7)
+        ttk.Button(btn_row, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left")
+
+        # 文件快照表
+        snap_tree = ttk.Treeview(
+            left_card, columns=("name", "verts", "bounds_x", "format"),
+            show="headings", style="Dashboard.Treeview", height=11,
+        )
+        for key, title, width in (("name", "文件", 170), ("verts", "顶点", 60),
+                                    ("bounds_x", "X跨度", 85), ("format", "格式", 55)):
+            snap_tree.heading(key, text=title)
+            snap_tree.column(key, width=width, anchor="w")
+        snap_tree.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 8))
+        if self.selected_files:
+            for fp in self.selected_files:
+                snap = extract_snapshot(fp)
+                snap_tree.insert("", "end", values=(snap.file_name, snap.vertex_count,
+                                f"{snap.bounds.span_x:.4g}" if snap.vertex_count else "-", snap.format))
+        else:
+            snap_tree.insert("", "end", values=("未加载文件", "-", "-", "-"))
+
+        # 中：对比结果清单
+        mid_card = self._card(work)
+        mid_card.grid(row=0, column=1, sticky="nsew", padx=5)
+        mid_card.columnconfigure(0, weight=1)
+        mid_card.rowconfigure(2, weight=1)
+        self._card_header(mid_card, "对比检查结果")
+        tk.Label(
+            mid_card,
+            text=f"共 {len(comps)} 项对比 · {report.get('passed_checks', 0)} 通过" if self.run_completed else "点击「执行对比检查」生成结果。",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font, anchor="w",
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 8))
+
+        comp_tree = ttk.Treeview(
+            mid_card, columns=("dim", "metric", "before", "after", "dev", "result"),
+            show="headings", style="Dashboard.Treeview", height=12,
+        )
+        for key, title, width in (("dim", "维度", 80), ("metric", "指标", 180),
+                                    ("before", "转换前", 100), ("after", "转换后", 100),
+                                    ("dev", "偏差", 65), ("result", "结果", 60)):
+            comp_tree.heading(key, text=title)
+            comp_tree.column(key, width=width, anchor="w")
+        comp_tree.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 8))
+        if comps:
+            for c in comps:
+                dev_str = f"{c.get('deviation', 0):.2%}" if c.get('deviation') is not None else "-"
+                comp_tree.insert("", "end", values=(
+                    c.get("dimension", ""), c.get("metric", ""),
+                    str(c.get("value_before", ""))[:25], str(c.get("value_after", ""))[:25],
+                    dev_str, "✓" if c.get("passed") else "✗",
+                ))
+        else:
+            comp_tree.insert("", "end", values=("待检查", "-", "-", "-", "-", "-"))
+
+        ttk.Button(mid_card, text="执行对比检查", style="Blue.TButton", command=self._run_comparison).grid(
+            row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
+
+        # 右：维度统计
+        right_card = self._card(work)
+        right_card.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        right_card.columnconfigure(0, weight=1)
+        right_card.rowconfigure(2, weight=1)
+        self._card_header(right_card, "维度偏差统计")
+        tk.Label(
+            right_card,
+            text="五项对比维度：坐标位置、空间范围、属性映射、模型尺度、关键边界。",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font,
+            justify="left", wraplength=370,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
+
+        dim_list = tk.Frame(right_card, bg=self.PANEL)
+        dim_list.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        dim_list.columnconfigure(0, weight=1)
+        DIM_COLORS = {"坐标位置": self.BLUE, "空间范围": self.TEAL, "属性映射": self.ORANGE,
+                       "模型尺度": self.PURPLE, "关键边界": self.RED}
+        for di, dim_name in enumerate(COMPARISON_DIMENSIONS):
+            accent = DIM_COLORS.get(dim_name, self.TEAL)
+            dr = dim_results.get(dim_name, {}) if isinstance(dim_results, dict) else {}
+            total_dim = dr.get("total", 0) if isinstance(dr, dict) else 0
+            passed_dim = dr.get("passed", 0) if isinstance(dr, dict) else 0
+            pass_rate = dr.get("pass_rate", 0) if isinstance(dr, dict) else 0
+
+            item = tk.Frame(dim_list, bg="#ffffff", highlightbackground=self.BORDER, highlightthickness=1)
+            item.grid(row=di, column=0, sticky="ew", pady=(0, 6))
+            item.columnconfigure(1, weight=1)
+            tk.Frame(item, bg=accent, width=4).grid(row=0, column=0, rowspan=3, sticky="ns")
+
+            tk.Label(item, text=dim_name, bg="#ffffff", fg=self.TEXT, font=(self.font_family, 10, "bold"), anchor="w").grid(
+                row=0, column=1, sticky="ew", padx=(10, 8), pady=(10, 2))
+
+            if self.run_completed and total_dim:
+                tk.Label(item, text=f"{passed_dim}/{total_dim} 项通过 · {pass_rate:.0%}",
+                         bg="#ffffff", fg=self.GREEN if passed_dim == total_dim else self.AMBER,
+                         font=(self.font_family, 8, "bold"), anchor="w").grid(
+                    row=1, column=1, sticky="ew", padx=(10, 8))
+                bar_bg = tk.Frame(item, bg="#e8edeb", height=6)
+                bar_bg.grid(row=2, column=1, sticky="ew", padx=10, pady=(4, 10))
+                bar_w = int(pass_rate * 200)
+                if bar_w:
+                    tk.Frame(bar_bg, bg=self.GREEN if pass_rate > 0.8 else self.AMBER if pass_rate > 0.5 else self.RED,
+                            width=bar_w, height=6).pack(side="left")
+            else:
+                tk.Label(item, text="待检查", bg="#ffffff", fg=self.MUTED, font=self.tiny_font, anchor="w").grid(
+                    row=1, column=1, sticky="ew", padx=(10, 8))
+                tk.Frame(item, bg="#ffffff", height=6).grid(row=2, column=1, sticky="ew", padx=10, pady=(4, 10))
+
+        # 下方全宽 OBJ 三维模型预览：每个导入模型使用独立视口
+        preview_card = self._card(root)
+        preview_card.grid(row=2, column=0, sticky="nsew", pady=(8, 0))
+        preview_card.columnconfigure(0, weight=1)
+        preview_card.rowconfigure(2, weight=1)
+        self._card_header(preview_card, "导入 OBJ 三维模型预览")
+        tk.Label(
+            preview_card,
+            text="导入多少个 OBJ，就生成多少个独立三维视口；所有视口同步旋转和缩放，不再把多个模型叠在一起。",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+            anchor="w",
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 8))
+
+        obj_count = sum(1 for fp in self.selected_files if Path(fp).suffix.lower() == ".obj")
+        if obj_count <= 2:
+            preview_rows = 1
+        elif obj_count <= 4:
+            preview_rows = 2
+        elif obj_count <= 9:
+            preview_rows = (obj_count + 2) // 3
+        else:
+            preview_rows = (obj_count + 3) // 4
+        preview_height = max(430, preview_rows * 300 + 58)
+
+        preview_canvas = tk.Canvas(
+            preview_card,
+            bg="#fbfcfc",
+            highlightbackground=self.BORDER,
+            highlightthickness=1,
+            height=preview_height,
+        )
+        preview_canvas.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.after_idle(lambda c=preview_canvas: self._start_3d_preview(c))
+
+        tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
+
     def _render_model_quality_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="ew")
@@ -2957,6 +3159,9 @@ class GeoConversionApp(tk.Tk):
             "并发数量": "4",
             "版本号": "V1.0.0",
             "预览模式": "二维 + 三维 + 剖切",
+            "剖切方向": "XY",
+            "差异阈值": "5%",
+            "对比指标": "全部",
             "语义字典": "地层,岩性,构造,地下水,不良地质,围岩等级,工程地质指标",
             "编码映射规则": "ORIGINAL→PROJECT",
             "同义词归一策略": "规范优先",
@@ -3155,7 +3360,14 @@ class GeoConversionApp(tk.Tk):
         canvas.bind("<ButtonPress-1>", self._3d_on_press)
         canvas.bind("<B1-Motion>", self._3d_on_drag)
         canvas.bind("<ButtonRelease-1>", self._3d_on_release)
-        canvas.bind("<MouseWheel>", self._3d_on_wheel)
+
+        # 普通滚轮始终交给外层页面滚动；只有 Ctrl + 滚轮才缩放三维模型。
+        # 回调返回 "break"，可阻止 Ctrl + 滚轮继续传递给页面滚动事件。
+        canvas.bind("<Control-MouseWheel>", self._3d_on_wheel)
+        # Linux/X11 滚轮兼容。
+        canvas.bind("<Control-Button-4>", lambda e: self._3d_on_linux_wheel(e, zoom_in=True))
+        canvas.bind("<Control-Button-5>", lambda e: self._3d_on_linux_wheel(e, zoom_in=False))
+
         # 当画布尺寸变化时立刻重绘（停止自动旋转时不依赖动画帧）
         canvas.bind("<Configure>", lambda _event, c=canvas: self._draw_3d_frame(c), add="+")
 
@@ -3170,7 +3382,12 @@ class GeoConversionApp(tk.Tk):
 
     def _3d_tick(self, canvas: tk.Canvas) -> None:
         """动画帧：自动旋转 + 重绘。"""
-        if self.current_page != "预览检查" or not (self._is_quality_module() or self._is_format_conversion_module()):
+        regular_preview = (
+            self.current_page == "预览检查"
+            and (self._is_quality_module() or self._is_format_conversion_module())
+        )
+        comparison_preview = self.current_page == "工作台" and self._is_comparison_module()
+        if not (regular_preview or comparison_preview):
             self._stop_3d_preview()
             return
         if self._3d_state.auto_spin:
@@ -3202,9 +3419,23 @@ class GeoConversionApp(tk.Tk):
         if self._3d_drag_start is None:
             self._3d_state.auto_spin = True
 
-    def _3d_on_wheel(self, event: tk.Event) -> None:
+    def _3d_on_wheel(self, event: tk.Event) -> str:
+        """Ctrl + 滚轮缩放模型，并阻止事件继续触发页面滚动。"""
         delta = 1.1 if event.delta > 0 else 0.9
-        self._3d_state.zoom = max(0.2, min(5.0, self._3d_state.zoom * delta))
+        self._3d_state.zoom = max(0.35, min(4.0, self._3d_state.zoom * delta))
+        canvas = getattr(self, "_3d_preview_canvas", None)
+        if canvas is not None and canvas.winfo_exists():
+            self._draw_3d_frame(canvas)
+        return "break"
+
+    def _3d_on_linux_wheel(self, _event: tk.Event, *, zoom_in: bool) -> str:
+        """兼容 Linux/X11 的 Ctrl + 滚轮缩放。"""
+        delta = 1.1 if zoom_in else 0.9
+        self._3d_state.zoom = max(0.35, min(4.0, self._3d_state.zoom * delta))
+        canvas = getattr(self, "_3d_preview_canvas", None)
+        if canvas is not None and canvas.winfo_exists():
+            self._draw_3d_frame(canvas)
+        return "break"
 
     # -- 核心渲染 -------------------------------------------------
     def _draw_3d_frame(self, canvas: tk.Canvas) -> None:
@@ -3214,7 +3445,14 @@ class GeoConversionApp(tk.Tk):
 
         # 背景
         canvas.create_rectangle(0, 0, width, height, fill="#fbfcfc", outline="")
-        canvas.create_text(14, 16, text="三维模型视图 — 成果预览", fill=self.TEXT, anchor="w", font=self.section_font)
+
+        # 可视化对比模块：每个 OBJ 使用一个独立视口，导入多少个就展示多少个
+        if self._is_comparison_module():
+            self._draw_comparison_model_grid(canvas, width, height)
+            return
+
+        title = "三维模型视图 — 成果预览"
+        canvas.create_text(14, 16, text=title, fill=self.TEXT, anchor="w", font=self.section_font)
 
         # 3D 视口区域
         margin = 40
@@ -3228,7 +3466,12 @@ class GeoConversionApp(tk.Tk):
 
         # 无模型时提示
         if not self._3d_models:
-            hint = "请通过「添加文件」导入 OBJ 三维模型文件" if self._is_format_conversion_module() else "请通过「加载数据」导入 OBJ 三维模型文件"
+            if self._is_comparison_module():
+                hint = "请在上方添加转换前、转换后的 OBJ 三维模型文件"
+            elif self._is_format_conversion_module():
+                hint = "请通过「添加文件」导入 OBJ 三维模型文件"
+            else:
+                hint = "请通过「加载数据」导入 OBJ 三维模型文件"
             canvas.create_text(vp_cx, vp_cy, text=hint, fill=self.MUTED, font=self.small_font)
             self._draw_3d_file_panel(canvas, width, height, vp_x + vp_w)
             return
@@ -3268,11 +3511,131 @@ class GeoConversionApp(tk.Tk):
         self._draw_3d_file_panel(canvas, width, height, vp_x + vp_w)
 
         # 状态栏
-        info = f"顶点: {sum(m.vertex_count for m in self._3d_models)} | 面片: {sum(m.face_count for m in self._3d_models)} | 拖拽旋转 · 滚轮缩放"
+        info = f"顶点: {sum(m.vertex_count for m in self._3d_models)} | 面片: {sum(m.face_count for m in self._3d_models)} | 拖拽旋转 · Ctrl+滚轮缩放"
         quality_issues = self.quality_report.get("issue_count", 0) if self.quality_report else 0
         if quality_issues:
             info = f"⚠ 发现 {quality_issues} 项缺陷/异常  |  {info}"
         canvas.create_text(width / 2, height - 14, text=info, fill=self.RED if quality_issues else self.MUTED, font=self.tiny_font)
+
+    def _draw_comparison_model_grid(self, canvas: tk.Canvas, width: float, height: float) -> None:
+        """在对比模块中为每个已导入 OBJ 建立独立三维视口。"""
+        canvas.create_text(
+            14,
+            16,
+            text=f"OBJ 三维模型独立预览 · 共 {len(self._3d_models)} 个模型",
+            fill=self.TEXT,
+            anchor="w",
+            font=self.section_font,
+        )
+
+        if not self._3d_models:
+            canvas.create_rectangle(14, 42, width - 14, height - 26, fill="#f0f4f3", outline=self.BORDER)
+            canvas.create_text(
+                width / 2,
+                height / 2,
+                text="请在上方添加 OBJ 三维模型文件",
+                fill=self.MUTED,
+                font=self.small_font,
+            )
+            return
+
+        count = len(self._3d_models)
+        if count == 1:
+            columns = 1
+        elif count <= 4:
+            columns = 2
+        elif count <= 9:
+            columns = 3
+        else:
+            columns = 4
+        rows = (count + columns - 1) // columns
+
+        outer_x = 14
+        outer_y = 42
+        outer_bottom = 28
+        gap = 12
+        usable_w = max(220.0, width - outer_x * 2)
+        usable_h = max(220.0, height - outer_y - outer_bottom)
+        tile_w = (usable_w - gap * (columns - 1)) / columns
+        tile_h = (usable_h - gap * (rows - 1)) / rows
+
+        state = self._3d_state
+        for model_index, model in enumerate(self._3d_models):
+            row = model_index // columns
+            col = model_index % columns
+            x0 = outer_x + col * (tile_w + gap)
+            y0 = outer_y + row * (tile_h + gap)
+            x1 = x0 + tile_w
+            y1 = y0 + tile_h
+
+            accent = self._model_color(model_index, 0.72)
+            canvas.create_rectangle(x0, y0, x1, y1, fill="#f7faf9", outline=self.BORDER)
+            canvas.create_rectangle(x0, y0, x0 + 5, y1, fill=accent, outline="")
+
+            canvas.create_text(
+                x0 + 15,
+                y0 + 16,
+                text=f"{model_index + 1}. {model.file_name}",
+                fill=self.TEXT,
+                anchor="w",
+                font=(self.font_family, 9, "bold"),
+            )
+            canvas.create_text(
+                x1 - 12,
+                y0 + 16,
+                text=f"顶点 {model.vertex_count} · 面片 {model.face_count}",
+                fill=self.MUTED,
+                anchor="e",
+                font=self.tiny_font,
+            )
+
+            viewport_x0 = x0 + 10
+            viewport_y0 = y0 + 34
+            viewport_x1 = x1 - 10
+            viewport_y1 = y1 - 24
+            canvas.create_rectangle(
+                viewport_x0,
+                viewport_y0,
+                viewport_x1,
+                viewport_y1,
+                fill="#eef3f2",
+                outline="#dfe8e5",
+            )
+
+            vp_w = max(80.0, viewport_x1 - viewport_x0)
+            vp_h = max(80.0, viewport_y1 - viewport_y0)
+            vp_cx = (viewport_x0 + viewport_x1) / 2
+            vp_cy = (viewport_y0 + viewport_y1) / 2
+            view_scale = min(vp_w, vp_h) * 0.46 * state.zoom
+
+            self._draw_3d_grid(canvas, vp_cx, vp_cy, view_scale, state)
+            transformed = transform_vertices(model, state)
+            faces_with_depth = collect_face_depths(transformed, model.faces)
+            faces_with_depth.sort(key=lambda item: item[0], reverse=True)
+
+            for _avg_z, _face_index, face in faces_with_depth:
+                try:
+                    pts = [transformed[i] for i in face]
+                except IndexError:
+                    continue
+                if len(pts) < 3 or not face_visible(pts[0], pts[1], pts[2]):
+                    continue
+                projected = tuple(project_ortho(p, view_scale, vp_cx, vp_cy) for p in pts)
+                shade = self._face_shade(pts)
+                canvas.create_polygon(
+                    *self._flatten_pts(projected),
+                    fill=self._model_color(model_index, shade),
+                    outline=self._model_color(model_index, 0.45),
+                    width=1,
+                )
+
+            canvas.create_text(
+                (x0 + x1) / 2,
+                y1 - 11,
+                text="左键拖拽旋转 · Ctrl+滚轮缩放",
+                fill=self.MUTED,
+                font=self.tiny_font,
+            )
 
     def _draw_3d_grid(self, canvas: tk.Canvas, cx: float, cy: float, scale: float, state: RenderState) -> None:
         """绘制参考网格平面 (XZ 平面)。"""
@@ -3425,6 +3788,37 @@ class GeoConversionApp(tk.Tk):
         self.run_status_var.set("目录数据已加载")
         self.status_var.set(f"目录扫描完成：新增 {added} 个文件")
         self._append_log(f"已扫描目录 {directory}，识别 {len(entries)} 个文件，新增 {added} 个。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _load_comparison_sample_data(self) -> None:
+        """加载 source/visual_comparison_examples 下的转换前后示例。"""
+        source_dir = Path(__file__).resolve().parent / "source" / "visual_comparison_examples"
+        before_dir = source_dir / "before"
+        after_dir = source_dir / "after"
+        supported = {".obj", ".stl", ".geojson", ".json", ".csv", ".txt", ".ply", ".vtk"}
+        before_files = sorted(
+            str(path.resolve()) for path in before_dir.rglob("*")
+            if path.is_file() and path.suffix.lower() in supported
+        ) if before_dir.exists() else []
+        after_files = sorted(
+            str(path.resolve()) for path in after_dir.rglob("*")
+            if path.is_file() and path.suffix.lower() in supported
+        ) if after_dir.exists() else []
+        self.selected_files = before_files + after_files
+        self.quality_report = None
+        self.conversion_report = None
+        self.run_completed = False
+        if before_files and after_files:
+            self.run_status_var.set("示例数据已加载")
+            self.status_var.set(f"已加载转换前 {len(before_files)} 个、转换后 {len(after_files)} 个示例文件")
+            self._append_log(
+                f"已加载可视化对比示例：before {len(before_files)} 个，after {len(after_files)} 个。"
+            )
+        else:
+            self.run_status_var.set("未找到示例数据")
+            self.status_var.set("未找到完整的转换前后示例数据")
+            self._append_log("请检查 source/visual_comparison_examples/before 和 after 目录。")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -3596,6 +3990,9 @@ class GeoConversionApp(tk.Tk):
         if self._is_batch_module():
             self._run_batch()
             return
+        if self._is_comparison_module():
+            self._run_comparison()
+            return
         if self._is_quality_module():
             self._run_model_quality_check()
             return
@@ -3628,6 +4025,9 @@ class GeoConversionApp(tk.Tk):
 
     def _is_batch_module(self) -> bool:
         return self.active_module.name == "自动化批量转换模块"
+
+    def _is_comparison_module(self) -> bool:
+        return self.active_module.name == "可视化预览与对比检查模块"
 
     def _is_format_conversion_module(self) -> bool:
         return self.active_module.name == "模型格式转换与输出模块"
@@ -3898,6 +4298,113 @@ class GeoConversionApp(tk.Tk):
                 self._append_log(f"[{entry.level}] {entry.message}")
         for output_file in job.outputs[:20]:
             self._append_log(f"成果文件：{output_file}")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    @staticmethod
+    def _parse_ratio(value: str, default: float = 0.05) -> float:
+        """将 5%、0.05、5 等输入统一转换为 0~1 的比例。"""
+        text = str(value).strip().replace("％", "%")
+        try:
+            if text.endswith("%"):
+                ratio = float(text[:-1].strip()) / 100.0
+            else:
+                ratio = float(text)
+                if ratio > 1:
+                    ratio /= 100.0
+        except (TypeError, ValueError):
+            return default
+        return max(0.0, min(ratio, 1.0))
+
+    def _split_comparison_files(self) -> tuple[list[str], list[str], str]:
+        """识别转换前后文件；优先目录/文件名标记，最后才使用前后各半。"""
+        before_files: list[str] = []
+        after_files: list[str] = []
+        unclassified: list[str] = []
+        before_parent_names = {"before", "pre", "转换前", "原始", "原数据"}
+        after_parent_names = {"after", "post", "转换后", "结果", "成果"}
+        before_tokens = ("before", "_pre", "pre_", "转换前", "原始")
+        after_tokens = ("after", "_post", "post_", "转换后", "结果")
+
+        for file_path in self.selected_files:
+            path = Path(file_path)
+            parent_name = path.parent.name.lower()
+            stem = path.stem.lower()
+            if parent_name in before_parent_names or any(token in stem for token in before_tokens):
+                before_files.append(file_path)
+            elif parent_name in after_parent_names or any(token in stem for token in after_tokens):
+                after_files.append(file_path)
+            else:
+                unclassified.append(file_path)
+
+        if before_files and after_files and not unclassified:
+            return sorted(before_files), sorted(after_files), "按 before/after 标记分组"
+
+        # 仅在无法完整识别时回退到“前一半/后一半”，但禁止奇数个文件和单文件自比较。
+        total = len(self.selected_files)
+        if total >= 2 and total % 2 == 0:
+            mid = total // 2
+            return self.selected_files[:mid], self.selected_files[mid:], "按文件列表前后各半分组"
+
+        return [], [], "文件数量必须为偶数，或分别放入 before/after 文件夹（也可在文件名中包含 before/after）"
+
+    def _run_comparison(self) -> None:
+        self._apply_params()
+        files_before, files_after, grouping_message = self._split_comparison_files()
+        if not files_before or not files_after:
+            self.run_completed = False
+            self.run_status_var.set("等待完整文件对")
+            self.status_var.set(grouping_message)
+            self._append_log(f"无法执行对比检查：{grouping_message}")
+            self._render_progress_strip()
+            self._render_current_page()
+            return
+
+        if len(files_before) != len(files_after):
+            self.run_completed = False
+            self.run_status_var.set("文件对不完整")
+            self.status_var.set(f"转换前 {len(files_before)} 个、转换后 {len(files_after)} 个，数量不一致")
+            self._append_log("对比检查已停止：转换前后文件数量不一致。")
+            self._render_progress_strip()
+            self._render_current_page()
+            return
+
+        threshold = self._parse_ratio(self.param_values.get("差异阈值", "5%"), 0.05)
+        self._append_log(
+            f"开始可视化对比检查：转换前 {len(files_before)} 个，转换后 {len(files_after)} 个；"
+            f"{grouping_message}；统一差异阈值 {threshold:.1%}。"
+        )
+        report = build_comparison_report(
+            files_before, files_after,
+            coordinate_threshold=threshold,
+            extent_threshold=threshold,
+            scale_threshold=threshold,
+            attribute_threshold=threshold,
+            boundary_threshold=threshold,
+        )
+        self.quality_report = report
+        self.run_completed = report.get("total_checks", 0) > 0
+        self.run_status_var.set("对比完成" if self.run_completed else "无有效结果")
+        self.status_var.set(f"对比检查完成：{report['score']} 分 · {report['passed_checks']}/{report['total_checks']} 通过")
+        self.task_payload_text = json.dumps(
+            {
+                "task": "visual_comparison",
+                "project": self.project_var.get(),
+                "module": self.active_module.name,
+                "grouping": grouping_message,
+                "difference_threshold": threshold,
+                "files_before": files_before, "files_after": files_after,
+                "comparison_report": report,
+                "mysql_tables": list(self.active_module.mysql_tables),
+            },
+            ensure_ascii=False, indent=2,
+        )
+        for dim, res in report.get("dimension_results", {}).items():
+            if res.get("total"):
+                self._append_log(f"{dim}：{res['passed']}/{res['total']} 通过 ({res['pass_rate']:.1%})")
+        for c in report.get("comparisons", []):
+            if not c.get("passed"):
+                self._append_log(f"[{c.get('severity', '')}] {c.get('metric', '')}：{c.get('message', '')}")
         self._render_progress_strip()
         self._render_current_page()
 

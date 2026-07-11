@@ -1,0 +1,19 @@
+{
+  "type": "FeatureCollection",
+  "name": "转换前地质边界",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "B01",
+        "name": "砂岩-页岩接触带",
+        "lithology": "砂岩/页岩",
+        "source": "工程地质平面图"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[2000,3000],[2080,3000],[2080,3060],[2000,3060],[2000,3000]]]
+      }
+    }
+  ]
+}
