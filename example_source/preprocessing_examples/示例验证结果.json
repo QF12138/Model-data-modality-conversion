@@ -1,0 +1,198 @@
+[
+  {
+    "file": "01_钻孔数据_综合问题.csv",
+    "score": 67,
+    "grade": "需复核",
+    "issue_count": 7,
+    "categories": {
+      "字段校验": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "缺失值识别": {
+        "status": "未通过",
+        "issue_count": 3
+      },
+      "重复数据清理": {
+        "status": "通过（有提示）",
+        "issue_count": 1
+      },
+      "异常值检查": {
+        "status": "需复核",
+        "issue_count": 1
+      },
+      "单位规范化": {
+        "status": "通过（有提示）",
+        "issue_count": 2
+      }
+    }
+  },
+  {
+    "file": "02_剖面数据_缺少终点Y字段.csv",
+    "score": 86,
+    "grade": "良好",
+    "issue_count": 2,
+    "categories": {
+      "字段校验": {
+        "status": "未通过",
+        "issue_count": 1
+      },
+      "缺失值识别": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "重复数据清理": {
+        "status": "通过（有提示）",
+        "issue_count": 1
+      },
+      "异常值检查": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "单位规范化": {
+        "status": "通过",
+        "issue_count": 0
+      }
+    }
+  },
+  {
+    "file": "03_点云数据_重复缺失与高程异常.csv",
+    "score": 88,
+    "grade": "良好",
+    "issue_count": 3,
+    "categories": {
+      "字段校验": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "缺失值识别": {
+        "status": "需复核",
+        "issue_count": 1
+      },
+      "重复数据清理": {
+        "status": "通过（有提示）",
+        "issue_count": 1
+      },
+      "异常值检查": {
+        "status": "需复核",
+        "issue_count": 1
+      },
+      "单位规范化": {
+        "status": "通过",
+        "issue_count": 0
+      }
+    }
+  },
+  {
+    "file": "04_栅格像元_缺失重复与异常.csv",
+    "score": 83,
+    "grade": "合格",
+    "issue_count": 4,
+    "categories": {
+      "字段校验": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "缺失值识别": {
+        "status": "需复核",
+        "issue_count": 2
+      },
+      "重复数据清理": {
+        "status": "通过（有提示）",
+        "issue_count": 1
+      },
+      "异常值检查": {
+        "status": "需复核",
+        "issue_count": 1
+      },
+      "单位规范化": {
+        "status": "通过",
+        "issue_count": 0
+      }
+    }
+  },
+  {
+    "file": "05_矢量点要素_属性缺失与重复.geojson",
+    "score": 86,
+    "grade": "良好",
+    "issue_count": 4,
+    "categories": {
+      "字段校验": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "缺失值识别": {
+        "status": "需复核",
+        "issue_count": 2
+      },
+      "重复数据清理": {
+        "status": "通过（有提示）",
+        "issue_count": 1
+      },
+      "异常值检查": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "单位规范化": {
+        "status": "通过（有提示）",
+        "issue_count": 1
+      }
+    }
+  },
+  {
+    "file": "06_网格模型_重复顶点非法面与开放边.obj",
+    "score": 79,
+    "grade": "合格",
+    "issue_count": 4,
+    "categories": {
+      "字段校验": {
+        "status": "未通过",
+        "issue_count": 1
+      },
+      "缺失值识别": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "重复数据清理": {
+        "status": "通过（有提示）",
+        "issue_count": 2
+      },
+      "异常值检查": {
+        "status": "需复核",
+        "issue_count": 1
+      },
+      "单位规范化": {
+        "status": "通过",
+        "issue_count": 0
+      }
+    }
+  },
+  {
+    "file": "07_正常地质样本_对照.csv",
+    "score": 100,
+    "grade": "优秀",
+    "issue_count": 0,
+    "categories": {
+      "字段校验": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "缺失值识别": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "重复数据清理": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "异常值检查": {
+        "status": "通过",
+        "issue_count": 0
+      },
+      "单位规范化": {
+        "status": "通过",
+        "issue_count": 0
+      }
+    }
+  }
+]

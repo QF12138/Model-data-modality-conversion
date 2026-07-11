@@ -10,6 +10,7 @@ from pathlib import Path
 from tkinter import filedialog, font as tkfont
 from tkinter import ttk
 
+from function.data_preprocessing import build_preprocessing_report
 from function.model_quality_check import build_model_quality_report
 from function.model_format_conversion import (
     ATTRIBUTE_RULES,
@@ -915,6 +916,15 @@ class GeoConversionApp(tk.Tk):
         self._stop_3d_preview()
         for child in self.content_host.winfo_children():
             child.destroy()
+
+        # 数据预处理模块隐藏"预览检查"页签
+        preview_btn = self.page_buttons.get("预览检查")
+        if preview_btn:
+            if self._is_preprocessing_module():
+                preview_btn.pack_forget()
+            elif not preview_btn.winfo_ismapped():
+                preview_btn.pack(side="left", before=self.page_buttons["任务与追溯"])
+
         for name, button in self.page_buttons.items():
             active = name == self.current_page
             button.configure(
@@ -924,6 +934,16 @@ class GeoConversionApp(tk.Tk):
             )
         self.overview_button.configure(bg=self.TEAL if self.current_page == "工作台" else self.SIDEBAR_ITEM)
 
+        if self._is_preprocessing_module() and self.current_page == "工作台":
+            self._render_preprocessing_page()
+            self._refresh_content_scrollregion()
+            return
+        # 数据预处理模块不需要预览检查页，直接回到工作台
+        if self._is_preprocessing_module() and self.current_page == "预览检查":
+            self.current_page = "工作台"
+            self._render_preprocessing_page()
+            self._refresh_content_scrollregion()
+            return
         if self._is_quality_module() and self.current_page == "工作台":
             self._render_model_quality_page()
             self._refresh_content_scrollregion()
@@ -1074,6 +1094,189 @@ class GeoConversionApp(tk.Tk):
         self._compact_info_section(spec_body, 1, "关键参数", self.active_module.parameters, self.BLUE)
         self._compact_info_section(spec_body, 2, "质量检查", self._profile()["checks"], self.ORANGE)
         self._compact_info_section(spec_body, 3, "成果输出", self.active_module.outputs, self.PURPLE)
+
+    def _render_preprocessing_page(self) -> None:
+        """数据预处理与质量清洗模块专用工作台。"""
+        root = tk.Frame(self.content_host, bg=self.BG)
+        root.grid(row=0, column=0, sticky="ew")
+        root.columnconfigure(0, weight=1)
+
+        report = self.quality_report or {}
+        score = int(report.get("score", 0) or 0)
+        issue_count = int(report.get("issue_count", 0) or 0)
+        file_count = int(report.get("file_count", len(self.selected_files)) or 0)
+
+        # 顶部指标卡
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for idx in range(4):
+            summary.columnconfigure(idx, weight=1)
+        summary_items = (
+            ("清洗评分", f"{score if self.run_completed else '--'}", "字段 · 缺失 · 重复 · 异常 · 单位综合结果", self.TEAL),
+            ("数据问题", f"{issue_count} 项" if self.run_completed else "待清洗", "严重/警告/提示分级定位", self.RED if issue_count else self.GREEN),
+            ("检查文件", f"{file_count} 个", "表格 / GeoJSON / 网格 / 点云", self.BLUE),
+            ("检查维度", "5 类", "字段校验、缺失值、重复、异常、单位", self.PURPLE),
+        )
+        for idx, item in enumerate(summary_items):
+            self._metric_card(summary, *item).grid(
+                row=0, column=idx, sticky="nsew",
+                padx=(0 if idx == 0 else 4, 0 if idx == 3 else 4),
+            )
+
+        work = tk.Frame(root, bg=self.BG)
+        work.grid(row=1, column=0, sticky="nsew")
+        work.columnconfigure(0, weight=30)
+        work.columnconfigure(1, weight=38)
+        work.columnconfigure(2, weight=32)
+
+        # 左：数据输入
+        input_card = self._card(work)
+        input_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        input_card.columnconfigure(0, weight=1)
+        input_card.rowconfigure(3, weight=1)
+        self._card_header(input_card, "数据输入")
+        tk.Label(
+            input_card,
+            text="导入钻孔、剖面、点云、栅格、矢量、网格或表格文件。系统自动识别格式并执行字段校验与质量清洗。",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font,
+            justify="left", wraplength=360,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
+
+        input_actions = tk.Frame(input_card, bg=self.PANEL)
+        input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
+        ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
+
+        file_tree = ttk.Treeview(
+            input_card, columns=("name", "type", "state"), show="headings",
+            style="Dashboard.Treeview", height=11,
+        )
+        for key, title, width in (("name", "文件", 220), ("type", "类型", 80), ("state", "状态", 90)):
+            file_tree.heading(key, text=title)
+            file_tree.column(key, width=width, anchor="w")
+        file_tree.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        files = report.get("files", []) if isinstance(report.get("files"), list) else []
+        if files:
+            for item in files:
+                file_tree.insert("", "end", values=(item.get("name", ""), item.get("type", ""), item.get("status", "")))
+        elif self.selected_files:
+            for file_path in self.selected_files:
+                suffix = Path(file_path).suffix.lower() or "unknown"
+                file_tree.insert("", "end", values=(Path(file_path).name, suffix, "待清洗"))
+        else:
+            file_tree.insert("", "end", values=("未加载数据", "-", "待接入"))
+
+        # 中：清洗流程与字段列表
+        check_card = self._card(work)
+        check_card.grid(row=0, column=1, sticky="nsew", padx=5)
+        check_card.columnconfigure(0, weight=1)
+        check_card.rowconfigure(3, weight=1)
+        self._card_header(check_card, "清洗流程与字段概览")
+
+        flow = tk.Frame(check_card, bg=self.PANEL)
+        flow.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        for idx, (title, caption) in enumerate((
+            ("1 字段校验", "识别必填字段、\n数据类型与格式"),
+            ("2 缺失/重复", "定位缺失值与\n重复记录"),
+            ("3 异常/单位", "异常值检测与\n单位规范化"),
+            ("4 质量报告", "输出评分与\n问题清单"),
+        )):
+            flow.columnconfigure(idx, weight=1)
+            item = tk.Frame(flow, bg=self.TEAL_SOFT if idx == 0 or self.run_completed else "#f7faf9", highlightbackground=self.BORDER, highlightthickness=1)
+            item.grid(row=0, column=idx, sticky="ew", padx=(0 if idx == 0 else 5, 0))
+            tk.Label(item, text=title, bg=item["bg"], fg=self.TEXT, font=(self.font_family, 9, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+            tk.Label(item, text=caption, bg=item["bg"], fg=self.MUTED, font=self.tiny_font, justify="left").pack(anchor="w", padx=10, pady=(0, 8))
+
+        # 字段概览表
+        field_tree = ttk.Treeview(
+            check_card, columns=("field", "dtype", "missing", "outliers", "unit"),
+            show="headings", style="Dashboard.Treeview", height=9,
+        )
+        for key, title, width in (("field", "字段名", 140), ("dtype", "类型", 70), ("missing", "缺失率", 70), ("outliers", "异常值", 70), ("unit", "检测单位", 90)):
+            field_tree.heading(key, text=title)
+            field_tree.column(key, width=width, anchor="w")
+        field_tree.grid(row=2, column=0, sticky="nsew", padx=12)
+        fields = report.get("fields", []) if isinstance(report.get("fields"), list) else []
+        if fields:
+            for f in fields:
+                field_tree.insert("", "end", values=(
+                    f.get("name", ""), f.get("dtype", ""),
+                    f"{float(f.get('null_ratio', 0) or 0):.1%}",
+                    f.get("outlier_count", 0),
+                    f.get("unit_detected", "-") or "-",
+                ))
+        else:
+            field_tree.insert("", "end", values=("-", "待执行", "-", "-", "-"))
+
+        ttk.Button(check_card, text="执行数据清洗", style="Blue.TButton", command=self._run_preprocessing).grid(
+            row=3, column=0, sticky="ew", padx=12, pady=(10, 12))
+
+        # 右：结论与操作
+        result_card = self._card(work)
+        result_card.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        result_card.columnconfigure(0, weight=1)
+        result_card.rowconfigure(2, weight=1)
+        self._card_header(result_card, "清洗结论")
+        grade = report.get("grade", "待清洗")
+        tk.Label(result_card, text=str(score) if self.run_completed else "--", bg=self.PANEL,
+                 fg=self.TEAL_DARK, font=(self.font_family, 34, "bold")).grid(row=1, column=0, sticky="w", padx=15)
+        tk.Label(result_card, text=f"综合等级：{grade}", bg=self.PANEL, fg=self.MUTED, font=self.small_font).grid(
+            row=1, column=0, sticky="w", padx=18, pady=(60, 0))
+
+        conclusion = self._preprocessing_conclusion(report)
+        tk.Label(
+            result_card, text=conclusion, bg="#f8faf9", fg=self.TEXT, font=self.small_font,
+            justify="left", anchor="nw", wraplength=340, padx=12, pady=10,
+        ).grid(row=2, column=0, sticky="nsew", padx=12, pady=(10, 12))
+        ttk.Button(result_card, text="执行数据清洗", style="Blue.TButton", command=self._run_preprocessing).grid(
+            row=3, column=0, sticky="ew", padx=12, pady=(0, 8))
+        ttk.Button(result_card, text="导出清洗报告", style="Purple.TButton", command=self._export_report).grid(
+            row=4, column=0, sticky="ew", padx=12, pady=(0, 12))
+
+        # 底部：问题清单
+        issue_card = self._card(root)
+        issue_card.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        issue_card.columnconfigure(0, weight=1)
+        self._card_header(issue_card, "数据问题与异常清单")
+        issue_tree = ttk.Treeview(
+            issue_card, columns=("severity", "category", "file", "field", "message"),
+            show="headings", style="Dashboard.Treeview", height=7,
+        )
+        for key, title, width in (("severity", "级别", 70), ("category", "类别", 100), ("file", "来源文件", 180), ("field", "字段", 100), ("message", "问题描述", 630)):
+            issue_tree.heading(key, text=title)
+            issue_tree.column(key, width=width, anchor="w")
+        issue_tree.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 12))
+        issues = report.get("issues", []) if isinstance(report.get("issues"), list) else []
+        if issues:
+            for issue in issues:
+                issue_tree.insert("", "end", values=(
+                    issue.get("severity", ""), issue.get("category", ""),
+                    issue.get("file", ""), issue.get("field", "") or "-",
+                    issue.get("message", ""),
+                ))
+        else:
+            issue_tree.insert("", "end", values=("待检查", "全部", "-", "-", "加载数据文件后执行数据清洗。"))
+        tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
+
+    def _preprocessing_conclusion(self, report: dict[str, object]) -> str:
+        if not report:
+            return (
+                "本页面覆盖数据预处理与质量清洗模块的全部要求：\n"
+                "1. 字段校验\n2. 缺失值识别\n3. 重复数据清理\n"
+                "4. 异常值检查\n5. 单位规范化处理\n\n"
+                "请先添加数据文件，再执行数据清洗。"
+            )
+        failed = [item["name"] for item in report.get("categories", []) if item.get("status") not in ("通过", "通过（有提示）")]
+        if not failed:
+            score = int(report.get("score", 0) or 0)
+            if score >= 95:
+                return "数据质量优秀，可进入后续模态转换流程。"
+            return f"数据清洗评分 {score} 分，整体可用，建议复核提示项后进入后续流程。"
+        return (
+            f"清洗评分 {report.get('score')}，等级 {report.get('grade')}。\n\n"
+            f"需重点复核：{'、'.join(failed)}。\n\n"
+            "下方问题清单给出了来源文件、问题类别和处理优先级。"
+        )
 
     def _render_model_quality_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
@@ -2464,6 +2667,9 @@ class GeoConversionApp(tk.Tk):
         self.status_var.set(f"已预留模板保存接口：{BACKEND_ENDPOINTS['save_template']}")
 
     def _run_stub(self) -> None:
+        if self._is_preprocessing_module():
+            self._run_preprocessing()
+            return
         if self._is_quality_module():
             self._run_model_quality_check()
             return
@@ -2481,6 +2687,9 @@ class GeoConversionApp(tk.Tk):
         self.task_payload_text += "\n接口占位：后端接入后将提交任务并轮询运行状态。\n"
         self._render_progress_strip()
         self._render_current_page()
+
+    def _is_preprocessing_module(self) -> bool:
+        return self.active_module.name == "数据预处理与质量清洗模块"
 
     def _is_quality_module(self) -> bool:
         return self.active_module.name == "模型质量校验模块"
@@ -2537,6 +2746,39 @@ class GeoConversionApp(tk.Tk):
             self._append_log(f"警告：{warning}")
         for error in report.get("errors", []):
             self._append_log(f"失败：{error}")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _run_preprocessing(self) -> None:
+        self._append_log("开始执行数据预处理与质量清洗。")
+        report = build_preprocessing_report(
+            self.selected_files,
+            required_fields=self.param_values.get("字段必填规则", "").split(",") if self.param_values.get("字段必填规则") else None,
+            duplicate_keys=self.param_values.get("重复识别键", "").split(",") if self.param_values.get("重复识别键") else None,
+            outlier_sigma=float(self.param_values.get("异常值阈值", "3.0") or "3.0"),
+        )
+        self.quality_report = report
+        self.run_completed = True
+        self.run_status_var.set("清洗完成")
+        self.status_var.set(f"数据预处理完成：{report['score']} 分 / {report['grade']}")
+        self.task_payload_text = json.dumps(
+            {
+                "task": "data_preprocessing",
+                "project": self.project_var.get(),
+                "module": self.active_module.name,
+                "input_files": self.selected_files,
+                "parameters": self.param_values,
+                "preprocessing_report": report,
+                "mysql_tables": list(self.active_module.mysql_tables),
+                "backend_endpoint": BACKEND_ENDPOINTS["run_task"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        for category in report["categories"]:
+            self._append_log(f"{category['name']}：{category['status']}，问题 {category['issue_count']} 项。")
+        for issue in report.get("issues", [])[:10]:
+            self._append_log(f"[{issue.get('severity', '')}] {issue.get('file', '')}：{issue.get('message', '')}")
         self._render_progress_strip()
         self._render_current_page()
 

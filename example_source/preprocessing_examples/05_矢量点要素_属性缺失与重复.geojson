@@ -1,0 +1,276 @@
+{
+  "type": "FeatureCollection",
+  "name": "geological_sampling_points",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-001",
+        "lithology": "砂岩",
+        "density": 2450,
+        "permeability": 0.0001,
+        "dip_angle": 20
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500000,
+          3400000,
+          105.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-002",
+        "lithology": "砂岩",
+        "density": 2458,
+        "permeability": 0.0002,
+        "dip_angle": 27
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500015,
+          3400011,
+          105.4
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-003",
+        "lithology": "",
+        "density": 2466,
+        "permeability": 0.00030000000000000003,
+        "dip_angle": 34
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500030,
+          3400022,
+          105.8
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-004",
+        "lithology": "砂岩",
+        "density": 2474,
+        "permeability": 0.0004,
+        "dip_angle": 41
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500045,
+          3400033,
+          106.2
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-005",
+        "lithology": "砂岩",
+        "density": "",
+        "permeability": 0.0005,
+        "dip_angle": 48
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500060,
+          3400044,
+          106.6
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-006",
+        "lithology": "砂岩",
+        "density": 2490,
+        "permeability": 0.0006000000000000001,
+        "dip_angle": 55
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500075,
+          3400055,
+          107.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-007",
+        "lithology": "砂岩",
+        "density": 2498,
+        "permeability": 0.0007,
+        "dip_angle": 20
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500090,
+          3400066,
+          107.4
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-008",
+        "lithology": "",
+        "density": 2506,
+        "permeability": 0.0008,
+        "dip_angle": 27
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500105,
+          3400077,
+          107.8
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-009",
+        "lithology": "泥岩",
+        "density": 2514,
+        "permeability": 0.0009000000000000001,
+        "dip_angle": 34
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500120,
+          3400088,
+          108.2
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-010",
+        "lithology": "泥岩",
+        "density": "",
+        "permeability": 0.001,
+        "dip_angle": 41
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500135,
+          3400099,
+          108.6
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-011",
+        "lithology": "泥岩",
+        "density": 2530,
+        "permeability": 0.0011,
+        "dip_angle": 48
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500150,
+          3400110,
+          109.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-012",
+        "lithology": "",
+        "density": 2538,
+        "permeability": 0.0012000000000000001,
+        "dip_angle": 55
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500165,
+          3400121,
+          109.4
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-013",
+        "lithology": "泥岩",
+        "density": 2546,
+        "permeability": 0.0013000000000000002,
+        "dip_angle": 20
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500180,
+          3400132,
+          109.8
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-014",
+        "lithology": "泥岩",
+        "density": 2554,
+        "permeability": 0.0014,
+        "dip_angle": 27
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500195,
+          3400143,
+          110.2
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_id": "GEO-006",
+        "lithology": "砂岩",
+        "density": 2490,
+        "permeability": 0.0006000000000000001,
+        "dip_angle": 55
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          500075,
+          3400055,
+          107.0
+        ]
+      }
+    }
+  ]
+}
