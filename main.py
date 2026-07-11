@@ -1416,6 +1416,133 @@ class GeoConversionApp(tk.Tk):
             row=3, column=0, sticky="ew", padx=12, pady=(0, 12)
         )
 
+    def _render_conversion_preview_page(self, root: tk.Frame) -> None:
+        """模型格式转换与输出模块专用预览页：三维模型 + 模型统计，不显示质量检查清单。"""
+        root.columnconfigure(0, weight=62)
+        root.columnconfigure(1, weight=38)
+
+        # —— 左侧：三维模型预览 ——
+        preview_card = self._card(root)
+        preview_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        preview_card.columnconfigure(0, weight=1)
+        preview_card.rowconfigure(1, weight=1)
+        self._card_header(preview_card, "成果预览 — 导入三维模型")
+        canvas = tk.Canvas(preview_card, bg="#fbfcfc", highlightthickness=0, height=520)
+        canvas.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 10))
+        self._start_3d_preview(canvas)
+
+        # —— 右侧：模型统计信息 ——
+        info_card = self._card(root)
+        info_card.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        info_card.columnconfigure(0, weight=1)
+        info_card.rowconfigure(2, weight=1)
+        self._card_header(info_card, "模型信息")
+
+        # 模型统计概览
+        total_vertices = sum(m.vertex_count for m in self._3d_models)
+        total_faces = sum(m.face_count for m in self._3d_models)
+        tk.Label(
+            info_card,
+            text=f"{len(self._3d_models)} 个" if self._3d_models else "--",
+            bg=self.PANEL,
+            fg=self.TEAL_DARK,
+            font=(self.font_family, 28, "bold"),
+        ).grid(row=1, column=0, sticky="w", padx=15)
+        tk.Label(
+            info_card,
+            text=f"已加载模型 · {total_vertices} 顶点 · {total_faces} 面片",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+        ).grid(row=1, column=0, sticky="w", padx=18, pady=(60, 0))
+
+        body = tk.Frame(info_card, bg=self.PANEL)
+        body.grid(row=2, column=0, sticky="nsew", padx=13, pady=(10, 12))
+        body.columnconfigure(0, weight=1)
+
+        if self._3d_models:
+            for mi, model in enumerate(self._3d_models[:8]):
+                accent = self._model_color(mi, 0.7)
+                item = tk.Frame(body, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1)
+                item.grid(row=mi, column=0, sticky="ew", pady=(0, 6))
+                item.columnconfigure(1, weight=1)
+                tk.Frame(item, bg=accent, width=4).grid(row=0, column=0, rowspan=2, sticky="ns")
+                tk.Label(
+                    item,
+                    text=model.file_name[:35],
+                    bg="#f7faf9",
+                    fg=self.TEXT,
+                    font=(self.font_family, 9, "bold"),
+                    anchor="w",
+                ).grid(row=0, column=1, sticky="ew", padx=(9, 8), pady=(6, 0))
+                tk.Label(
+                    item,
+                    text=f"顶点 {model.vertex_count} · 面片 {model.face_count} · 范围 {model.scale:.4g}",
+                    bg="#f7faf9",
+                    fg=self.MUTED,
+                    font=self.tiny_font,
+                    anchor="w",
+                ).grid(row=1, column=1, sticky="ew", padx=(9, 8), pady=(1, 6))
+        elif self.selected_files:
+            for idx, file_path in enumerate(self.selected_files[:10]):
+                suffix = Path(file_path).suffix.lower() or "unknown"
+                item = tk.Frame(body, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1)
+                item.grid(row=idx, column=0, sticky="ew", pady=(0, 6))
+                item.columnconfigure(1, weight=1)
+                tk.Frame(item, bg=self.MUTED, width=4).grid(row=0, column=0, rowspan=2, sticky="ns")
+                tk.Label(
+                    item,
+                    text=Path(file_path).name[:35],
+                    bg="#f7faf9",
+                    fg=self.TEXT,
+                    font=(self.font_family, 9, "bold"),
+                    anchor="w",
+                ).grid(row=0, column=1, sticky="ew", padx=(9, 8), pady=(6, 0))
+                hint = "OBJ 可三维预览" if suffix == ".obj" else "仅支持 OBJ 三维预览"
+                tk.Label(
+                    item,
+                    text=f"格式 {suffix} · {hint}",
+                    bg="#f7faf9",
+                    fg=self.MUTED,
+                    font=self.tiny_font,
+                    anchor="w",
+                ).grid(row=1, column=1, sticky="ew", padx=(9, 8), pady=(1, 6))
+        else:
+            tk.Label(
+                body,
+                text="尚未加载三维模型文件。\n\n请在「工作台」页面点击「添加文件」\n导入 OBJ 格式的三维地质模型，\n即可在此预览模型结构。",
+                bg="#f8faf9",
+                fg=self.MUTED,
+                font=self.small_font,
+                justify="left",
+                wraplength=330,
+                padx=10,
+                pady=10,
+            ).grid(row=0, column=0, sticky="ew")
+
+        # 转换结果摘要
+        if self.conversion_report:
+            sep = tk.Frame(info_card, bg=self.BORDER, height=1)
+            sep.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 8))
+            tk.Label(
+                info_card,
+                text=f"转换状态：{self.conversion_report.get('status', '')}",
+                bg=self.PANEL,
+                fg=self.GREEN if self.run_completed else self.MUTED,
+                font=(self.font_family, 9, "bold"),
+                anchor="w",
+            ).grid(row=4, column=0, sticky="ew", padx=15)
+            success = int(self.conversion_report.get("success_count", 0) or 0)
+            failure = int(self.conversion_report.get("failure_count", 0) or 0)
+            tk.Label(
+                info_card,
+                text=f"成功 {success} 个 · 失败 {failure} 个",
+                bg=self.PANEL,
+                fg=self.MUTED,
+                font=self.small_font,
+                anchor="w",
+            ).grid(row=5, column=0, sticky="ew", padx=15, pady=(3, 0))
+
     def _choose_conversion_output_dir(self) -> None:
         directory = filedialog.askdirectory(title="选择成果输出目录")
         if directory:
@@ -1501,6 +1628,12 @@ class GeoConversionApp(tk.Tk):
     def _render_preview_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="ew")
+
+        # —— 模型格式转换与输出模块：展示导入的三维模型，不显示质量检查清单 ——
+        if self._is_format_conversion_module():
+            self._render_conversion_preview_page(root)
+            return
+
         root.columnconfigure(0, weight=72)
         root.columnconfigure(1, weight=28)
 
@@ -2060,7 +2193,7 @@ class GeoConversionApp(tk.Tk):
 
     def _3d_tick(self, canvas: tk.Canvas) -> None:
         """动画帧：自动旋转 + 重绘。"""
-        if self.current_page != "预览检查" or not self._is_quality_module():
+        if self.current_page != "预览检查" or not (self._is_quality_module() or self._is_format_conversion_module()):
             self._stop_3d_preview()
             return
         if self._3d_state.auto_spin:
@@ -2104,7 +2237,7 @@ class GeoConversionApp(tk.Tk):
 
         # 背景
         canvas.create_rectangle(0, 0, width, height, fill="#fbfcfc", outline="")
-        canvas.create_text(14, 16, text="三维模型视图", fill=self.TEXT, anchor="w", font=self.section_font)
+        canvas.create_text(14, 16, text="三维模型视图 — 成果预览", fill=self.TEXT, anchor="w", font=self.section_font)
 
         # 3D 视口区域
         margin = 40
@@ -2118,7 +2251,8 @@ class GeoConversionApp(tk.Tk):
 
         # 无模型时提示
         if not self._3d_models:
-            canvas.create_text(vp_cx, vp_cy, text="请通过「加载数据」导入 OBJ 三维模型文件", fill=self.MUTED, font=self.small_font)
+            hint = "请通过「添加文件」导入 OBJ 三维模型文件" if self._is_format_conversion_module() else "请通过「加载数据」导入 OBJ 三维模型文件"
+            canvas.create_text(vp_cx, vp_cy, text=hint, fill=self.MUTED, font=self.small_font)
             self._draw_3d_file_panel(canvas, width, height, vp_x + vp_w)
             return
 
@@ -2193,13 +2327,15 @@ class GeoConversionApp(tk.Tk):
         """右侧：导入文件清单。"""
         panel_x = left + 20
         canvas.create_rectangle(left + 1, 48, width - 14, height - 22, fill="#f6f9f8", outline=self.BORDER)
-        canvas.create_text(panel_x + 4, 70, text="复核文件清单", fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 10, "bold"))
+        is_conversion = self._is_format_conversion_module()
+        panel_title = "导入模型清单" if is_conversion else "复核文件清单"
+        canvas.create_text(panel_x + 4, 70, text=panel_title, fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 10, "bold"))
 
         files = self.quality_report.get("files", []) if self.quality_report else []
         if not files and self.selected_files:
             files = [{"name": Path(p).name, "type": Path(p).suffix.lower() or "unknown", "status": "待检查"} for p in self.selected_files]
         if not files:
-            files = [{"name": "尚未加载复核文件", "type": "-", "status": "待接入"}]
+            files = [{"name": "尚未加载复核文件" if not is_conversion else "尚未加载模型文件", "type": "-", "status": "待接入"}]
 
         y0 = 106
         for idx, item in enumerate(files[:10]):
