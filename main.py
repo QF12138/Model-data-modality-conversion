@@ -468,7 +468,7 @@ class GeoConversionApp(tk.Tk):
 
         self.backend = BackendClient()
         self.active_module = FEATURE_MODULES[0]
-        self.selected_files: list[str] = []
+        self._module_files: dict[str, list[str]] = {}
         self.param_values: dict[str, str] = {}
         self.param_vars: dict[str, tk.StringVar] = {}
         self.menu_buttons: list[tk.Button] = []
@@ -517,6 +517,15 @@ class GeoConversionApp(tk.Tk):
         self._build_layout()
         self._select_module(self.active_module, keep_page=True)
         self.after(150, self._maximize_if_possible)
+
+    # —— 按模块隔离的数据文件：每个功能模块持有独立的文件列表 ——
+    @property
+    def selected_files(self) -> list[str]:
+        return self._module_files.setdefault(self.active_module.name, [])
+
+    @selected_files.setter
+    def selected_files(self, value: list[str]) -> None:
+        self._module_files[self.active_module.name] = list(value)
 
     def _maximize_if_possible(self) -> None:
         try:
