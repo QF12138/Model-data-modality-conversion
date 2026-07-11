@@ -1,7 +1,754 @@
 {
   "schema_version": "1.0",
-  "saved_at": "2026-07-11T19:48:31",
+  "saved_at": "2026-07-11T20:14:49",
   "versions": [
+    {
+      "version_id": "VER-20260711-0005",
+      "version_number": "V1.0.0",
+      "project_name": "默认项目",
+      "module_name": "自动化批量转换模块",
+      "description": "自动化批量转换模块操作自动记录（部分失败）",
+      "created_at": "2026-07-11T20:14:49",
+      "created_by": "系统自动记录",
+      "data_sources": [
+        {
+          "name": "boreholes.csv",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\01_drilling_and_boundary\\boreholes.csv",
+          "format": ".csv",
+          "size_bytes": 301,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "geology_boundary.geojson",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\01_drilling_and_boundary\\geology_boundary.geojson",
+          "format": ".geojson",
+          "size_bytes": 631,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "monitoring_points.txt",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\01_drilling_and_boundary\\monitoring_points.txt",
+          "format": ".txt",
+          "size_bytes": 212,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "tunnel_centerline.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\01_drilling_and_boundary\\tunnel_centerline.json",
+          "format": ".json",
+          "size_bytes": 360,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "geologic_mesh.vtk",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\02_3d_models\\geologic_mesh.vtk",
+          "format": ".vtk",
+          "size_bytes": 183,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "point_cloud_sample.ply",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\02_3d_models\\point_cloud_sample.ply",
+          "format": ".ply",
+          "size_bytes": 345,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "slope_surface.stl",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\02_3d_models\\slope_surface.stl",
+          "format": ".stl",
+          "size_bytes": 281,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "tunnel_segment.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\02_3d_models\\tunnel_segment.obj",
+          "format": ".obj",
+          "size_bytes": 297,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "broken_boundary.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\03_failure_retry_demo\\broken_boundary.json",
+          "format": ".json",
+          "size_bytes": 134,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "unsupported_pointcloud.las",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\03_failure_retry_demo\\unsupported_pointcloud.las",
+          "format": ".las",
+          "size_bytes": 136,
+          "exists": true,
+          "role": "输入数据"
+        }
+      ],
+      "conversion_params": {
+        "批次名称": "自动化批量转换示例",
+        "输出格式": "OBJ",
+        "坐标输出规则": "保留源坐标",
+        "属性保留规则": "全部保留",
+        "规则模板": "默认转换模板",
+        "失败重试次数": "3",
+        "重试间隔(秒)": "0.5",
+        "重试策略": "延迟重试",
+        "并发数量": "4",
+        "日志级别": "INFO",
+        "成果目录": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion"
+      },
+      "quality_results": {
+        "status": "部分失败",
+        "summary": "模块处理、质量检查和结果汇总已完成"
+      },
+      "workflow_steps": [
+        {
+          "step": "扫描目录",
+          "status": "完成",
+          "timestamp": "2026-07-11T20:14:49"
+        },
+        {
+          "step": "套用模板",
+          "status": "完成",
+          "timestamp": "2026-07-11T20:14:49"
+        },
+        {
+          "step": "队列执行",
+          "status": "完成",
+          "timestamp": "2026-07-11T20:14:49"
+        },
+        {
+          "step": "日志回收",
+          "status": "完成",
+          "timestamp": "2026-07-11T20:14:49"
+        }
+      ],
+      "output_files": [
+        {
+          "name": "conversion_manifest.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\008_tunnel_segment\\conversion_manifest.json",
+          "format": ".json",
+          "size_bytes": 1509,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "tunnel_segment_converted.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\008_tunnel_segment\\tunnel_segment_converted.obj",
+          "format": ".obj",
+          "size_bytes": 256,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "conversion_manifest.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\007_slope_surface\\conversion_manifest.json",
+          "format": ".json",
+          "size_bytes": 1503,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "slope_surface_converted.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\007_slope_surface\\slope_surface_converted.obj",
+          "format": ".obj",
+          "size_bytes": 125,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "conversion_manifest.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\005_geologic_mesh\\conversion_manifest.json",
+          "format": ".json",
+          "size_bytes": 1501,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "geologic_mesh_converted.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\005_geologic_mesh\\geologic_mesh_converted.obj",
+          "format": ".obj",
+          "size_bytes": 170,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "conversion_manifest.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\006_point_cloud_sample\\conversion_manifest.json",
+          "format": ".json",
+          "size_bytes": 1560,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "point_cloud_sample_converted.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\006_point_cloud_sample\\point_cloud_sample_converted.obj",
+          "format": ".obj",
+          "size_bytes": 210,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "conversion_manifest.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\004_tunnel_centerline\\conversion_manifest.json",
+          "format": ".json",
+          "size_bytes": 1560,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "tunnel_centerline_converted.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\004_tunnel_centerline\\tunnel_centerline_converted.obj",
+          "format": ".obj",
+          "size_bytes": 166,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "conversion_manifest.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\003_monitoring_points\\conversion_manifest.json",
+          "format": ".json",
+          "size_bytes": 1624,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "monitoring_points_converted.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\003_monitoring_points\\monitoring_points_converted.obj",
+          "format": ".obj",
+          "size_bytes": 185,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "conversion_manifest.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\001_boreholes\\conversion_manifest.json",
+          "format": ".json",
+          "size_bytes": 1632,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "boreholes_converted.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\001_boreholes\\boreholes_converted.obj",
+          "format": ".obj",
+          "size_bytes": 179,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "conversion_manifest.json",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\002_geology_boundary\\conversion_manifest.json",
+          "format": ".json",
+          "size_bytes": 1625,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "geology_boundary_converted.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\002_geology_boundary\\geology_boundary_converted.obj",
+          "format": ".obj",
+          "size_bytes": 242,
+          "exists": true,
+          "role": "输出成果"
+        },
+        {
+          "name": "任务队列",
+          "path": "",
+          "format": "logical-artifact",
+          "size_bytes": 0,
+          "exists": false,
+          "role": "模块成果类型"
+        },
+        {
+          "name": "批处理日志",
+          "path": "",
+          "format": "logical-artifact",
+          "size_bytes": 0,
+          "exists": false,
+          "role": "模块成果类型"
+        },
+        {
+          "name": "失败重试记录",
+          "path": "",
+          "format": "logical-artifact",
+          "size_bytes": 0,
+          "exists": false,
+          "role": "模块成果类型"
+        }
+      ],
+      "lineage": {
+        "trace_id": "VER-20260711-0005",
+        "trace_type": "model_conversion",
+        "project_name": "默认项目",
+        "version_number": "V1.0.0",
+        "phases": [
+          {
+            "phase": "数据接入",
+            "records": [
+              "boreholes.csv",
+              "geology_boundary.geojson",
+              "monitoring_points.txt",
+              "tunnel_centerline.json",
+              "geologic_mesh.vtk",
+              "point_cloud_sample.ply",
+              "slope_surface.stl",
+              "tunnel_segment.obj",
+              "broken_boundary.json",
+              "unsupported_pointcloud.las"
+            ]
+          },
+          {
+            "phase": "参数配置",
+            "records": {
+              "批次名称": "自动化批量转换示例",
+              "输出格式": "OBJ",
+              "坐标输出规则": "保留源坐标",
+              "属性保留规则": "全部保留",
+              "规则模板": "默认转换模板",
+              "失败重试次数": "3",
+              "重试间隔(秒)": "0.5",
+              "重试策略": "延迟重试",
+              "并发数量": "4",
+              "日志级别": "INFO",
+              "成果目录": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion"
+            }
+          },
+          {
+            "phase": "流程执行",
+            "records": [
+              "扫描目录",
+              "套用模板",
+              "队列执行",
+              "日志回收"
+            ]
+          },
+          {
+            "phase": "质量检查",
+            "records": {
+              "status": "部分失败",
+              "summary": "模块处理、质量检查和结果汇总已完成"
+            }
+          },
+          {
+            "phase": "成果输出",
+            "records": [
+              "conversion_manifest.json",
+              "tunnel_segment_converted.obj",
+              "conversion_manifest.json",
+              "slope_surface_converted.obj",
+              "conversion_manifest.json",
+              "geologic_mesh_converted.obj",
+              "conversion_manifest.json",
+              "point_cloud_sample_converted.obj",
+              "conversion_manifest.json",
+              "tunnel_centerline_converted.obj",
+              "conversion_manifest.json",
+              "monitoring_points_converted.obj",
+              "conversion_manifest.json",
+              "boreholes_converted.obj",
+              "conversion_manifest.json",
+              "geology_boundary_converted.obj",
+              "任务队列",
+              "批处理日志",
+              "失败重试记录"
+            ]
+          }
+        ]
+      },
+      "archived": false,
+      "archive_path": "",
+      "tags": [
+        "自动记录",
+        "检查输出与管理",
+        "部分失败",
+        "执行成功"
+      ]
+    },
+    {
+      "version_id": "VER-20260711-0004",
+      "version_number": "V1.0.0",
+      "project_name": "默认项目",
+      "module_name": "模型质量校验模块",
+      "description": "模型质量校验模块操作自动记录（校验完成）",
+      "created_at": "2026-07-11T20:14:32",
+      "created_by": "系统自动记录",
+      "data_sources": [
+        {
+          "name": "model_quality_attributes.csv",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_quality\\model_quality_attributes.csv",
+          "format": ".csv",
+          "size_bytes": 155,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "model_quality_boundary.geojson",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_quality\\model_quality_boundary.geojson",
+          "format": ".geojson",
+          "size_bytes": 487,
+          "exists": true,
+          "role": "输入数据"
+        },
+        {
+          "name": "model_quality_open_mesh.obj",
+          "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_quality\\model_quality_open_mesh.obj",
+          "format": ".obj",
+          "size_bytes": 133,
+          "exists": true,
+          "role": "输入数据"
+        }
+      ],
+      "conversion_params": {},
+      "quality_results": {
+        "checked_at": "2026-07-11T20:14:32",
+        "files": [
+          {
+            "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_quality\\model_quality_attributes.csv",
+            "name": "model_quality_attributes.csv",
+            "type": ".csv",
+            "status": "已检查"
+          },
+          {
+            "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_quality\\model_quality_boundary.geojson",
+            "name": "model_quality_boundary.geojson",
+            "type": ".geojson",
+            "status": "已检查"
+          },
+          {
+            "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_quality\\model_quality_open_mesh.obj",
+            "name": "model_quality_open_mesh.obj",
+            "type": ".obj",
+            "status": "已检查"
+          }
+        ],
+        "issues": [
+          {
+            "category_key": "coordinate",
+            "category": "坐标精度",
+            "file": "model_quality_attributes.csv",
+            "severity": "警告",
+            "message": "坐标字段 x 存在非数值：'bad'"
+          },
+          {
+            "category_key": "attributes",
+            "category": "属性完整性",
+            "file": "model_quality_attributes.csv",
+            "severity": "警告",
+            "message": "发现 2 个空属性值。"
+          },
+          {
+            "category_key": "topology",
+            "category": "拓扑关系",
+            "file": "model_quality_attributes.csv",
+            "severity": "警告",
+            "message": "存在重复 id，可能造成模型对象关联冲突。"
+          },
+          {
+            "category_key": "geometry",
+            "category": "几何闭合性",
+            "file": "model_quality_boundary.geojson",
+            "severity": "严重",
+            "message": "Polygon 存在未闭合环。"
+          },
+          {
+            "category_key": "attributes",
+            "category": "属性完整性",
+            "file": "model_quality_boundary.geojson",
+            "severity": "警告",
+            "message": "存在 1 个 feature 属性为空。"
+          },
+          {
+            "category_key": "geometry",
+            "category": "几何闭合性",
+            "file": "model_quality_open_mesh.obj",
+            "severity": "严重",
+            "message": "检测到 5 条边界边，模型可能未闭合。"
+          },
+          {
+            "category_key": "attributes",
+            "category": "属性完整性",
+            "file": "model_quality_open_mesh.obj",
+            "severity": "提示",
+            "message": "OBJ 未发现材质或属性引用，属性完整性需结合外部属性表复核。"
+          },
+          {
+            "category_key": "coordinate",
+            "category": "坐标精度",
+            "file": "坐标序列",
+            "severity": "警告",
+            "message": "坐标绝对值超过 1e8，请确认坐标系或单位是否正确。"
+          }
+        ],
+        "categories": [
+          {
+            "key": "geometry",
+            "name": "几何闭合性",
+            "status": "未通过",
+            "issues": 2,
+            "summary": "Polygon 存在未闭合环。"
+          },
+          {
+            "key": "topology",
+            "name": "拓扑关系",
+            "status": "需复核",
+            "issues": 1,
+            "summary": "存在重复 id，可能造成模型对象关联冲突。"
+          },
+          {
+            "key": "attributes",
+            "name": "属性完整性",
+            "status": "需复核",
+            "issues": 3,
+            "summary": "发现 2 个空属性值。"
+          },
+          {
+            "key": "consistency",
+            "name": "一致性",
+            "status": "通过",
+            "issues": 0,
+            "summary": "数据结构和类型保持一致。"
+          },
+          {
+            "key": "coordinate",
+            "name": "坐标精度",
+            "status": "需复核",
+            "issues": 2,
+            "summary": "坐标字段 x 存在非数值：'bad'"
+          }
+        ],
+        "score": 59,
+        "grade": "需复核",
+        "issue_count": 8,
+        "file_count": 3
+      },
+      "workflow_steps": [
+        {
+          "step": "载入模型",
+          "status": "完成",
+          "timestamp": "2026-07-11T20:14:32"
+        },
+        {
+          "step": "执行规则",
+          "status": "完成",
+          "timestamp": "2026-07-11T20:14:32"
+        },
+        {
+          "step": "定位问题",
+          "status": "完成",
+          "timestamp": "2026-07-11T20:14:32"
+        },
+        {
+          "step": "生成报告",
+          "status": "完成",
+          "timestamp": "2026-07-11T20:14:32"
+        }
+      ],
+      "output_files": [
+        {
+          "name": "质量校验报告",
+          "path": "",
+          "format": "logical-artifact",
+          "size_bytes": 0,
+          "exists": false,
+          "role": "模块成果类型"
+        },
+        {
+          "name": "问题定位",
+          "path": "",
+          "format": "logical-artifact",
+          "size_bytes": 0,
+          "exists": false,
+          "role": "模块成果类型"
+        },
+        {
+          "name": "修复建议",
+          "path": "",
+          "format": "logical-artifact",
+          "size_bytes": 0,
+          "exists": false,
+          "role": "模块成果类型"
+        }
+      ],
+      "lineage": {
+        "trace_id": "VER-20260711-0004",
+        "trace_type": "model_conversion",
+        "project_name": "默认项目",
+        "version_number": "V1.0.0",
+        "phases": [
+          {
+            "phase": "数据接入",
+            "records": [
+              "model_quality_attributes.csv",
+              "model_quality_boundary.geojson",
+              "model_quality_open_mesh.obj"
+            ]
+          },
+          {
+            "phase": "参数配置",
+            "records": {}
+          },
+          {
+            "phase": "流程执行",
+            "records": [
+              "载入模型",
+              "执行规则",
+              "定位问题",
+              "生成报告"
+            ]
+          },
+          {
+            "phase": "质量检查",
+            "records": {
+              "checked_at": "2026-07-11T20:14:32",
+              "files": [
+                {
+                  "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_quality\\model_quality_attributes.csv",
+                  "name": "model_quality_attributes.csv",
+                  "type": ".csv",
+                  "status": "已检查"
+                },
+                {
+                  "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_quality\\model_quality_boundary.geojson",
+                  "name": "model_quality_boundary.geojson",
+                  "type": ".geojson",
+                  "status": "已检查"
+                },
+                {
+                  "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_quality\\model_quality_open_mesh.obj",
+                  "name": "model_quality_open_mesh.obj",
+                  "type": ".obj",
+                  "status": "已检查"
+                }
+              ],
+              "issues": [
+                {
+                  "category_key": "coordinate",
+                  "category": "坐标精度",
+                  "file": "model_quality_attributes.csv",
+                  "severity": "警告",
+                  "message": "坐标字段 x 存在非数值：'bad'"
+                },
+                {
+                  "category_key": "attributes",
+                  "category": "属性完整性",
+                  "file": "model_quality_attributes.csv",
+                  "severity": "警告",
+                  "message": "发现 2 个空属性值。"
+                },
+                {
+                  "category_key": "topology",
+                  "category": "拓扑关系",
+                  "file": "model_quality_attributes.csv",
+                  "severity": "警告",
+                  "message": "存在重复 id，可能造成模型对象关联冲突。"
+                },
+                {
+                  "category_key": "geometry",
+                  "category": "几何闭合性",
+                  "file": "model_quality_boundary.geojson",
+                  "severity": "严重",
+                  "message": "Polygon 存在未闭合环。"
+                },
+                {
+                  "category_key": "attributes",
+                  "category": "属性完整性",
+                  "file": "model_quality_boundary.geojson",
+                  "severity": "警告",
+                  "message": "存在 1 个 feature 属性为空。"
+                },
+                {
+                  "category_key": "geometry",
+                  "category": "几何闭合性",
+                  "file": "model_quality_open_mesh.obj",
+                  "severity": "严重",
+                  "message": "检测到 5 条边界边，模型可能未闭合。"
+                },
+                {
+                  "category_key": "attributes",
+                  "category": "属性完整性",
+                  "file": "model_quality_open_mesh.obj",
+                  "severity": "提示",
+                  "message": "OBJ 未发现材质或属性引用，属性完整性需结合外部属性表复核。"
+                },
+                {
+                  "category_key": "coordinate",
+                  "category": "坐标精度",
+                  "file": "坐标序列",
+                  "severity": "警告",
+                  "message": "坐标绝对值超过 1e8，请确认坐标系或单位是否正确。"
+                }
+              ],
+              "categories": [
+                {
+                  "key": "geometry",
+                  "name": "几何闭合性",
+                  "status": "未通过",
+                  "issues": 2,
+                  "summary": "Polygon 存在未闭合环。"
+                },
+                {
+                  "key": "topology",
+                  "name": "拓扑关系",
+                  "status": "需复核",
+                  "issues": 1,
+                  "summary": "存在重复 id，可能造成模型对象关联冲突。"
+                },
+                {
+                  "key": "attributes",
+                  "name": "属性完整性",
+                  "status": "需复核",
+                  "issues": 3,
+                  "summary": "发现 2 个空属性值。"
+                },
+                {
+                  "key": "consistency",
+                  "name": "一致性",
+                  "status": "通过",
+                  "issues": 0,
+                  "summary": "数据结构和类型保持一致。"
+                },
+                {
+                  "key": "coordinate",
+                  "name": "坐标精度",
+                  "status": "需复核",
+                  "issues": 2,
+                  "summary": "坐标字段 x 存在非数值：'bad'"
+                }
+              ],
+              "score": 59,
+              "grade": "需复核",
+              "issue_count": 8,
+              "file_count": 3
+            }
+          },
+          {
+            "phase": "成果输出",
+            "records": [
+              "质量校验报告",
+              "问题定位",
+              "修复建议"
+            ]
+          }
+        ]
+      },
+      "archived": false,
+      "archive_path": "",
+      "tags": [
+        "自动记录",
+        "检查输出与管理",
+        "校验完成",
+        "执行成功"
+      ]
+    },
     {
       "version_id": "VER-20260708-0003",
       "version_number": "V1.2.0",

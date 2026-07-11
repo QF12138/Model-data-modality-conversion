@@ -305,6 +305,7 @@ class VersionManager:
             )
 
         add("版本号", a.version_number, b.version_number)
+        add("功能模块", a.module_name, b.module_name)
         add("版本描述", a.description, b.description)
         add("创建人", a.created_by, b.created_by)
 

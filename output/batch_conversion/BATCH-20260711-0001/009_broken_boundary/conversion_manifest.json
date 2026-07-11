@@ -1,0 +1,31 @@
+{
+  "task": "model_format_conversion",
+  "created_at": "2026-07-11T20:14:49",
+  "status": "失败",
+  "target_platform": "三维建模软件",
+  "target_format": "OBJ",
+  "output_dir": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260711-0001\\009_broken_boundary",
+  "coordinate_rule": "保留源坐标",
+  "attribute_rule": "全部保留",
+  "source_count": 1,
+  "success_count": 0,
+  "failure_count": 1,
+  "warning_count": 0,
+  "artifacts": [
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\03_failure_retry_demo\\broken_boundary.json",
+      "source_name": "broken_boundary.json",
+      "source_format": ".json",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "失败",
+      "output": "",
+      "message": "Expecting value: line 5 column 1 (char 120)"
+    }
+  ],
+  "warnings": [],
+  "errors": [
+    "broken_boundary.json：Expecting value: line 5 column 1 (char 120)"
+  ],
+  "quality_score": 0
+}

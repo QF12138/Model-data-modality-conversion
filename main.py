@@ -256,10 +256,10 @@ FEATURE_MODULES = [
     ModuleSpec(
         "检查输出与管理",
         "模型版本管理与成果追溯模块",
-        "记录数据来源、转换参数、处理流程、质量检查结果、模型版本和输出成果信息，支持历史版本对比、成果回溯和归档。",
-        ("模型成果", "转换参数", "质量报告", "来源数据"),
-        ("版本号", "归档策略", "追溯字段", "对比版本"),
-        ("模型版本", "追溯链路", "交付归档包"),
+        "自动记录其他功能模块的数据来源、转换参数、处理流程、质量检查结果、模型版本和输出成果；界面集中展示历史版本对比、成果回溯和项目交付资料归档。",
+        ("跨模块操作记录", "模型成果", "质量报告", "来源数据"),
+        (),
+        ("历史版本对比", "成果回溯报告", "项目交付归档包"),
         ("model_versions", "lineage_records", "delivery_archives"),
     ),
 ]
@@ -420,10 +420,10 @@ MODULE_UI_PROFILES = {
     },
     "模型版本管理与成果追溯模块": {
         "layout": "lineage",
-        "overview": (("版本", "归档"), ("参数", "追溯"), ("成果", "交付")),
-        "workflow": ("采集来源", "记录参数", "归档成果", "版本对比"),
+        "overview": (("全模块", "留痕"), ("版本", "对比"), ("成果", "交付")),
+        "workflow": ("自动采集记录", "查看历史版本", "回溯成果链路", "归档交付资料"),
         "checks": ("来源完整", "参数可追溯", "版本差异", "交付清单"),
-        "focus": ("数据来源", "转换参数", "质量报告与成果"),
+        "focus": ("历史版本对比", "成果回溯", "项目交付资料归档"),
         "visual": "lineage",
     },
 }
@@ -947,13 +947,21 @@ class GeoConversionApp(tk.Tk):
         for child in self.content_host.winfo_children():
             child.destroy()
 
-        # 数据预处理 & 地质语义编码模块隐藏"预览检查"页签
-        preview_btn = self.page_buttons.get("预览检查")
-        if preview_btn:
-            if self._is_preprocessing_module() or self._is_semantic_module() or self._is_template_module() or self._is_batch_module() or self._is_comparison_module() or self._is_version_module():
-                preview_btn.pack_forget()
-            elif not preview_btn.winfo_ismapped():
-                preview_btn.pack(side="left", before=self.page_buttons["任务与追溯"])
+        # 版本管理页只承担查询、对比、回溯和归档；其他模块按能力显示页签。
+        hide_preview = (
+            self._is_preprocessing_module() or self._is_semantic_module()
+            or self._is_template_module() or self._is_batch_module()
+            or self._is_comparison_module()
+        )
+        visible_pages = ("工作台",) if self._is_version_module() else tuple(
+            name for name in self.PAGE_NAMES if not (hide_preview and name == "预览检查")
+        )
+        for button in self.page_buttons.values():
+            button.pack_forget()
+        for name in visible_pages:
+            self.page_buttons[name].pack(side="left")
+        if self._is_version_module() and self.current_page != "工作台":
+            self.current_page = "工作台"
 
         for name, button in self.page_buttons.items():
             active = name == self.current_page
@@ -1005,7 +1013,7 @@ class GeoConversionApp(tk.Tk):
             self._render_comparison_page()
             self._refresh_content_scrollregion()
             return
-        if self._is_version_module() and self.current_page in ("工作台", "任务与追溯"):
+        if self._is_version_module() and self.current_page == "工作台":
             self._render_version_page()
             self._refresh_content_scrollregion()
             return
@@ -1209,7 +1217,7 @@ class GeoConversionApp(tk.Tk):
 
         input_actions = tk.Frame(input_card, bg=self.PANEL)
         input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
-        ttk.Button(input_actions, text="加载示例数据", style="Primary.TButton", command=self._load_semantic_sample_data).pack(side="left")
+        ttk.Button(input_actions, text="加载示例数据", style="Primary.TButton", command=self._load_preprocessing_sample_data).pack(side="left")
         ttk.Button(input_actions, text="添加数据", style="Tool.TButton", command=self._choose_files).pack(side="left", padx=(7, 0))
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
@@ -1274,7 +1282,7 @@ class GeoConversionApp(tk.Tk):
         else:
             field_tree.insert("", "end", values=("-", "待执行", "-", "-", "-"))
 
-        ttk.Button(check_card, text="执行数据清洗", style="Blue.TButton", command=self._run_preprocessing).grid(
+        ttk.Button(check_card, text="执行数据清洗", style="Blue.TButton", command=self._run_stub).grid(
             row=3, column=0, sticky="ew", padx=12, pady=(10, 12))
 
         # 右：结论与操作
@@ -1294,7 +1302,7 @@ class GeoConversionApp(tk.Tk):
             result_card, text=conclusion, bg="#f8faf9", fg=self.TEXT, font=self.small_font,
             justify="left", anchor="nw", wraplength=340, padx=12, pady=10,
         ).grid(row=2, column=0, sticky="nsew", padx=12, pady=(10, 12))
-        ttk.Button(result_card, text="执行数据清洗", style="Blue.TButton", command=self._run_preprocessing).grid(
+        ttk.Button(result_card, text="执行数据清洗", style="Blue.TButton", command=self._run_stub).grid(
             row=3, column=0, sticky="ew", padx=12, pady=(0, 8))
         ttk.Button(result_card, text="导出清洗报告", style="Purple.TButton", command=self._export_report).grid(
             row=4, column=0, sticky="ew", padx=12, pady=(0, 12))
@@ -1477,7 +1485,7 @@ class GeoConversionApp(tk.Tk):
         else:
             map_tree.insert("", "end", values=("-", "待执行", "-", "尚未执行语义编码转换"))
 
-        ttk.Button(map_card, text="执行语义编码转换", style="Blue.TButton", command=self._run_semantic).grid(
+        ttk.Button(map_card, text="执行语义编码转换", style="Blue.TButton", command=self._run_stub).grid(
             row=3, column=0, sticky="ew", padx=12, pady=(10, 12))
 
         # 右：字典管理 + 编码体系
@@ -1777,7 +1785,7 @@ class GeoConversionApp(tk.Tk):
 
         action_row = tk.Frame(tmpl_card, bg=self.PANEL)
         action_row.grid(row=3, column=0, sticky="ew", padx=12, pady=(10, 12))
-        ttk.Button(action_row, text="分析匹配", style="Blue.TButton", command=self._run_template).pack(side="left")
+        ttk.Button(action_row, text="分析匹配", style="Blue.TButton", command=self._run_stub).pack(side="left")
         ttk.Button(action_row, text="应用所选模板", style="Primary.TButton", command=self._apply_selected_template).pack(side="left", padx=(7, 0))
         ttk.Button(action_row, text="导出模板库", style="Tool.TButton", command=self._export_template_library_files).pack(side="left", padx=(7, 0))
 
@@ -1902,7 +1910,7 @@ class GeoConversionApp(tk.Tk):
         left_card = self._card(work)
         left_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         left_card.columnconfigure(0, weight=1)
-        left_card.rowconfigure(5, weight=1)
+        left_card.rowconfigure(6, weight=1)
         self._card_header(left_card, "数据导入与流程编排")
 
         # 操作按钮栏
@@ -1958,9 +1966,23 @@ class GeoConversionApp(tk.Tk):
         sep = tk.Frame(left_card, bg=self.BORDER, height=1)
         sep.grid(row=4, column=0, sticky="ew", padx=12, pady=(0, 8))
 
-        # 流程编排步骤（带连接线）
-        flow_canvas = tk.Canvas(left_card, bg=self.PANEL, highlightthickness=0, height=210)
-        flow_canvas.grid(row=5, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        # 流程编排步骤（带阶段标题、连接线与状态标签）
+        flow_header = tk.Frame(left_card, bg=self.PANEL)
+        flow_header.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 6))
+        flow_header.columnconfigure(0, weight=1)
+        tk.Label(
+            flow_header, text="自动化处理链路", bg=self.PANEL, fg=self.TEXT,
+            font=(self.font_family, 10, "bold"), anchor="w",
+        ).grid(row=0, column=0, sticky="w")
+        tk.Label(
+            flow_header, text="6 个阶段", bg=self.TEAL_SOFT, fg=self.TEAL_DARK,
+            font=(self.font_family, 8, "bold"), padx=8, pady=3,
+        ).grid(row=0, column=1, sticky="e")
+        flow_canvas = tk.Canvas(
+            left_card, bg="#f8fbfa", highlightbackground=self.BORDER,
+            highlightthickness=1, height=320,
+        )
+        flow_canvas.grid(row=6, column=0, sticky="nsew", padx=12, pady=(0, 12))
         flow_canvas.bind("<Configure>", lambda _e, c=flow_canvas: _draw_workflow_steps(c, self.run_completed))
 
         # 中：作业队列
@@ -2009,7 +2031,7 @@ class GeoConversionApp(tk.Tk):
             log_text.insert("1.0", "等待执行批量转换任务……")
         log_text.configure(state="disabled")
 
-        ttk.Button(mid_card, text="执行批量转换", style="Blue.TButton", command=self._run_batch).grid(
+        ttk.Button(mid_card, text="执行批量转换", style="Blue.TButton", command=self._run_stub).grid(
             row=4, column=0, sticky="ew", padx=12, pady=(0, 12))
 
         # 右：参数配置
@@ -2162,7 +2184,7 @@ class GeoConversionApp(tk.Tk):
         else:
             comp_tree.insert("", "end", values=("待检查", "-", "-", "-", "-", "-"))
 
-        ttk.Button(mid_card, text="执行对比检查", style="Blue.TButton", command=self._run_comparison).grid(
+        ttk.Button(mid_card, text="执行对比检查", style="Blue.TButton", command=self._run_stub).grid(
             row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
 
         # 右：维度统计
@@ -2252,8 +2274,8 @@ class GeoConversionApp(tk.Tk):
 
         tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
 
-    def _render_version_page(self) -> None:
-        """模型版本管理与成果追溯模块专用工作台。"""
+    def _render_legacy_version_page(self) -> None:
+        """旧版手工登记界面（保留供兼容，不再作为工作台入口）。"""
         root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="ew")
         root.columnconfigure(0, weight=1)
@@ -2367,7 +2389,7 @@ class GeoConversionApp(tk.Tk):
                 anchor="w",
             ).grid(row=row_index, column=1, sticky="ew", padx=(0, 10), pady=5)
 
-        ttk.Button(left_card, text="创建版本", style="Blue.TButton", command=self._run_version).grid(
+        ttk.Button(left_card, text="创建版本", style="Blue.TButton", command=self._run_stub).grid(
             row=4, column=0, sticky="ew", padx=12, pady=(0, 12)
         )
 
@@ -2567,6 +2589,162 @@ class GeoConversionApp(tk.Tk):
 
         tk.Frame(root, bg=self.BG, height=18).grid(row=2, column=0, sticky="ew")
 
+    def _render_version_page(self) -> None:
+        """跨模块自动追溯工作台：仅展示历史、回溯和交付归档。"""
+        root = tk.Frame(self.content_host, bg=self.BG)
+        root.grid(row=0, column=0, sticky="ew")
+        root.columnconfigure(0, weight=1)
+
+        manager = get_version_manager()
+        self.version_report = build_version_report(
+            self.selected_files, self.project_var.get(), ""
+        )
+        versions = self.version_report.get("versions", [])
+        stats = self.version_report.get("manager_stats", {})
+        records = manager.list_versions(project_name=self.project_var.get())
+        module_count = len({record.module_name for record in records if record.module_name})
+        artifact_count = sum(len(record.output_files) for record in records)
+
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for index in range(4):
+            summary.columnconfigure(index, weight=1)
+        summary_items = (
+            ("操作记录", f"{stats.get('total', 0)} 条", "其他模块执行后自动留痕", self.TEAL),
+            ("涉及模块", f"{module_count} 个", "按项目汇总全部功能模块", self.BLUE),
+            ("成果记录", f"{artifact_count} 项", "真实文件与逻辑交付成果", self.ORANGE),
+            ("交付归档", f"{stats.get('archived', 0)} 条", "包含元数据、流程、质量与成果", self.PURPLE),
+        )
+        for index, item in enumerate(summary_items):
+            self._metric_card(summary, *item).grid(
+                row=0, column=index, sticky="nsew",
+                padx=(0 if index == 0 else 4, 0 if index == 3 else 4),
+            )
+
+        work = tk.Frame(root, bg=self.BG)
+        work.grid(row=1, column=0, sticky="nsew")
+        work.columnconfigure(0, weight=62)
+        work.columnconfigure(1, weight=38)
+
+        history_card = self._card(work)
+        history_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        history_card.columnconfigure(0, weight=1)
+        history_card.rowconfigure(2, weight=1)
+        self._card_header(history_card, "历史版本对比")
+        tk.Label(
+            history_card,
+            text="记录由各功能模块自动生成；单击查看成果链路，按住 Ctrl 选择两条记录进行对比。",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font, anchor="w",
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 8))
+
+        version_tree = ttk.Treeview(
+            history_card,
+            columns=("module", "version", "sources", "outputs", "quality", "time", "archived"),
+            show="headings", style="Dashboard.Treeview", height=16, selectmode="extended",
+        )
+        for key, title, width in (
+            ("module", "功能模块", 210), ("version", "版本", 70),
+            ("sources", "来源", 48), ("outputs", "成果", 48),
+            ("quality", "质量", 55), ("time", "记录时间", 125), ("archived", "归档", 48),
+        ):
+            version_tree.heading(key, text=title)
+            version_tree.column(key, width=width, anchor="w")
+        version_tree.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 8))
+        for item in versions:
+            version_id = str(item.get("version_id", ""))
+            record = manager.get_version(version_id)
+            version_tree.insert(
+                "", "end", iid=version_id or None,
+                values=(
+                    record.module_name if record else "-", item.get("version_number", ""),
+                    item.get("source_count", 0), item.get("output_count", 0),
+                    item.get("quality_score", "-"), str(item.get("created_at", ""))[:16],
+                    "是" if item.get("archived") else "否",
+                ),
+            )
+        if not versions:
+            version_tree.insert("", "end", values=("暂无自动记录", "-", "-", "-", "-", "-", "-"))
+
+        action_row = tk.Frame(history_card, bg=self.PANEL)
+        action_row.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
+        for index in range(3):
+            action_row.columnconfigure(index, weight=1)
+        ttk.Button(
+            action_row, text="对比所选两版", style="Tool.TButton",
+            command=lambda: self._compare_selected_versions(version_tree),
+        ).grid(row=0, column=0, sticky="ew", padx=(0, 4))
+        ttk.Button(
+            action_row, text="导出成果回溯报告", style="Purple.TButton", command=self._export_report,
+        ).grid(row=0, column=1, sticky="ew", padx=4)
+        ttk.Button(
+            action_row, text="归档为交付资料", style="Primary.TButton",
+            command=lambda: self._archive_selected_version(version_tree),
+        ).grid(row=0, column=2, sticky="ew", padx=(4, 0))
+
+        trace_card = self._card(work)
+        trace_card.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        trace_card.columnconfigure(0, weight=1)
+        trace_card.rowconfigure(2, weight=1)
+        self._card_header(trace_card, "成果回溯与项目交付资料")
+        trace_caption = tk.StringVar(value="选择一条操作记录查看完整链路")
+        tk.Label(
+            trace_card, textvariable=trace_caption, bg=self.PANEL, fg=self.MUTED,
+            font=self.small_font, justify="left", wraplength=430,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 8))
+        trace_body = tk.Frame(trace_card, bg=self.PANEL)
+        trace_body.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        trace_body.columnconfigure(0, weight=1)
+
+        def render_trace(version_id: str = "") -> None:
+            for child in trace_body.winfo_children():
+                child.destroy()
+            record = manager.get_version(version_id) if version_id else None
+            if not record:
+                tk.Label(
+                    trace_body, text="其他功能模块完成一次处理后，来源、参数、流程、质量和成果会自动出现在这里。",
+                    bg="#f8faf9", fg=self.MUTED, font=self.small_font,
+                    justify="left", wraplength=410, padx=14, pady=18,
+                ).grid(row=0, column=0, sticky="ew")
+                return
+            trace_caption.set(
+                f"{record.module_name} · {record.version_number}\n{record.created_at} · "
+                f"{'已归档' if record.archived else '待归档'}"
+            )
+            phases = (
+                ("数据来源", f"{len(record.data_sources)} 项：" + "、".join(str(x.get('name', '')) for x in record.data_sources[:4]), self.TEAL),
+                ("转换参数", f"{len(record.conversion_params)} 项：" + "、".join(f"{k}={v}" for k, v in list(record.conversion_params.items())[:3]), self.BLUE),
+                ("处理流程", " → ".join(str(x.get("step", "")) for x in record.workflow_steps) or "未记录", self.ORANGE),
+                ("质量结果", f"{record.quality_results.get('score', '-')} / {record.quality_results.get('grade', record.quality_results.get('status', '-'))}", self.PURPLE),
+                ("输出成果", f"{len(record.output_files)} 项：" + "、".join(str(x.get('name', '')) for x in record.output_files[:4]), self.GREEN),
+            )
+            for index, (title, detail, color) in enumerate(phases):
+                block = tk.Frame(trace_body, bg="#ffffff", highlightbackground=color, highlightthickness=1)
+                block.grid(row=index, column=0, sticky="ew", pady=(0, 7))
+                block.columnconfigure(0, weight=1)
+                tk.Label(
+                    block, text=title, bg=color, fg="#ffffff", font=(self.font_family, 9, "bold"),
+                    anchor="w", padx=10, pady=4,
+                ).grid(row=0, column=0, sticky="ew")
+                tk.Label(
+                    block, text=detail or "未记录", bg="#ffffff", fg=self.TEXT,
+                    font=self.small_font, justify="left", anchor="w", wraplength=410, padx=10, pady=7,
+                ).grid(row=1, column=0, sticky="ew")
+
+        def on_select(_event: tk.Event) -> None:
+            selected = version_tree.selection()
+            if selected:
+                render_trace(selected[-1])
+
+        version_tree.bind("<<TreeviewSelect>>", on_select)
+        if versions:
+            latest_id = str(versions[0].get("version_id", ""))
+            if latest_id and version_tree.exists(latest_id):
+                version_tree.selection_set(latest_id)
+                render_trace(latest_id)
+        else:
+            render_trace()
+        tk.Frame(root, bg=self.BG, height=18).grid(row=2, column=0, sticky="ew")
+
     def _render_model_quality_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="ew")
@@ -2710,7 +2888,7 @@ class GeoConversionApp(tk.Tk):
             padx=12,
             pady=10,
         ).grid(row=2, column=0, sticky="nsew", padx=12, pady=(10, 12))
-        ttk.Button(result_card, text="执行质量校验", style="Blue.TButton", command=self._run_model_quality_check).grid(
+        ttk.Button(result_card, text="执行质量校验", style="Blue.TButton", command=self._run_stub).grid(
             row=3, column=0, sticky="ew", padx=12, pady=(0, 8)
         )
         ttk.Button(result_card, text="导出质量报告", style="Purple.TButton", command=self._export_report).grid(
@@ -2862,7 +3040,7 @@ class GeoConversionApp(tk.Tk):
                 row=row_index, column=1, sticky="w", padx=10, pady=5
             )
 
-        ttk.Button(config_card, text="执行格式转换", style="Blue.TButton", command=self._run_format_conversion).grid(
+        ttk.Button(config_card, text="执行格式转换", style="Blue.TButton", command=self._run_stub).grid(
             row=6, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 12)
         )
 
@@ -4312,7 +4490,7 @@ class GeoConversionApp(tk.Tk):
         self.version_report = build_version_report(
             self.selected_files,
             self.project_var.get(),
-            self.active_module.name,
+            "",
             record.version_number,
         )
         self.run_completed = True
@@ -4337,8 +4515,8 @@ class GeoConversionApp(tk.Tk):
         return {}
 
     def _load_batch_sample_data(self) -> None:
-        """加载 source/batch_conversion_examples 中的多目录、多格式示例。"""
-        source_dir = Path(__file__).resolve().parent / "source" / "batch_conversion_examples"
+        """加载 example_source/batch_conversion_examples 中的多目录、多格式示例。"""
+        source_dir = Path(__file__).resolve().parent / "example_source" / "batch_conversion_examples"
         extensions = set(SCAN_EXTENSIONS["全部"])
         sample_files = sorted(
             str(path.resolve())
@@ -4353,10 +4531,10 @@ class GeoConversionApp(tk.Tk):
         self.status_var.set(f"已加载 {len(sample_files)} 个批量转换示例文件")
         if sample_files:
             self._append_log(
-                "已加载 source/batch_conversion_examples 下的表格、GeoJSON、OBJ、STL、PLY、VTK及失败重试示例。"
+                "已加载 example_source/batch_conversion_examples 下的表格、GeoJSON、OBJ、STL、PLY、VTK及失败重试示例。"
             )
         else:
-            self._append_log("未找到批量转换示例，请检查 source/batch_conversion_examples 目录。")
+            self._append_log("未找到批量转换示例，请检查 example_source/batch_conversion_examples 目录。")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -4381,8 +4559,8 @@ class GeoConversionApp(tk.Tk):
         self._render_current_page()
 
     def _load_comparison_sample_data(self) -> None:
-        """加载 source/visual_comparison_examples 下的转换前后示例。"""
-        source_dir = Path(__file__).resolve().parent / "source" / "visual_comparison_examples"
+        """加载 example_source/visual_comparison_examples 下的转换前后示例。"""
+        source_dir = Path(__file__).resolve().parent / "example_source" / "visual_comparison_examples"
         before_dir = source_dir / "before"
         after_dir = source_dir / "after"
         supported = {".obj", ".stl", ".geojson", ".json", ".csv", ".txt", ".ply", ".vtk"}
@@ -4407,12 +4585,12 @@ class GeoConversionApp(tk.Tk):
         else:
             self.run_status_var.set("未找到示例数据")
             self.status_var.set("未找到完整的转换前后示例数据")
-            self._append_log("请检查 source/visual_comparison_examples/before 和 after 目录。")
+            self._append_log("请检查 example_source/visual_comparison_examples/before 和 after 目录。")
         self._render_progress_strip()
         self._render_current_page()
 
     def _load_semantic_sample_data(self) -> None:
-        source_dir = Path(__file__).resolve().parent / "source"
+        source_dir = Path(__file__).resolve().parent / "example_source" / "semantic"
         sample_files = [
             source_dir / "semantic_sample_project_dictionary.csv",
             source_dir / "semantic_sample_attributes.csv",
@@ -4424,9 +4602,9 @@ class GeoConversionApp(tk.Tk):
         self.run_status_var.set("示例数据已加载")
         self.status_var.set(f"已加载 {len(self.selected_files)} 个语义编码示例文件")
         if self.selected_files:
-            self._append_log("已加载 source 目录中的项目字典、属性表和 GeoJSON 语义示例。")
+            self._append_log("已加载 example_source/semantic 中的项目字典、属性表和 GeoJSON 语义示例。")
         else:
-            self._append_log("未找到语义示例文件，请检查 source 目录。")
+            self._append_log("未找到语义示例文件，请检查 example_source/semantic 目录。")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -4434,7 +4612,7 @@ class GeoConversionApp(tk.Tk):
         self._apply_params()
         project_type = self.param_values.get("项目类型", "全部")
         data_source = self.param_values.get("数据来源说明", "全部")
-        source_dir = Path(__file__).resolve().parent / "source"
+        source_dir = Path(__file__).resolve().parent / "example_source"
         sample_files = get_example_files(source_dir, project_type, data_source)
         self.selected_files = sample_files
         self.quality_report = None
@@ -4443,10 +4621,10 @@ class GeoConversionApp(tk.Tk):
         self.status_var.set(f"已加载 {len(sample_files)} 个规则模板示例文件")
         if sample_files:
             self._append_log(
-                f"已从 source/rule_template_examples 加载示例：项目={project_type}，数据源={data_source}。"
+                f"已从 example_source/rule_template_examples 加载示例：项目={project_type}，数据源={data_source}。"
             )
         else:
-            self._append_log("未找到匹配的规则模板示例文件，请检查 source/rule_template_examples 目录。")
+            self._append_log("未找到匹配的规则模板示例文件，请检查 example_source/rule_template_examples 目录。")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -4520,7 +4698,7 @@ class GeoConversionApp(tk.Tk):
         self._render_current_page()
 
     def _load_quality_sample_data(self) -> None:
-        source_dir = Path(__file__).resolve().parent / "source"
+        source_dir = Path(__file__).resolve().parent / "example_source" / "model_quality"
         sample_files = [
             source_dir / "model_quality_open_mesh.obj",
             source_dir / "model_quality_attributes.csv",
@@ -4531,7 +4709,23 @@ class GeoConversionApp(tk.Tk):
         self.run_completed = False
         self.run_status_var.set("示例数据已加载")
         self.status_var.set(f"已加载 {len(self.selected_files)} 个质量校验示例文件")
-        self._append_log("已加载 source 目录中的模型质量校验示例数据。")
+        self._append_log("已加载 example_source/model_quality 中的模型质量校验示例数据。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _load_preprocessing_sample_data(self) -> None:
+        source_dir = Path(__file__).resolve().parent / "example_source" / "preprocessing_examples"
+        supported = {".csv", ".tsv", ".txt", ".json", ".geojson", ".obj"}
+        sample_files = sorted(
+            str(path.resolve()) for path in source_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in supported
+        ) if source_dir.exists() else []
+        self.selected_files = sample_files
+        self.quality_report = None
+        self.run_completed = False
+        self.run_status_var.set("示例数据已加载" if sample_files else "未找到示例数据")
+        self.status_var.set(f"已加载 {len(sample_files)} 个数据预处理示例文件")
+        self._append_log("已加载 example_source/preprocessing_examples 中的数据清洗示例。")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -4570,41 +4764,154 @@ class GeoConversionApp(tk.Tk):
         self.status_var.set(f"已预留模板保存接口：{BACKEND_ENDPOINTS['save_template']}")
 
     def _run_stub(self) -> None:
-        if self._is_preprocessing_module():
-            self._run_preprocessing()
-            return
-        if self._is_semantic_module():
-            self._run_semantic()
-            return
-        if self._is_template_module():
-            self._run_template()
-            return
-        if self._is_batch_module():
-            self._run_batch()
-            return
-        if self._is_comparison_module():
-            self._run_comparison()
-            return
+        # 版本管理是所有业务模块的统一审计视图，不再要求用户在此重复登记。
         if self._is_version_module():
             self._run_version()
             return
-        if self._is_quality_module():
+        # 批量任务异步结束，追溯记录由 _finish_batch_run 在真正完成后写入。
+        if self._is_batch_module():
+            was_running = self._batch_running
+            self._run_batch()
+            if not was_running and not self._batch_running:
+                self._record_current_operation()
+            return
+        if self._is_preprocessing_module():
+            self._run_preprocessing()
+        elif self._is_semantic_module():
+            self._run_semantic()
+        elif self._is_template_module():
+            self._run_template()
+        elif self._is_comparison_module():
+            self._run_comparison()
+        elif self._is_quality_module():
             self._run_model_quality_check()
-            return
-        if self._is_format_conversion_module():
+        elif self._is_format_conversion_module():
             self._run_format_conversion()
+        else:
+            self.run_completed = True
+            self.run_status_var.set("处理完成")
+            self.status_var.set(f"已预留任务执行接口：{BACKEND_ENDPOINTS['run_task']}")
+            workflow = self._profile()["workflow"]
+            self._append_log("开始执行模块处理流程。")
+            for index, step in enumerate(workflow, start=1):
+                self._append_log(f"[步骤 {index}/4] {step} —— 完成")
+            self._append_log("质量检查和结果汇总已完成。")
+            self.task_payload_text += "\n接口占位：后端接入后将提交任务并轮询运行状态。\n"
+            self._render_progress_strip()
+            self._render_current_page()
+
+        # 成功与失败尝试都要留痕，避免追溯链只记录“最终成功”的一半过程。
+        self._record_current_operation()
+
+    @staticmethod
+    def _artifact_record(file_path: str, role: str = "输出成果") -> dict[str, object]:
+        """把实际文件转为可归档的成果记录。"""
+        path = Path(file_path).expanduser()
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        exists = resolved.exists() and resolved.is_file()
+        return {
+            "name": resolved.name or str(file_path),
+            "path": str(resolved),
+            "format": resolved.suffix.lower() or "unknown",
+            "size_bytes": resolved.stat().st_size if exists else 0,
+            "exists": exists,
+            "role": role,
+        }
+
+    def _operation_output_records(self) -> list[dict[str, object]]:
+        """汇总各模块产生的真实文件，并补充模块声明的逻辑成果。"""
+        paths: list[str] = []
+        if isinstance(self.conversion_report, dict):
+            for item in self.conversion_report.get("artifacts", []):
+                if isinstance(item, dict) and item.get("output"):
+                    paths.append(str(item["output"]))
+            if self.conversion_report.get("manifest_path"):
+                paths.append(str(self.conversion_report["manifest_path"]))
+        if isinstance(self.quality_report, dict):
+            for key in ("normalized_files", "output_files", "outputs"):
+                values = self.quality_report.get(key, [])
+                if isinstance(values, list):
+                    paths.extend(str(value) for value in values if value)
+            for key in ("output", "output_file", "report_path", "manifest_path"):
+                if self.quality_report.get(key):
+                    paths.append(str(self.quality_report[key]))
+
+        unique_paths = list(dict.fromkeys(paths))
+        records = [self._artifact_record(path) for path in unique_paths]
+        existing_names = {str(item.get("name", "")) for item in records}
+        for output_name in self.active_module.outputs:
+            if output_name not in existing_names:
+                records.append({
+                    "name": output_name,
+                    "path": "",
+                    "format": "logical-artifact",
+                    "size_bytes": 0,
+                    "exists": False,
+                    "role": "模块成果类型",
+                })
+        return records
+
+    def _record_current_operation(self, output_paths: list[str] | None = None) -> None:
+        """自动记录任一业务模块的来源、参数、流程、质量与成果。"""
+        if self._is_version_module():
             return
-        self.run_completed = True
-        self.run_status_var.set("处理完成")
-        self.status_var.set(f"已预留任务执行接口：{BACKEND_ENDPOINTS['run_task']}")
-        workflow = self._profile()["workflow"]
-        self._append_log("开始执行模块处理流程。")
-        for index, step in enumerate(workflow, start=1):
-            self._append_log(f"[步骤 {index}/4] {step} —— 完成")
-        self._append_log("质量检查和结果汇总已完成。")
-        self.task_payload_text += "\n接口占位：后端接入后将提交任务并轮询运行状态。\n"
-        self._render_progress_strip()
-        self._render_current_page()
+        params = dict(self.param_values)
+        params.update({name: var.get().strip() for name, var in self.param_vars.items()})
+        timestamp = datetime.now().isoformat(timespec="seconds")
+        operation_status = "完成" if self.run_completed else f"未完成（{self.run_status_var.get()}）"
+        workflow = [
+            {"step": step, "status": operation_status, "timestamp": timestamp}
+            for step in self._profile()["workflow"]
+        ]
+        quality = dict(self.quality_report or {})
+        if not quality and isinstance(self.conversion_report, dict):
+            quality = {
+                "score": self.conversion_report.get("quality_score", "-"),
+                "status": self.conversion_report.get("status", self.run_status_var.get()),
+                "warnings": self.conversion_report.get("warnings", []),
+                "errors": self.conversion_report.get("errors", []),
+            }
+        if not quality:
+            quality = {
+                "status": self.run_status_var.get(),
+                "summary": "模块处理、质量检查和结果汇总已完成",
+            }
+
+        sources = [self._artifact_record(path, "输入数据") for path in self.selected_files]
+        outputs = self._operation_output_records()
+        for path in output_paths or []:
+            record = self._artifact_record(path)
+            if record["path"] not in {item.get("path") for item in outputs}:
+                outputs.insert(0, record)
+
+        try:
+            record = get_version_manager().create_version(
+                project_name=self.project_var.get(),
+                module_name=self.active_module.name,
+                description=f"{self.active_module.name}操作自动记录（{self.run_status_var.get()}）",
+                created_by="系统自动记录",
+                data_sources=sources,
+                conversion_params=params,
+                quality_results=quality,
+                workflow_steps=workflow,
+                output_files=outputs,
+                tags=["自动记录", self.active_module.group, self.run_status_var.get(), "执行成功" if self.run_completed else "执行未完成"],
+            )
+        except (OSError, ValueError, TypeError) as exc:
+            self._append_log(f"自动追溯记录写入失败：{exc}")
+            return
+        self.version_report = None
+        registry_path = get_version_manager().storage_path
+        current_status = self.status_var.get()
+        self.status_var.set(f"{current_status} · 追溯记录 {record.version_number} 已保存")
+        self._append_log(
+            f"已自动写入追溯记录 {record.version_number}（{record.version_id}）："
+            f"来源 {len(sources)} 项、参数 {len(params)} 项、成果 {len(outputs)} 项；"
+            f"保存位置：{registry_path or '内存注册表'}。"
+        )
 
     def _is_preprocessing_module(self) -> bool:
         return self.active_module.name == "数据预处理与质量清洗模块"
@@ -4875,6 +5182,7 @@ class GeoConversionApp(tk.Tk):
             self.run_status_var.set("执行失败")
             self.status_var.set(message)
             self._append_log(message)
+            self._record_current_operation()
             self._render_progress_strip()
             self._render_current_page()
             return
@@ -4896,6 +5204,7 @@ class GeoConversionApp(tk.Tk):
                 self._append_log(f"[{entry.level}] {entry.message}")
         for output_file in job.outputs[:20]:
             self._append_log(f"成果文件：{output_file}")
+        self._record_current_operation(list(job.outputs))
         self._render_progress_strip()
         self._render_current_page()
 
@@ -5007,81 +5316,10 @@ class GeoConversionApp(tk.Tk):
         self._render_current_page()
 
     def _run_version(self) -> None:
-        self._apply_params()
-        self._sync_version_selected_files()
-        self._append_log("创建模型版本快照并构建追溯链路。")
-
-        if not self.version_source_files and not self.version_output_files:
-            self.run_completed = False
-            self.run_status_var.set("缺少版本文件")
-            self.status_var.set("请至少添加一个来源文件或成果文件")
-            self._append_log("版本创建已停止：未添加来源文件或成果文件。")
-            self._render_progress_strip()
-            self._render_current_page()
-            return
-
-        quality_report = self._read_version_quality_report()
-        version_number = self.param_values.get("版本号", "").strip()
-        description = self.param_values.get("版本描述", "手动创建的模型成果版本").strip()
-        archive_strategy = self.param_values.get("归档策略", "常规归档").strip() or "常规归档"
-        trace_fields = self.param_values.get("追溯字段", "来源,参数,流程,质量,成果").strip()
-
-        conversion_params = {
-            key: value
-            for key, value in self.param_values.items()
-            if value and key not in {"版本号", "版本描述", "归档策略", "追溯字段", "对比版本"}
-        }
-        conversion_params["追溯字段"] = trace_fields
-
-        record = create_version_from_task(
-            project_name=self.project_var.get(),
-            module_name=self.active_module.name,
-            description=description,
-            version_number=version_number,
-            created_by="当前用户",
-            data_files=list(self.version_source_files),
-            conversion_params=conversion_params,
-            quality_report=quality_report,
-            output_files=list(self.version_output_files),
-            tags=[archive_strategy, "手动创建"],
-        )
-        report = build_version_report(
-            self.selected_files,
-            self.project_var.get(),
-            self.active_module.name,
-            record.version_number,
-        )
-        self.version_report = report
-        self.run_completed = True
-        self.run_status_var.set("版本已创建")
-        self.status_var.set(
-            f"版本 {record.version_number} 已创建 · 当前项目共 {report['manager_stats']['total']} 个版本"
-        )
-        self.task_payload_text = json.dumps(
-            {
-                "task": "version_management",
-                "project": self.project_var.get(),
-                "version": record.to_dict(),
-                "report": report,
-                "mysql_tables": list(self.active_module.mysql_tables),
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        self._append_log(
-            f"版本 {record.version_number} ({record.version_id}) 已创建，"
-            f"来源 {len(record.data_sources)} 个，成果 {len(record.output_files)} 个。"
-        )
-        if quality_report:
-            self._append_log(
-                f"质量记录：{quality_report.get('score', '-')} 分 / {quality_report.get('grade', '-')}。"
-            )
-        else:
-            self._append_log("本次版本未识别到质量报告 JSON，可后续补充。")
-        for source in record.data_sources:
-            self._append_log(f"  来源：{source.get('name', '')}")
-        for output in record.output_files:
-            self._append_log(f"  成果：{output.get('name', '')}")
+        self.current_page = "工作台"
+        self.run_status_var.set("自动记录已启用")
+        self.status_var.set("无需手工创建版本；其他功能模块执行完成后会自动写入追溯记录")
+        self._append_log("版本管理页仅用于历史对比、成果回溯和项目交付资料归档。")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -5366,7 +5604,7 @@ li {{ margin: 6px 0; }}
 
     def _build_version_html_report(self, exported_at: datetime) -> str:
         report = self.version_report or build_version_report(
-            self.selected_files, self.project_var.get(), self.active_module.name
+            self.selected_files, self.project_var.get(), ""
         )
         versions = report.get("versions", []) if isinstance(report.get("versions"), list) else []
         stats = report.get("manager_stats", {}) if isinstance(report.get("manager_stats"), dict) else {}
@@ -5379,6 +5617,7 @@ li {{ margin: 6px 0; }}
             record = manager.get_version(version_id)
             history_rows.append(
                 "<tr>"
+                f"<td>{escape(record.module_name if record else str(item.get('module_name', '-')))}</td>"
                 f"<td>{escape(str(item.get('version_number', '')))}</td>"
                 f"<td>{escape(str(item.get('description', '')))}</td>"
                 f"<td>{escape(str(item.get('source_count', 0)))}</td>"
@@ -5424,7 +5663,7 @@ li {{ margin: 6px 0; }}
 """
             )
 
-        history_html = "".join(history_rows) or "<tr><td colspan='7'>暂无版本记录</td></tr>"
+        history_html = "".join(history_rows) or "<tr><td colspan='8'>暂无版本记录</td></tr>"
         body = f"""
 <div class="section">
   <h2>版本管理摘要</h2>
@@ -5437,7 +5676,7 @@ li {{ margin: 6px 0; }}
 </div>
 <div class="section">
   <h2>版本历史</h2>
-  <table><thead><tr><th>版本号</th><th>描述</th><th>来源</th><th>成果</th><th>评分</th><th>创建时间</th><th>归档</th></tr></thead><tbody>{history_html}</tbody></table>
+  <table><thead><tr><th>功能模块</th><th>版本号</th><th>描述</th><th>来源</th><th>成果</th><th>评分</th><th>创建时间</th><th>归档</th></tr></thead><tbody>{history_html}</tbody></table>
 </div>
 {''.join(detail_sections)}
 """
@@ -5557,53 +5796,82 @@ li {{ margin: 6px 0; }}
 
 
 def _draw_workflow_steps(canvas: tk.Canvas, completed: bool) -> None:
-    """在批量转换页左侧绘制带连接线的流程步骤图。"""
+    """绘制自适应高度、信息层级清晰的批量处理链路。"""
     from function.batch_conversion import WORKFLOW_STEPS
     canvas.delete("all")
-    w = max(canvas.winfo_width(), 260)
-    h = 210
+    w = max(canvas.winfo_width(), 320)
+    h = max(canvas.winfo_height(), 320)
     steps = list(WORKFLOW_STEPS)
     n = len(steps)
-    right = w - 14
-    mid_x = 100
-    gap = (h - 40) / max(n - 1, 1)
-
-    STEP_COLORS = (
-        "#0b8d80", "#2f6ed0", "#654bd5", "#d88213", "#16934f", "#c9770e",
+    descriptions = (
+        "扫描目录并建立待处理文件清单",
+        "识别扩展名、模型类型与数据类别",
+        "匹配项目规则和格式映射模板",
+        "按并发配置执行模型格式转换",
+        "汇总错误、警告与质量检查指标",
+        "生成成果清单并完成交付归档",
     )
+    top = 18
+    bottom = h - 18
+    row_h = max(42.0, (bottom - top) / max(n, 1))
+    node_x = 27
+    card_x = 53
+    card_right = w - 12
+    card_h = min(48.0, row_h - 7)
+    line_color = "#159570" if completed else "#c9d7d3"
 
     for si in range(n):
-        y = 24 + si * gap
+        y = top + row_h * si + row_h / 2
         done = completed
         active = si == 0 and not completed
-        accent = "#16934f" if done else STEP_COLORS[si] if active else "#b6c3c0"
-        bg = "#e6f4ea" if done else "#ffffff" if active else "#f5f7f6"
+        accent = "#159570" if done or active else "#aebfba"
+        card_bg = "#eef8f5" if done else "#ffffff" if active else "#f4f7f6"
+        title_color = "#12342c" if done or active else "#728781"
+        detail_color = "#55716a" if done or active else "#96a7a2"
 
-        # 连接线
-        if si > 0:
-            prev_y = 24 + (si - 1) * gap
-            canvas.create_line(mid_x, prev_y + 10, mid_x, y - 10, fill="#16934f" if done else "#d6dfdc", width=2)
+        # 连线在节点下层，完成后整条链路变为绿色。
+        if si < n - 1:
+            next_y = top + row_h * (si + 1) + row_h / 2
+            canvas.create_line(node_x, y + 10, node_x, next_y - 10, fill=line_color, width=3)
 
-        # 圆形徽章
-        r = 11
-        canvas.create_oval(mid_x - r, y - r, mid_x + r, y + r, fill=accent, outline="")
-        canvas.create_text(mid_x, y, text="✓" if done else str(si + 1), fill="#ffffff",
-                          font=("Arial", 8, "bold"))
+        # 步骤节点采用双层圆点，当前阶段更加醒目。
+        if active:
+            canvas.create_oval(node_x - 13, y - 13, node_x + 13, y + 13, fill="#dff3ee", outline="")
+        radius = 10
+        canvas.create_oval(
+            node_x - radius, y - radius, node_x + radius, y + radius,
+            fill=accent, outline="#ffffff", width=2,
+        )
+        canvas.create_text(
+            node_x, y, text="✓" if done else str(si + 1), fill="#ffffff",
+            font=("Microsoft YaHei UI", 8, "bold"),
+        )
 
-        # 步骤卡片
-        card_x = mid_x + 26
-        card_w = right - card_x
-        card_h = gap * 0.72
+        # 卡片使用左侧状态色条、主标题、说明和右侧状态标签。
         card_y = y - card_h / 2
-        canvas.create_rectangle(card_x, card_y, card_x + card_w, card_y + card_h,
-                               fill=bg, outline="#d6dfdc", width=1)
-        canvas.create_text(card_x + 10, card_y + card_h / 2 - 7, text=steps[si],
-                          fill="#10231f" if done or active else "#8fa5a0",
-                          font=("Arial", 9, "bold"), anchor="w")
-        canvas.create_text(card_x + 10, card_y + card_h / 2 + 9,
-                          text="已完成" if done else "执行中" if active else "等待中",
-                          fill="#16934f" if done else accent if active else "#aebfba",
-                          font=("Arial", 7), anchor="w")
+        canvas.create_rectangle(
+            card_x, card_y, card_right, card_y + card_h,
+            fill=card_bg, outline="#cfdbd8", width=1,
+        )
+        canvas.create_rectangle(card_x, card_y, card_x + 4, card_y + card_h, fill=accent, outline="")
+        canvas.create_text(
+            card_x + 14, y - 8, text=steps[si], fill=title_color,
+            font=("Microsoft YaHei UI", 9, "bold"), anchor="w",
+        )
+        canvas.create_text(
+            card_x + 14, y + 9, text=descriptions[si], fill=detail_color,
+            font=("Microsoft YaHei UI", 7), anchor="w",
+        )
+        state_text = "已完成" if done else "执行中" if active else "待执行"
+        state_bg = "#dff3e8" if done else "#dff3ee" if active else "#e8eeec"
+        state_fg = "#137548" if done else "#08776c" if active else "#7d918b"
+        pill_w = 48
+        pill_x = card_right - pill_w - 9
+        canvas.create_rectangle(pill_x, y - 10, pill_x + pill_w, y + 10, fill=state_bg, outline="")
+        canvas.create_text(
+            pill_x + pill_w / 2, y, text=state_text, fill=state_fg,
+            font=("Microsoft YaHei UI", 7, "bold"),
+        )
 
 
 def validate_modules() -> None:
