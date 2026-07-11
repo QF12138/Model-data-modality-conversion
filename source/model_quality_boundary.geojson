@@ -1,0 +1,26 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "unclosed_boundary",
+        "stratum": "K1"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [1000000000, 30, 0]
+      }
+    }
+  ]
+}

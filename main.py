@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import json
-import math
 import sys
 import tkinter as tk
 from dataclasses import dataclass
 from datetime import datetime
+from html import escape
 from pathlib import Path
 from tkinter import filedialog, font as tkfont
 from tkinter import ttk
+
+from function.model_quality_check import build_model_quality_report
 
 
 APP_TITLE = "地质环境模型数据模态转换工具包"
@@ -352,7 +354,7 @@ MODULE_UI_PROFILES = {
         "layout": "quality",
         "overview": (("几何", "闭合"), ("拓扑", "关系"), ("属性", "完整")),
         "workflow": ("载入模型", "执行规则", "定位问题", "生成报告"),
-        "checks": ("几何闭合", "拓扑关系", "属性完整", "坐标精度"),
+        "checks": ("几何闭合性", "拓扑关系", "属性完整性", "一致性", "坐标精度"),
         "focus": ("模型缺陷识别", "异常定位", "修复建议"),
         "visual": "quality",
     },
@@ -472,6 +474,7 @@ class GeoConversionApp(tk.Tk):
             "- 质量报告、模型版本、成果归档\n"
         )
         self.logs: list[str] = []
+        self.quality_report: dict[str, object] | None = None
 
         self.search_var = tk.StringVar(value="")
         self.project_var = tk.StringVar(value="默认项目")
@@ -690,7 +693,7 @@ class GeoConversionApp(tk.Tk):
         """构建右侧业务工作区；左侧导航结构保持不变。"""
         panel = tk.Frame(parent, bg=self.BG)
         panel.columnconfigure(0, weight=1)
-        panel.rowconfigure(5, weight=1)
+        panel.rowconfigure(4, weight=1)
 
         hero = tk.Frame(panel, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1)
         hero.grid(row=0, column=0, sticky="ew", pady=(0, 7))
@@ -763,25 +766,11 @@ class GeoConversionApp(tk.Tk):
             font=(self.font_family, 9, "bold"),
         ).pack(side="left", padx=(5, 0))
 
-        toolbar = tk.Frame(panel, bg=self.BG)
-        toolbar.grid(row=1, column=0, sticky="ew", pady=(0, 7))
-        ttk.Button(toolbar, text="加载数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
-        ttk.Button(toolbar, text="配置规则", style="Tool.TButton", command=lambda: self._switch_page("参数配置")).pack(
-            side="left", padx=(8, 0)
-        )
-        ttk.Button(toolbar, text="开始转换", style="Blue.TButton", command=self._run_stub).pack(side="left", padx=(8, 0))
-        ttk.Button(toolbar, text="预览检查", style="Orange.TButton", command=lambda: self._switch_page("预览检查")).pack(
-            side="left", padx=(8, 0)
-        )
-        ttk.Button(toolbar, text="导出报告", style="Purple.TButton", command=self._export_report).pack(side="left", padx=(8, 0))
-        ttk.Button(toolbar, text="一键处理", style="Dark.TButton", command=self._one_click_analysis).pack(side="left", padx=(8, 0))
-        tk.Label(toolbar, textvariable=self.status_var, bg=self.BG, fg=self.MUTED, font=self.small_font).pack(side="right", padx=5)
-
         self.progress_host = tk.Frame(panel, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1)
-        self.progress_host.grid(row=2, column=0, sticky="ew", pady=(0, 7))
+        self.progress_host.grid(row=1, column=0, sticky="ew", pady=(0, 7))
 
         self.page_nav = tk.Frame(panel, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1)
-        self.page_nav.grid(row=3, column=0, sticky="ew", pady=(0, 7))
+        self.page_nav.grid(row=2, column=0, sticky="ew", pady=(0, 7))
         for name in self.PAGE_NAMES:
             button = tk.Button(
                 self.page_nav,
@@ -801,12 +790,49 @@ class GeoConversionApp(tk.Tk):
             self.page_buttons[name] = button
 
         self.page_title_bar = tk.Frame(panel, bg=self.BG)
-        self.page_title_bar.grid(row=4, column=0, sticky="ew", pady=(0, 3))
+        self.page_title_bar.grid(row=3, column=0, sticky="ew", pady=(0, 3))
 
-        self.content_host = tk.Frame(panel, bg=self.BG)
-        self.content_host.grid(row=5, column=0, sticky="nsew")
+        # —— 可滚动内容区（Canvas + Scrollbar）——
+        self.content_canvas = tk.Canvas(panel, bg=self.BG, highlightthickness=0, bd=0)
+        self.content_scrollbar = ttk.Scrollbar(panel, orient="vertical", command=self.content_canvas.yview)
+        self.content_canvas.configure(yscrollcommand=self.content_scrollbar.set)
+
+        self.content_canvas.grid(row=4, column=0, sticky="nsew")
+        self.content_scrollbar.grid(row=4, column=1, sticky="ns")
+
+        # 内层 Frame 承载各页面内容
+        self.content_host = tk.Frame(self.content_canvas, bg=self.BG)
         self.content_host.columnconfigure(0, weight=1)
         self.content_host.rowconfigure(0, weight=1)
+
+        self._content_win_id = self.content_canvas.create_window(
+            (0, 0), window=self.content_host, anchor="nw", width=900
+        )
+
+        def _on_content_host_configure(event: tk.Event) -> None:
+            self.content_canvas.itemconfigure(self._content_win_id, width=self.content_canvas.winfo_width())
+            self.content_canvas.configure(scrollregion=self.content_canvas.bbox("all"))
+
+        self.content_host.bind("<Configure>", _on_content_host_configure)
+
+        def _on_content_canvas_configure(event: tk.Event) -> None:
+            self.content_canvas.itemconfigure(self._content_win_id, width=event.width)
+            self.content_canvas.configure(scrollregion=self.content_canvas.bbox("all"))
+
+        self.content_canvas.bind("<Configure>", _on_content_canvas_configure)
+
+        # 鼠标滚轮
+        def _bind_wheel(_event: tk.Event) -> None:
+            self.content_canvas.bind_all(
+                "<MouseWheel>", lambda e: self.content_canvas.yview_scroll(int(-e.delta / 120), "units")
+            )
+
+        def _unbind_wheel(_event: tk.Event) -> None:
+            self.content_canvas.unbind_all("<MouseWheel>")
+
+        self.content_canvas.bind("<Enter>", _bind_wheel)
+        self.content_canvas.bind("<Leave>", _unbind_wheel)
+
         return panel
 
     def _render_progress_strip(self) -> None:
@@ -865,6 +891,11 @@ class GeoConversionApp(tk.Tk):
             )
         self.overview_button.configure(bg=self.TEAL if self.current_page == "工作台" else self.SIDEBAR_ITEM)
 
+        if self._is_quality_module() and self.current_page == "工作台":
+            self._render_model_quality_page()
+            self._refresh_content_scrollregion()
+            return
+
         renderers = {
             "工作台": self._render_dashboard_page,
             "参数配置": self._render_params_page,
@@ -873,13 +904,18 @@ class GeoConversionApp(tk.Tk):
             "后端接口": self._render_backend_page,
         }
         renderers[self.current_page]()
+        self._refresh_content_scrollregion()
+
+    def _refresh_content_scrollregion(self) -> None:
+        self.update_idletasks()
+        self.content_canvas.itemconfigure(self._content_win_id, width=self.content_canvas.winfo_width())
+        self.content_canvas.configure(scrollregion=self.content_canvas.bbox("all"))
+        self.content_canvas.yview_moveto(0)
 
     def _render_dashboard_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
-        root.grid(row=0, column=0, sticky="nsew")
+        root.grid(row=0, column=0, sticky="ew")
         root.columnconfigure(0, weight=1)
-        root.rowconfigure(1, weight=1)
-        root.rowconfigure(2, weight=0)
 
         # 顶部指标：围绕采购要求展示输入、规则、质量与成果，而非风险研判。
         metrics = tk.Frame(root, bg=self.BG)
@@ -1002,43 +1038,184 @@ class GeoConversionApp(tk.Tk):
         self._compact_info_section(spec_body, 2, "质量检查", self._profile()["checks"], self.ORANGE)
         self._compact_info_section(spec_body, 3, "成果输出", self.active_module.outputs, self.PURPLE)
 
-        # 底：结果、质量与成果状态，直接服务于转换与交付。
-        result_card = self._card(root)
-        result_card.configure(height=112)
-        result_card.grid_propagate(False)
-        result_card.grid(row=2, column=0, sticky="ew", pady=(7, 0))
-        result_card.columnconfigure(0, weight=1)
-        self._card_header(result_card, "转换成果与质量摘要")
-        result_wrap = tk.Frame(result_card, bg=self.PANEL)
-        result_wrap.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
-        result_wrap.columnconfigure(0, weight=1)
-        result_tree = ttk.Treeview(
-            result_wrap,
-            columns=("artifact", "type", "status", "quality", "trace"),
+    def _render_model_quality_page(self) -> None:
+        root = tk.Frame(self.content_host, bg=self.BG)
+        root.grid(row=0, column=0, sticky="ew")
+        root.columnconfigure(0, weight=1)
+
+        report = self.quality_report or {}
+        score = int(report.get("score", 0) or 0)
+        issue_count = int(report.get("issue_count", 0) or 0)
+        file_count = int(report.get("file_count", len(self.selected_files)) or 0)
+
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for index in range(4):
+            summary.columnconfigure(index, weight=1)
+        summary_items = (
+            ("质量评分", f"{score if self.run_completed else '--'}", "几何、拓扑、属性、坐标综合结果", self.TEAL),
+            ("缺陷数量", f"{issue_count} 项" if self.run_completed else "待检查", "严重/警告/提示分级定位", self.RED if issue_count else self.GREEN),
+            ("检查文件", f"{file_count} 个", "OBJ / GeoJSON / CSV 示例可直接验证", self.BLUE),
+            ("检查维度", "5 类", "闭合性、拓扑、属性、一致性、坐标精度", self.PURPLE),
+        )
+        for index, item in enumerate(summary_items):
+            self._metric_card(summary, *item).grid(
+                row=0,
+                column=index,
+                sticky="nsew",
+                padx=(0 if index == 0 else 4, 0 if index == 3 else 4),
+            )
+
+        work = tk.Frame(root, bg=self.BG)
+        work.grid(row=1, column=0, sticky="nsew")
+        work.columnconfigure(0, weight=33)
+        work.columnconfigure(1, weight=39)
+        work.columnconfigure(2, weight=28)
+
+        input_card = self._card(work)
+        input_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        input_card.columnconfigure(0, weight=1)
+        input_card.rowconfigure(3, weight=1)
+        self._card_header(input_card, "数据输入")
+        tk.Label(
+            input_card,
+            text="导入转换后的模型成果、属性表或空间边界文件。当前内置解析 OBJ、GeoJSON/JSON、CSV/TXT；其它格式登记后留给后端解析器。",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+            justify="left",
+            wraplength=360,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
+
+        input_actions = tk.Frame(input_card, bg=self.PANEL)
+        input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
+        ttk.Button(input_actions, text="加载示例数据", style="Primary.TButton", command=self._load_quality_sample_data).pack(side="left")
+        ttk.Button(input_actions, text="添加文件", style="Tool.TButton", command=self._choose_files).pack(side="left", padx=7)
+        ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left")
+
+        file_tree = ttk.Treeview(
+            input_card,
+            columns=("name", "type", "state"),
             show="headings",
-            height=2,
             style="Dashboard.Treeview",
+            height=9,
         )
-        columns = (
-            ("artifact", "成果名称", 220),
-            ("type", "成果类型", 150),
-            ("status", "处理状态", 100),
-            ("quality", "质量检查", 180),
-            ("trace", "追溯信息", 220),
+        for key, title, width in (("name", "文件", 220), ("type", "类型", 90), ("state", "状态", 90)):
+            file_tree.heading(key, text=title)
+            file_tree.column(key, width=width, anchor="w")
+        file_tree.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        files = report.get("files", []) if isinstance(report.get("files"), list) else []
+        if files:
+            for item in files:
+                file_tree.insert("", "end", values=(item.get("name", ""), item.get("type", ""), item.get("status", "")))
+        elif self.selected_files:
+            for path in self.selected_files:
+                suffix = Path(path).suffix.lower() or "unknown"
+                file_tree.insert("", "end", values=(Path(path).name, suffix, "待检查"))
+        else:
+            file_tree.insert("", "end", values=("未加载数据", "-", "待接入"))
+
+        check_card = self._card(work)
+        check_card.grid(row=0, column=1, sticky="nsew", padx=5)
+        check_card.columnconfigure(0, weight=1)
+        check_card.rowconfigure(2, weight=1)
+        self._card_header(check_card, "检查流程与结果")
+
+        flow = tk.Frame(check_card, bg=self.PANEL)
+        flow.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        for index, (title, caption) in enumerate(
+            (
+                ("1 数据读取", "识别模型、属性和坐标"),
+                ("2 规则检查", "闭合、拓扑、属性、一致性"),
+                ("3 缺陷定位", "生成异常类别和来源文件"),
+                ("4 质量评分", "输出报告和建议"),
+            )
+        ):
+            flow.columnconfigure(index, weight=1)
+            item = tk.Frame(flow, bg=self.TEAL_SOFT if index == 0 or self.run_completed else "#f7faf9", highlightbackground=self.BORDER, highlightthickness=1)
+            item.grid(row=0, column=index, sticky="ew", padx=(0 if index == 0 else 5, 0))
+            tk.Label(item, text=title, bg=item["bg"], fg=self.TEXT, font=(self.font_family, 9, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+            tk.Label(item, text=caption, bg=item["bg"], fg=self.MUTED, font=self.tiny_font).pack(anchor="w", padx=10, pady=(0, 8))
+
+        category_tree = ttk.Treeview(
+            check_card,
+            columns=("category", "status", "issues", "summary"),
+            show="headings",
+            style="Dashboard.Treeview",
+            height=8,
         )
-        for key, title, width in columns:
-            result_tree.heading(key, text=title)
-            result_tree.column(key, width=width, anchor="w")
-        result_tree.grid(row=0, column=0, sticky="ew")
-        for row in self._result_rows():
-            result_tree.insert("", "end", values=row)
+        for key, title, width in (("category", "检查项", 120), ("status", "状态", 80), ("issues", "问题数", 70), ("summary", "说明", 360)):
+            category_tree.heading(key, text=title)
+            category_tree.column(key, width=width, anchor="w")
+        category_tree.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        categories = report.get("categories", []) if isinstance(report.get("categories"), list) else []
+        if categories:
+            for item in categories:
+                category_tree.insert("", "end", values=(item.get("name", ""), item.get("status", ""), item.get("issues", 0), item.get("summary", "")))
+        else:
+            for name in ("几何闭合性", "拓扑关系", "属性完整性", "一致性", "坐标精度"):
+                category_tree.insert("", "end", values=(name, "待执行", "-", "点击“执行质量校验”后生成结果。"))
+
+        result_card = self._card(work)
+        result_card.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        result_card.columnconfigure(0, weight=1)
+        result_card.rowconfigure(2, weight=1)
+        self._card_header(result_card, "质量结论")
+        grade = report.get("grade", "待检查")
+        tk.Label(result_card, text=str(score) if self.run_completed else "--", bg=self.PANEL, fg=self.TEAL_DARK, font=(self.font_family, 34, "bold")).grid(
+            row=1, column=0, sticky="w", padx=15
+        )
+        tk.Label(result_card, text=f"综合等级：{grade}", bg=self.PANEL, fg=self.MUTED, font=self.small_font).grid(
+            row=1, column=0, sticky="w", padx=18, pady=(60, 0)
+        )
+        conclusion = self._quality_conclusion_text(report)
+        tk.Label(
+            result_card,
+            text=conclusion,
+            bg="#f8faf9",
+            fg=self.TEXT,
+            font=self.small_font,
+            justify="left",
+            anchor="nw",
+            wraplength=340,
+            padx=12,
+            pady=10,
+        ).grid(row=2, column=0, sticky="nsew", padx=12, pady=(10, 12))
+        ttk.Button(result_card, text="执行质量校验", style="Blue.TButton", command=self._run_model_quality_check).grid(
+            row=3, column=0, sticky="ew", padx=12, pady=(0, 8)
+        )
+        ttk.Button(result_card, text="导出质量报告", style="Purple.TButton", command=self._export_report).grid(
+            row=4, column=0, sticky="ew", padx=12, pady=(0, 12)
+        )
+
+        issue_card = self._card(root)
+        issue_card.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        issue_card.columnconfigure(0, weight=1)
+        self._card_header(issue_card, "模型缺陷与数据异常清单")
+        issue_tree = ttk.Treeview(
+            issue_card,
+            columns=("severity", "category", "file", "message"),
+            show="headings",
+            style="Dashboard.Treeview",
+            height=7,
+        )
+        for key, title, width in (("severity", "级别", 80), ("category", "类别", 120), ("file", "来源文件", 220), ("message", "问题描述", 760)):
+            issue_tree.heading(key, text=title)
+            issue_tree.column(key, width=width, anchor="w")
+        issue_tree.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 12))
+        issues = report.get("issues", []) if isinstance(report.get("issues"), list) else []
+        if issues:
+            for issue in issues:
+                issue_tree.insert("", "end", values=(issue.get("severity", ""), issue.get("category", ""), issue.get("file", ""), issue.get("message", "")))
+        else:
+            issue_tree.insert("", "end", values=("待检查", "全部", "-", "加载模型文件后执行质量校验。"))
+        tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
 
     def _render_params_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
-        root.grid(row=0, column=0, sticky="nsew")
+        root.grid(row=0, column=0, sticky="ew")
         root.columnconfigure(0, weight=62)
         root.columnconfigure(1, weight=38)
-        root.rowconfigure(0, weight=1)
 
         form_card = self._card(root)
         form_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
@@ -1111,19 +1288,22 @@ class GeoConversionApp(tk.Tk):
 
     def _render_preview_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
-        root.grid(row=0, column=0, sticky="nsew")
+        root.grid(row=0, column=0, sticky="ew")
         root.columnconfigure(0, weight=72)
         root.columnconfigure(1, weight=28)
-        root.rowconfigure(0, weight=1)
 
         preview_card = self._card(root)
         preview_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         preview_card.columnconfigure(0, weight=1)
         preview_card.rowconfigure(1, weight=1)
-        self._card_header(preview_card, "二维 / 三维 / 剖切预览")
+        preview_title = "导入模型与复核文件预览" if self._is_quality_module() else "空间数据与成果预览"
+        self._card_header(preview_card, preview_title)
         canvas = tk.Canvas(preview_card, bg="#fbfcfc", highlightthickness=0)
         canvas.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 10))
-        canvas.bind("<Configure>", lambda _e, c=canvas: self._draw_preview(c))
+        if self._is_quality_module():
+            canvas.bind("<Configure>", lambda _e, c=canvas: self._draw_quality_model_preview(c))
+        else:
+            canvas.bind("<Configure>", lambda _e, c=canvas: self._draw_preview(c))
 
         quality_card = self._card(root)
         quality_card.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
@@ -1159,9 +1339,8 @@ class GeoConversionApp(tk.Tk):
 
     def _render_task_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
-        root.grid(row=0, column=0, sticky="nsew")
+        root.grid(row=0, column=0, sticky="ew")
         root.columnconfigure(0, weight=1)
-        root.rowconfigure(1, weight=1)
 
         summary = tk.Frame(root, bg=self.BG)
         summary.grid(row=0, column=0, sticky="ew", pady=(0, 7))
@@ -1225,10 +1404,9 @@ class GeoConversionApp(tk.Tk):
 
     def _render_backend_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
-        root.grid(row=0, column=0, sticky="nsew")
+        root.grid(row=0, column=0, sticky="ew")
         root.columnconfigure(0, weight=52)
         root.columnconfigure(1, weight=48)
-        root.rowconfigure(0, weight=1)
 
         api_card = self._card(root)
         api_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
@@ -1461,6 +1639,8 @@ class GeoConversionApp(tk.Tk):
         }
 
     def _quality_score(self) -> int:
+        if self.quality_report:
+            return int(self.quality_report.get("score", 0) or 0)
         if not self.run_completed:
             return 0
         seed = sum(ord(ch) for ch in self.active_module.name)
@@ -1597,8 +1777,8 @@ class GeoConversionApp(tk.Tk):
         split_x = width * 0.52
         canvas.create_rectangle(34, 58, split_x - 8, height - 62, fill="#f6f9f8", outline=self.BORDER)
         canvas.create_rectangle(split_x + 8, 58, width - 34, height - 62, fill="#f6f9f8", outline=self.BORDER)
-        canvas.create_text(48, 76, text="转换前", fill=self.MUTED, anchor="w", font=(self.font_family, 9, "bold"))
-        canvas.create_text(split_x + 22, 76, text="转换后", fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 9, "bold"))
+        canvas.create_text(48, 76, text="源数据视图", fill=self.MUTED, anchor="w", font=(self.font_family, 9, "bold"))
+        canvas.create_text(split_x + 22, 76, text="处理结果视图", fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 9, "bold"))
 
         visual = self._profile()["visual"]
         centers = ((width * 0.27, height * 0.52, False), (width * 0.75, height * 0.52, True))
@@ -1635,6 +1815,60 @@ class GeoConversionApp(tk.Tk):
         state_text = "转换完成，可进行空间、属性与边界对比检查" if self.run_completed else "演示预览：执行转换后显示后端返回的真实模型与差异结果"
         canvas.create_text(width / 2, height - 36, text=state_text, fill=self.GREEN if self.run_completed else self.MUTED, font=self.small_font)
 
+    def _draw_quality_model_preview(self, canvas: tk.Canvas) -> None:
+        canvas.delete("all")
+        width = max(canvas.winfo_width(), 720)
+        height = max(canvas.winfo_height(), 430)
+        canvas.create_rectangle(16, 16, width - 16, height - 16, fill="#fbfcfc", outline=self.BORDER)
+        canvas.create_text(34, 35, text="导入三维模型与复核文件", fill=self.TEXT, anchor="w", font=self.section_font)
+        canvas.create_text(width - 34, 35, text="MODEL  |  ATTRIBUTES  |  BOUNDARY", fill=self.MUTED, anchor="e", font=self.small_font)
+
+        left_w = width * 0.58
+        canvas.create_rectangle(34, 58, left_w - 8, height - 62, fill="#f6f9f8", outline=self.BORDER)
+        canvas.create_rectangle(left_w + 8, 58, width - 34, height - 62, fill="#f6f9f8", outline=self.BORDER)
+        canvas.create_text(48, 78, text="三维模型视图", fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 10, "bold"))
+        canvas.create_text(left_w + 24, 78, text="复核文件", fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 10, "bold"))
+
+        cx, cy = left_w * 0.5, height * 0.52
+        points = [
+            (cx, cy - 100),
+            (cx - 150, cy - 18),
+            (cx - 95, cy + 110),
+            (cx + 95, cy + 110),
+            (cx + 150, cy - 18),
+        ]
+        faces = ((0, 1, 2), (0, 2, 3), (0, 3, 4))
+        colors = ("#7fb3ad", "#0b8d80", "#d88213")
+        for index, face in enumerate(faces):
+            coords = []
+            for point_index in face:
+                coords.extend(points[point_index])
+            canvas.create_polygon(*coords, fill=colors[index], outline="#ffffff", width=2)
+        for x, y in points:
+            canvas.create_oval(x - 4, y - 4, x + 4, y + 4, fill="#10231f", outline="")
+        canvas.create_line(points[1][0], points[1][1], points[4][0], points[4][1], fill=self.RED, width=3, dash=(6, 4))
+        canvas.create_text(cx, cy + 145, text="示例：红色虚线表示待复核开口边界 / 非闭合区域", fill=self.MUTED, font=self.small_font)
+
+        files = self.quality_report.get("files", []) if self.quality_report else []
+        if not files and self.selected_files:
+            files = [{"name": Path(path).name, "type": Path(path).suffix.lower() or "unknown", "status": "待检查"} for path in self.selected_files]
+        if not files:
+            files = [{"name": "尚未加载复核文件", "type": "-", "status": "待接入"}]
+
+        start_y = 108
+        for index, item in enumerate(files[:7]):
+            y = start_y + index * 42
+            status = str(item.get("status", ""))
+            color = self.GREEN if status == "已检查" else self.AMBER if status == "待检查" else self.RED if status == "解析失败" else self.MUTED
+            canvas.create_rectangle(left_w + 24, y, width - 55, y + 30, fill="#ffffff", outline=self.BORDER)
+            canvas.create_rectangle(left_w + 24, y, left_w + 31, y + 30, fill=color, outline="")
+            canvas.create_text(left_w + 42, y + 15, text=str(item.get("name", "")), fill=self.TEXT, anchor="w", font=self.small_font)
+            canvas.create_text(width - 68, y + 15, text=str(item.get("type", "")), fill=self.MUTED, anchor="e", font=self.tiny_font)
+
+        issue_count = self.quality_report.get("issue_count", 0) if self.quality_report else 0
+        status_text = f"已完成复核：发现 {issue_count} 项缺陷/异常" if self.quality_report else "加载模型和复核文件后，可执行质量校验并定位缺陷"
+        canvas.create_text(width / 2, height - 36, text=status_text, fill=self.RED if issue_count else self.MUTED, font=self.small_font)
+
     def _choose_files(self) -> None:
         files = list(filedialog.askopenfilenames(title="选择源数据文件"))
         if not files:
@@ -1647,6 +1881,22 @@ class GeoConversionApp(tk.Tk):
         self.run_status_var.set("数据已加载")
         self._render_current_page()
 
+    def _load_quality_sample_data(self) -> None:
+        source_dir = Path(__file__).resolve().parent / "source"
+        sample_files = [
+            source_dir / "model_quality_open_mesh.obj",
+            source_dir / "model_quality_attributes.csv",
+            source_dir / "model_quality_boundary.geojson",
+        ]
+        self.selected_files = [str(path) for path in sample_files if path.exists()]
+        self.quality_report = None
+        self.run_completed = False
+        self.run_status_var.set("示例数据已加载")
+        self.status_var.set(f"已加载 {len(self.selected_files)} 个质量校验示例文件")
+        self._append_log("已加载 source 目录中的模型质量校验示例数据。")
+        self._render_progress_strip()
+        self._render_current_page()
+
     def _clear_files(self) -> None:
         if not self.selected_files:
             self.status_var.set("当前没有已加载的数据")
@@ -1654,6 +1904,7 @@ class GeoConversionApp(tk.Tk):
         count = len(self.selected_files)
         self.selected_files.clear()
         self.run_completed = False
+        self.quality_report = None
         self.run_status_var.set("待处理")
         self._append_log(f"已清空 {count} 个数据文件。")
         self.status_var.set("数据列表已清空")
@@ -1672,6 +1923,9 @@ class GeoConversionApp(tk.Tk):
         self.status_var.set(f"已预留模板保存接口：{BACKEND_ENDPOINTS['save_template']}")
 
     def _run_stub(self) -> None:
+        if self._is_quality_module():
+            self._run_model_quality_check()
+            return
         self.run_completed = True
         self.run_status_var.set("处理完成")
         self.status_var.set(f"已预留任务执行接口：{BACKEND_ENDPOINTS['run_task']}")
@@ -1683,6 +1937,54 @@ class GeoConversionApp(tk.Tk):
         self.task_payload_text += "\n接口占位：后端接入后将提交任务并轮询运行状态。\n"
         self._render_progress_strip()
         self._render_current_page()
+
+    def _is_quality_module(self) -> bool:
+        return self.active_module.name == "模型质量校验模块"
+
+    def _run_model_quality_check(self) -> None:
+        self._append_log("开始执行模型质量校验。")
+        report = build_model_quality_report(self.selected_files)
+        self.quality_report = report
+        self.run_completed = True
+        self.run_status_var.set("校验完成")
+        self.status_var.set(f"模型质量校验完成：{report['score']} 分 / {report['grade']}")
+        self.task_payload_text = json.dumps(
+            {
+                "task": "model_quality_check",
+                "project": self.project_var.get(),
+                "module": self.active_module.name,
+                "input_files": self.selected_files,
+                "quality_report": report,
+                "mysql_tables": list(self.active_module.mysql_tables),
+                "backend_endpoint": BACKEND_ENDPOINTS["quality_report"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        for category in report["categories"]:
+            self._append_log(f"{category['name']}：{category['status']}，问题 {category['issues']} 项。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _quality_conclusion_text(self, report: dict[str, object]) -> str:
+        if not report:
+            return (
+                "本页面覆盖模型质量校验模块的全部要求：\n"
+                "1. 几何闭合性检查\n"
+                "2. 拓扑关系检查\n"
+                "3. 属性完整性检查\n"
+                "4. 一致性检查\n"
+                "5. 坐标精度检查\n\n"
+                "可先点击“加载示例数据”，再执行质量校验。"
+            )
+        failed = [item["name"] for item in report.get("categories", []) if item.get("status") != "通过"]
+        if not failed:
+            return "模型质量检查通过。当前模型未发现明显几何、拓扑、属性、一致性或坐标精度问题，可进入成果归档流程。"
+        return (
+            f"综合评分 {report.get('score')}，等级 {report.get('grade')}。\n\n"
+            f"需重点复核：{'、'.join(failed)}。\n\n"
+            "下方缺陷清单给出了来源文件、问题类别和处理优先级。"
+        )
 
     def _one_click_analysis(self) -> None:
         self._run_stub()
@@ -1715,37 +2017,201 @@ class GeoConversionApp(tk.Tk):
             self.task_text.insert("1.0", self.task_payload_text)
 
     def _export_report(self) -> None:
-        report = {
-            "app": APP_TITLE,
-            "project": self.project_var.get(),
-            "module": self.active_module.name,
-            "status": self.run_status_var.get(),
-            "input_files": self.selected_files,
-            "parameters": self.param_values,
-            "outputs": list(self.active_module.outputs),
-            "quality_score": self._quality_score(),
-            "quality_grade": self._quality_grade(self._quality_score()),
-            "logs": self.logs,
-            "exported_at": datetime.now().isoformat(timespec="seconds"),
-        }
+        exported_at = datetime.now()
+        html = self._build_html_report(exported_at)
         path = filedialog.asksaveasfilename(
             title="导出分析报告",
-            defaultextension=".json",
-            filetypes=(("JSON 报告", "*.json"), ("文本文件", "*.txt")),
-            initialfile=f"{self.active_module.name.removesuffix('模块')}_分析报告.json",
+            defaultextension=".html",
+            filetypes=(("HTML 报告", "*.html"), ("网页文件", "*.htm")),
+            initialfile=f"{self.active_module.name.removesuffix('模块')}_分析报告_{exported_at.strftime('%Y%m%d_%H%M%S')}.html",
         )
         if not path:
             return
         try:
             with open(path, "w", encoding="utf-8") as file:
-                if path.lower().endswith(".txt"):
-                    file.write(json.dumps(report, ensure_ascii=False, indent=2))
-                else:
-                    json.dump(report, file, ensure_ascii=False, indent=2)
+                file.write(html)
             self._append_log(f"分析报告已导出：{path}")
             self.status_var.set("分析报告导出完成")
         except OSError as exc:
             self.status_var.set(f"报告导出失败：{exc}")
+
+    def _build_html_report(self, exported_at: datetime) -> str:
+        if self._is_quality_module():
+            return self._build_quality_html_report(exported_at)
+        return self._build_generic_html_report(exported_at)
+
+    def _html_shell(self, title: str, subtitle: str, body: str) -> str:
+        return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>{escape(title)}</title>
+<style>
+body {{ font-family: "Microsoft YaHei", Arial, sans-serif; margin: 0; color: #17201c; background: #f4f7f6; }}
+.page {{ max-width: 1080px; margin: 0 auto; padding: 32px; }}
+.hero {{ background: #0f766e; color: white; padding: 28px 32px; }}
+.hero h1 {{ margin: 0 0 8px 0; font-size: 26px; }}
+.hero p {{ margin: 0; color: #d8f7ef; }}
+.section {{ background: white; border: 1px solid #d8e2dd; margin-top: 18px; padding: 20px 22px; }}
+h2 {{ margin: 0 0 12px 0; font-size: 18px; color: #115e59; }}
+.grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }}
+.metric {{ background: #f7faf8; border: 1px solid #d8e2dd; padding: 12px; }}
+.metric b {{ display: block; color: #66736d; font-size: 13px; margin-bottom: 6px; }}
+table {{ border-collapse: collapse; width: 100%; margin-top: 10px; }}
+th, td {{ border: 1px solid #d8e2dd; padding: 9px 10px; text-align: left; vertical-align: top; }}
+th {{ background: #eef5f2; color: #17201c; }}
+ol, ul {{ margin-top: 8px; }}
+li {{ margin: 6px 0; }}
+.note {{ color: #66736d; font-size: 13px; }}
+.warn {{ background: #fff4df; border-left: 4px solid #d97706; padding: 10px 12px; }}
+.ok {{ color: #15803d; font-weight: bold; }}
+.bad {{ color: #b91c1c; font-weight: bold; }}
+.mid {{ color: #b45309; font-weight: bold; }}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>{escape(title)}</h1>
+  <p>{escape(subtitle)}</p>
+</div>
+<div class="page">
+{body}
+</div>
+</body>
+</html>
+"""
+
+    def _build_quality_html_report(self, exported_at: datetime) -> str:
+        if not self.quality_report:
+            report = build_model_quality_report(self.selected_files)
+        else:
+            report = self.quality_report
+        score = int(report.get("score", 0) or 0)
+        grade = str(report.get("grade", "待检查"))
+        categories = report.get("categories", []) if isinstance(report.get("categories"), list) else []
+        files = report.get("files", []) if isinstance(report.get("files"), list) else []
+        issues = report.get("issues", []) if isinstance(report.get("issues"), list) else []
+        exported = exported_at.strftime("%Y-%m-%d %H:%M:%S")
+
+        category_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('name', '')))}</td>"
+            f"<td>{self._status_html(str(item.get('status', '')))}</td>"
+            f"<td>{escape(str(item.get('issues', 0)))}</td>"
+            f"<td>{escape(str(item.get('summary', '')))}</td>"
+            "</tr>"
+            for item in categories
+        )
+        file_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('name', '')))}</td>"
+            f"<td>{escape(str(item.get('type', '')))}</td>"
+            f"<td>{escape(str(item.get('status', '')))}</td>"
+            f"<td>{escape(str(item.get('path', '')))}</td>"
+            "</tr>"
+            for item in files
+        ) or "<tr><td colspan='4'>未加载文件</td></tr>"
+        issue_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('severity', '')))}</td>"
+            f"<td>{escape(str(item.get('category', '')))}</td>"
+            f"<td>{escape(str(item.get('file', '')))}</td>"
+            f"<td>{escape(str(item.get('message', '')))}</td>"
+            "</tr>"
+            for item in issues
+        ) or "<tr><td colspan='4'>未发现缺陷或尚未执行检查</td></tr>"
+
+        conclusion = self._quality_conclusion_text(report)
+        body = f"""
+  <div class="section">
+    <h2>一、分析概况</h2>
+    <table>
+      <tr><th>项目名称</th><td>{escape(self.project_var.get())}</td><th>功能模块</th><td>{escape(self.active_module.name)}</td></tr>
+      <tr><th>检查对象</th><td>{len(files)} 个文件</td><th>导出时间</th><td>{escape(exported)}</td></tr>
+      <tr><th>综合评分</th><td>{score}</td><th>质量等级</th><td>{escape(grade)}</td></tr>
+    </table>
+  </div>
+  <div class="section">
+    <h2>二、数据来源</h2>
+    <p>本报告根据当前加载的模型成果、属性表和空间边界文件生成。</p>
+    <table><thead><tr><th>文件名称</th><th>类型</th><th>检查状态</th><th>路径</th></tr></thead><tbody>{file_rows}</tbody></table>
+  </div>
+  <div class="section">
+    <h2>三、质量校验流程</h2>
+    <ol><li>读取转换后的模型成果和属性数据</li><li>执行几何闭合性、拓扑关系、属性完整性、一致性和坐标精度检查</li><li>识别模型缺陷和数据异常</li><li>汇总质量评分、分类状态和处理建议</li></ol>
+  </div>
+  <div class="section">
+    <h2>四、核心指标</h2>
+    <div class="grid">
+      <div class="metric"><b>综合评分</b>{score}<br><span class="note">{escape(grade)}</span></div>
+      <div class="metric"><b>缺陷数量</b>{escape(str(report.get('issue_count', 0)))} 项<br><span class="note">严重/警告/提示</span></div>
+      <div class="metric"><b>检查文件</b>{len(files)} 个<br><span class="note">模型/属性/边界</span></div>
+      <div class="metric"><b>检查维度</b>5 类<br><span class="note">几何、拓扑、属性、一致性、坐标</span></div>
+    </div>
+  </div>
+  <div class="section">
+    <h2>五、分类检查结果</h2>
+    <table><thead><tr><th>检查项</th><th>状态</th><th>问题数</th><th>说明</th></tr></thead><tbody>{category_rows}</tbody></table>
+  </div>
+  <div class="section">
+    <h2>六、模型缺陷与数据异常清单</h2>
+    <table><thead><tr><th>级别</th><th>类别</th><th>来源文件</th><th>问题描述</th></tr></thead><tbody>{issue_rows}</tbody></table>
+  </div>
+  <div class="section">
+    <h2>七、综合结论与建议</h2>
+    <p>{escape(conclusion).replace(chr(10), '<br>')}</p>
+    <p class="warn">说明：本报告由软件根据当前数据集自动生成，建议结合原始模型、工程坐标基准和后端专业模型解析器复核后使用。</p>
+  </div>
+"""
+        subtitle = f"{APP_TITLE} | V1.0 | 导出时间：{exported}"
+        return self._html_shell(f"{self.active_module.name}分析报告", subtitle, body)
+
+    def _build_generic_html_report(self, exported_at: datetime) -> str:
+        exported = exported_at.strftime("%Y-%m-%d %H:%M:%S")
+        input_rows = "".join(f"<tr><td>{index}</td><td>{escape(path)}</td></tr>" for index, path in enumerate(self.selected_files, start=1))
+        if not input_rows:
+            input_rows = "<tr><td colspan='2'>未加载数据</td></tr>"
+        param_rows = "".join(f"<tr><td>{escape(key)}</td><td>{escape(value)}</td></tr>" for key, value in self.param_values.items())
+        if not param_rows:
+            param_rows = "<tr><td colspan='2'>未配置参数</td></tr>"
+        body = f"""
+  <div class="section">
+    <h2>一、分析概况</h2>
+    <table>
+      <tr><th>项目名称</th><td>{escape(self.project_var.get())}</td><th>功能模块</th><td>{escape(self.active_module.name)}</td></tr>
+      <tr><th>处理状态</th><td>{escape(self.run_status_var.get())}</td><th>导出时间</th><td>{escape(exported)}</td></tr>
+    </table>
+  </div>
+  <div class="section">
+    <h2>二、数据来源</h2>
+    <table><thead><tr><th>序号</th><th>输入文件</th></tr></thead><tbody>{input_rows}</tbody></table>
+  </div>
+  <div class="section">
+    <h2>三、处理流程</h2>
+    <ol>{''.join(f'<li>{escape(step)}</li>' for step in self._profile()['workflow'])}</ol>
+  </div>
+  <div class="section">
+    <h2>四、核心参数</h2>
+    <table><tbody>{param_rows}</tbody></table>
+  </div>
+  <div class="section">
+    <h2>五、成果与建议</h2>
+    <ul>{''.join(f'<li>{escape(output)}</li>' for output in self.active_module.outputs)}</ul>
+    <p class="warn">说明：当前模块的后端算法仍按接口占位接入，报告用于前端交付样式和任务记录展示。</p>
+  </div>
+"""
+        subtitle = f"{APP_TITLE} | V1.0 | 导出时间：{exported}"
+        return self._html_shell(f"{self.active_module.name}分析报告", subtitle, body)
+
+    @staticmethod
+    def _status_html(status: str) -> str:
+        if status == "通过":
+            return "<span class='ok'>通过</span>"
+        if status == "未通过":
+            return "<span class='bad'>未通过</span>"
+        if status:
+            return f"<span class='mid'>{escape(status)}</span>"
+        return ""
 
     def _append_log(self, message: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")

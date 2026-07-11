@@ -1,0 +1,5 @@
+id,x,y,z,lithology,density,elastic_modulus
+M001,0,0,0,sandstone,2.35,3100
+M002,1,0,0,limestone,,4200
+M002,1,1,0,,2.41,3900
+M004,bad,1,0,mudstone,2.12,2800
