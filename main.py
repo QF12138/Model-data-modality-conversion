@@ -6,6 +6,7 @@ import sys
 import tkinter as tk
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from tkinter import filedialog, font as tkfont
 from tkinter import ttk
 
@@ -574,7 +575,7 @@ class GeoConversionApp(tk.Tk):
         panel.columnconfigure(0, weight=1)
         panel.rowconfigure(5, weight=1)
 
-        tk.Label(panel, text="转换平台", bg=self.SIDEBAR, fg="#ffffff", font=(self.font_family, 14, "bold"), anchor="w").grid(
+        tk.Label(panel, text="转换平台", bg=self.SIDEBAR, fg="#ffffff", font=(self.font_family, 12, "bold"), anchor="w").grid(
             row=0, column=0, sticky="ew", padx=13, pady=(16, 4)
         )
         tk.Label(panel, text="工程数据 · 模态转换 · 成果输出", bg=self.SIDEBAR, fg="#c7d4d0", font=self.tiny_font, anchor="w").grid(
@@ -686,6 +687,7 @@ class GeoConversionApp(tk.Tk):
         self._refresh_menu()
 
     def _build_workspace(self, parent: tk.Widget) -> tk.Frame:
+        """构建右侧业务工作区；左侧导航结构保持不变。"""
         panel = tk.Frame(parent, bg=self.BG)
         panel.columnconfigure(0, weight=1)
         panel.rowconfigure(5, weight=1)
@@ -695,11 +697,37 @@ class GeoConversionApp(tk.Tk):
         hero.columnconfigure(0, weight=1)
 
         hero_left = tk.Frame(hero, bg=self.PANEL)
-        hero_left.grid(row=0, column=0, sticky="ew", padx=15, pady=11)
+        hero_left.grid(row=0, column=0, sticky="ew", padx=16, pady=12)
         hero_left.columnconfigure(0, weight=1)
-        tk.Label(hero_left, textvariable=self.module_title, bg=self.PANEL, fg=self.TEXT, font=self.hero_font, anchor="w").grid(
-            row=0, column=0, sticky="ew"
+
+        breadcrumb = tk.Frame(hero_left, bg=self.PANEL)
+        breadcrumb.grid(row=0, column=0, sticky="ew")
+        self.group_badge = tk.Label(
+            breadcrumb,
+            text=self.active_module.group,
+            bg=self.TEAL_SOFT,
+            fg=self.TEAL_DARK,
+            font=(self.font_family, 8, "bold"),
+            padx=8,
+            pady=3,
         )
+        self.group_badge.pack(side="left")
+        tk.Label(
+            breadcrumb,
+            text="  /  功能工作台",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.tiny_font,
+        ).pack(side="left")
+
+        tk.Label(
+            hero_left,
+            textvariable=self.module_title,
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=self.hero_font,
+            anchor="w",
+        ).grid(row=1, column=0, sticky="ew", pady=(7, 0))
         tk.Label(
             hero_left,
             textvariable=self.module_desc,
@@ -708,21 +736,45 @@ class GeoConversionApp(tk.Tk):
             font=self.small_font,
             anchor="w",
             justify="left",
-            wraplength=1050,
-        ).grid(row=1, column=0, sticky="ew", pady=(7, 0))
+            wraplength=1000,
+        ).grid(row=2, column=0, sticky="ew", pady=(6, 0))
 
         hero_right = tk.Frame(hero, bg=self.PANEL)
-        hero_right.grid(row=0, column=1, sticky="e", padx=16, pady=11)
-        tk.Label(hero_right, text="状态：", bg=self.PANEL, fg=self.MUTED, font=self.small_font).pack(side="left")
-        tk.Label(hero_right, textvariable=self.run_status_var, bg=self.PANEL, fg=self.TEAL_DARK, font=(self.font_family, 9, "bold")).pack(side="left")
+        hero_right.grid(row=0, column=1, sticky="e", padx=16, pady=12)
+        tk.Label(hero_right, text="当前项目", bg=self.PANEL, fg=self.MUTED, font=self.tiny_font).grid(
+            row=0, column=0, sticky="w"
+        )
+        project_box = ttk.Combobox(
+            hero_right,
+            textvariable=self.project_var,
+            values=("默认项目", "典型数据试转换", "工程模型转换项目"),
+            state="normal",
+            width=22,
+        )
+        project_box.grid(row=1, column=0, sticky="ew", pady=(4, 7))
+        status_line = tk.Frame(hero_right, bg=self.PANEL)
+        status_line.grid(row=2, column=0, sticky="e")
+        tk.Label(status_line, text="●", bg=self.PANEL, fg=self.GREEN if self.run_completed else self.AMBER).pack(side="left")
+        tk.Label(
+            status_line,
+            textvariable=self.run_status_var,
+            bg=self.PANEL,
+            fg=self.TEAL_DARK,
+            font=(self.font_family, 9, "bold"),
+        ).pack(side="left", padx=(5, 0))
 
         toolbar = tk.Frame(panel, bg=self.BG)
         toolbar.grid(row=1, column=0, sticky="ew", pady=(0, 7))
         ttk.Button(toolbar, text="加载数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
-        ttk.Button(toolbar, text="开始处理", style="Blue.TButton", command=self._run_stub).pack(side="left", padx=(8, 0))
-        ttk.Button(toolbar, text="查看结果", style="Orange.TButton", command=self._show_results).pack(side="left", padx=(8, 0))
+        ttk.Button(toolbar, text="配置规则", style="Tool.TButton", command=lambda: self._switch_page("参数配置")).pack(
+            side="left", padx=(8, 0)
+        )
+        ttk.Button(toolbar, text="开始转换", style="Blue.TButton", command=self._run_stub).pack(side="left", padx=(8, 0))
+        ttk.Button(toolbar, text="预览检查", style="Orange.TButton", command=lambda: self._switch_page("预览检查")).pack(
+            side="left", padx=(8, 0)
+        )
         ttk.Button(toolbar, text="导出报告", style="Purple.TButton", command=self._export_report).pack(side="left", padx=(8, 0))
-        ttk.Button(toolbar, text="一键分析", style="Dark.TButton", command=self._one_click_analysis).pack(side="left", padx=(8, 0))
+        ttk.Button(toolbar, text="一键处理", style="Dark.TButton", command=self._one_click_analysis).pack(side="left", padx=(8, 0))
         tk.Label(toolbar, textvariable=self.status_var, bg=self.BG, fg=self.MUTED, font=self.small_font).pack(side="right", padx=5)
 
         self.progress_host = tk.Frame(panel, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1)
@@ -737,8 +789,8 @@ class GeoConversionApp(tk.Tk):
                 command=lambda selected=name: self._switch_page(selected),
                 relief="flat",
                 bd=0,
-                padx=14,
-                pady=7,
+                padx=15,
+                pady=8,
                 bg=self.PANEL,
                 fg=self.MUTED,
                 activebackground=self.TEAL_SOFT,
@@ -749,7 +801,7 @@ class GeoConversionApp(tk.Tk):
             self.page_buttons[name] = button
 
         self.page_title_bar = tk.Frame(panel, bg=self.BG)
-        self.page_title_bar.grid(row=4, column=0, sticky="ew", pady=(0, 4))
+        self.page_title_bar.grid(row=4, column=0, sticky="ew", pady=(0, 3))
 
         self.content_host = tk.Frame(panel, bg=self.BG)
         self.content_host.grid(row=5, column=0, sticky="nsew")
@@ -760,24 +812,41 @@ class GeoConversionApp(tk.Tk):
     def _render_progress_strip(self) -> None:
         for child in self.progress_host.winfo_children():
             child.destroy()
-        self.progress_host.columnconfigure(tuple(range(5)), weight=1)
+        for index in range(5):
+            self.progress_host.columnconfigure(index, weight=1)
+
         workflow = list(self._profile()["workflow"])
-        steps = ["加载数据", workflow[0], workflow[1], workflow[2], "报告导出"]
-        captions = ["读取工程数据", "识别输入与参数", "执行转换计算", "生成结果与建议", "输出分析报告"]
-        for col, (title, caption) in enumerate(zip(steps, captions)):
-            cell = tk.Frame(self.progress_host, bg=self.TEAL_SOFT if self.run_completed or col == 0 else "#f7faf9", padx=10, pady=9)
-            cell.grid(row=0, column=col, sticky="nsew", padx=(8 if col == 0 else 4, 8 if col == 4 else 4), pady=8)
+        steps = (
+            ("01", "数据接入", "识别源文件与空间基准"),
+            ("02", workflow[0], "读取模块输入与规则"),
+            ("03", workflow[1], "执行转换核心处理"),
+            ("04", workflow[2], "完成质量检查与复核"),
+            ("05", "成果输出", "生成模型、报告与追溯记录"),
+        )
+        active_step = 5 if self.run_completed else (2 if self.selected_files else 1)
+        for col, (number, title, caption) in enumerate(steps, start=1):
+            finished = col < active_step or self.run_completed
+            active = col == active_step and not self.run_completed
+            bg = self.TEAL_SOFT if finished or active else "#f7faf9"
+            badge_bg = self.GREEN if finished else self.TEAL if active else "#dbe5e2"
+            badge_fg = "#ffffff" if finished or active else self.MUTED
+            cell = tk.Frame(self.progress_host, bg=bg, padx=10, pady=8)
+            cell.grid(row=0, column=col - 1, sticky="nsew", padx=(8 if col == 1 else 3, 8 if col == 5 else 3), pady=8)
             cell.columnconfigure(1, weight=1)
-            badge_text = "OK" if self.run_completed and col < 4 else str(col + 1)
-            badge_bg = self.GREEN if self.run_completed and col < 4 else self.TEAL
-            tk.Label(cell, text=badge_text, bg=badge_bg, fg="#ffffff", font=(self.font_family, 9, "bold"), padx=7, pady=4).grid(
-                row=0, column=0, rowspan=2, sticky="w"
+            tk.Label(
+                cell,
+                text="✓" if finished else number,
+                bg=badge_bg,
+                fg=badge_fg,
+                font=(self.font_family, 9, "bold"),
+                width=3,
+                pady=4,
+            ).grid(row=0, column=0, rowspan=2, sticky="w")
+            tk.Label(cell, text=title, bg=bg, fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=0, column=1, sticky="ew", padx=(8, 0)
             )
-            tk.Label(cell, text=title, bg=cell["bg"], fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
-                row=0, column=1, sticky="ew", padx=(9, 0)
-            )
-            tk.Label(cell, text=caption, bg=cell["bg"], fg=self.MUTED, font=self.tiny_font, anchor="w").grid(
-                row=1, column=1, sticky="ew", padx=(9, 0), pady=(3, 0)
+            tk.Label(cell, text=caption, bg=bg, fg=self.MUTED, font=self.tiny_font, anchor="w").grid(
+                row=1, column=1, sticky="ew", padx=(8, 0), pady=(3, 0)
             )
 
     def _switch_page(self, page_name: str) -> None:
@@ -808,222 +877,433 @@ class GeoConversionApp(tk.Tk):
     def _render_dashboard_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="nsew")
-        root.columnconfigure(0, weight=35)
-        root.columnconfigure(1, weight=65)
-        root.rowconfigure(0, weight=1)
+        root.columnconfigure(0, weight=1)
+        root.rowconfigure(1, weight=1)
+        root.rowconfigure(2, weight=0)
 
-        left = tk.Frame(root, bg=self.BG)
-        left.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
-        left.columnconfigure(0, weight=1)
-        left.rowconfigure(2, weight=1)
-
-        input_card = self._card(left)
-        input_card.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        input_card.columnconfigure(0, weight=1)
-        self._card_header(input_card, "输入数据与指标")
-
-        tree_wrap = tk.Frame(input_card, bg=self.PANEL)
-        tree_wrap.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 9))
-        tree_wrap.columnconfigure(0, weight=1)
-        input_tree = ttk.Treeview(tree_wrap, columns=("item", "value"), show="headings", height=min(6, max(3, len(self.active_module.inputs))), style="Dashboard.Treeview")
-        input_tree.heading("item", text="参数")
-        input_tree.heading("value", text="数值")
-        input_tree.column("item", width=145, anchor="w")
-        input_tree.column("value", width=265, anchor="w")
-        input_tree.grid(row=0, column=0, sticky="ew")
-        for index, item in enumerate(self.active_module.inputs):
-            if index == 0 and self.selected_files:
-                value = f"已加载 {len(self.selected_files)} 个文件"
-            else:
-                value = "待接入 / 待识别"
-            input_tree.insert("", "end", values=(item, value))
-
-        metric_board = tk.Frame(left, bg=self.BG)
-        metric_board.grid(row=1, column=0, sticky="ew", pady=(0, 6))
-        metric_board.columnconfigure((0, 1), weight=1)
+        # 顶部指标：围绕采购要求展示输入、规则、质量与成果，而非风险研判。
+        metrics = tk.Frame(root, bg=self.BG)
+        metrics.grid(row=0, column=0, sticky="ew", pady=(0, 7))
+        for index in range(4):
+            metrics.columnconfigure(index, weight=1)
         configured = sum(1 for value in self.param_values.values() if value and value != "默认")
-        metrics = (
-            ("输入文件", str(len(self.selected_files)), self.TEAL),
-            ("参数配置", f"{configured}/{len(self.active_module.parameters)}", self.ORANGE),
-            ("处理状态", "完成" if self.run_completed else "待处理", self.BLUE),
-            ("成果类型", str(len(self.active_module.outputs)), self.PURPLE),
+        quality_score = self._quality_score()
+        metric_items = (
+            ("已接入数据", f"{len(self.selected_files)} 个", "支持多源、多格式工程数据", self.TEAL),
+            ("转换规则", f"{configured}/{len(self.active_module.parameters)} 项", "参数可复用并保存为模板", self.BLUE),
+            ("质量状态", self._quality_grade(quality_score), "精度、拓扑、属性与完整性", self.ORANGE),
+            ("预期成果", f"{len(self.active_module.outputs)} 类", "模型、报告与追溯记录", self.PURPLE),
         )
-        for index, (title, value, accent) in enumerate(metrics):
-            card = tk.Frame(metric_board, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1, padx=12, pady=10)
-            card.grid(row=index // 2, column=index % 2, sticky="nsew", padx=(0 if index % 2 == 0 else 4, 4 if index % 2 == 0 else 0), pady=(0 if index < 2 else 4, 0))
-            tk.Label(card, text=title, bg=self.PANEL, fg=self.MUTED, font=self.tiny_font, anchor="w").pack(anchor="w")
-            tk.Label(card, text=value, bg=self.PANEL, fg=accent, font=(self.font_family, 13, "bold"), anchor="w").pack(anchor="w", pady=(4, 0))
+        for index, item in enumerate(metric_items):
+            self._metric_card(metrics, *item).grid(
+                row=0,
+                column=index,
+                sticky="nsew",
+                padx=(0 if index == 0 else 4, 0 if index == 3 else 4),
+            )
 
-        log_card = self._card(left)
-        log_card.grid(row=2, column=0, sticky="nsew")
-        log_card.columnconfigure(0, weight=1)
-        log_card.rowconfigure(1, weight=1)
-        self._card_header(log_card, "处理日志")
-        self.log_text = tk.Text(log_card, relief="flat", bd=0, bg="#fbfcfc", fg=self.TEXT, font=self.small_font, height=9, wrap="word")
-        self.log_text.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 10))
-        self._refresh_log_widget()
+        main = tk.Frame(root, bg=self.BG)
+        main.grid(row=1, column=0, sticky="nsew")
+        main.columnconfigure(0, weight=27)
+        main.columnconfigure(1, weight=46)
+        main.columnconfigure(2, weight=27)
+        main.rowconfigure(0, weight=1)
 
-        right = tk.Frame(root, bg=self.BG)
-        right.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
-        right.columnconfigure(0, weight=1)
-        right.rowconfigure(0, weight=57)
-        right.rowconfigure(1, weight=43)
+        # 左：输入数据与数据源状态。
+        source_card = self._card(main)
+        source_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        source_card.columnconfigure(0, weight=1)
+        source_card.rowconfigure(2, weight=1)
+        self._card_header(source_card, "数据接入")
+        tk.Label(
+            source_card,
+            text="按模块要求导入源数据，系统将识别格式、空间参考与字段结构。",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.tiny_font,
+            justify="left",
+            wraplength=300,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 8))
 
-        result_card = self._card(right)
-        result_card.grid(row=0, column=0, sticky="nsew", pady=(0, 6))
+        source_wrap = tk.Frame(source_card, bg=self.PANEL)
+        source_wrap.grid(row=2, column=0, sticky="nsew", padx=12)
+        source_wrap.columnconfigure(0, weight=1)
+        source_wrap.rowconfigure(0, weight=1)
+        source_tree = ttk.Treeview(
+            source_wrap,
+            columns=("source", "format", "status"),
+            show="headings",
+            style="Dashboard.Treeview",
+            height=6,
+        )
+        for key, title, width in (("source", "数据项", 155), ("format", "格式/数量", 95), ("status", "状态", 72)):
+            source_tree.heading(key, text=title)
+            source_tree.column(key, width=width, anchor="w")
+        source_tree.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(source_wrap, orient="vertical", command=source_tree.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        source_tree.configure(yscrollcommand=scrollbar.set)
+
+        for index, item in enumerate(self.active_module.inputs):
+            loaded = index == 0 and bool(self.selected_files)
+            amount = f"{len(self.selected_files)} 个文件" if loaded else self._input_format_hint(item)
+            source_tree.insert("", "end", values=(item, amount, "已接入" if loaded else "待接入"))
+
+        source_actions = tk.Frame(source_card, bg=self.PANEL)
+        source_actions.grid(row=3, column=0, sticky="ew", padx=12, pady=11)
+        ttk.Button(source_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(source_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
+
+        # 中：与模块匹配的转换流程图和运行状态。
+        process_card = self._card(main)
+        process_card.grid(row=0, column=1, sticky="nsew", padx=5)
+        process_card.columnconfigure(0, weight=1)
+        process_card.rowconfigure(1, weight=1)
+        self._card_header(process_card, "转换流程与模型预览")
+        process_canvas = tk.Canvas(process_card, bg="#fbfcfc", highlightthickness=0, bd=0, height=215)
+        process_canvas.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 8))
+        process_canvas.bind("<Configure>", lambda _e, c=process_canvas: self._draw_process_pipeline(c))
+
+        process_footer = tk.Frame(process_card, bg=self.PANEL)
+        process_footer.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 11))
+        process_footer.columnconfigure(0, weight=1)
+        tk.Label(
+            process_footer,
+            text=f"当前流程：{' → '.join(self._profile()['workflow'])}",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.tiny_font,
+            anchor="w",
+        ).grid(row=0, column=0, sticky="ew")
+        ttk.Button(process_footer, text="执行转换", style="Blue.TButton", command=self._run_stub).grid(row=0, column=1, sticky="e")
+
+        # 右：文档要求对应的能力、参数、成果和质量检查。
+        spec_card = self._card(main)
+        spec_card.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        spec_card.columnconfigure(0, weight=1)
+        self._card_header(spec_card, "模块任务说明")
+        spec_scroll_host = tk.Frame(spec_card, bg=self.PANEL)
+        spec_scroll_host.grid(row=1, column=0, sticky="nsew", padx=(13, 5), pady=(0, 10))
+        spec_scroll_host.columnconfigure(0, weight=1)
+        spec_scroll_host.rowconfigure(0, weight=1)
+        spec_canvas = tk.Canvas(spec_scroll_host, bg=self.PANEL, highlightthickness=0, bd=0)
+        spec_canvas.grid(row=0, column=0, sticky="nsew")
+        spec_scroll = ttk.Scrollbar(spec_scroll_host, orient="vertical", command=spec_canvas.yview)
+        spec_scroll.grid(row=0, column=1, sticky="ns")
+        spec_canvas.configure(yscrollcommand=spec_scroll.set)
+        spec_body = tk.Frame(spec_canvas, bg=self.PANEL)
+        spec_window = spec_canvas.create_window((0, 0), window=spec_body, anchor="nw")
+        spec_body.bind("<Configure>", lambda _e: spec_canvas.configure(scrollregion=spec_canvas.bbox("all")))
+        spec_canvas.bind("<Configure>", lambda e: spec_canvas.itemconfigure(spec_window, width=e.width))
+        spec_body.columnconfigure(0, weight=1)
+
+        self._compact_info_section(spec_body, 0, "核心能力", self._profile()["focus"], self.TEAL)
+        self._compact_info_section(spec_body, 1, "关键参数", self.active_module.parameters, self.BLUE)
+        self._compact_info_section(spec_body, 2, "质量检查", self._profile()["checks"], self.ORANGE)
+        self._compact_info_section(spec_body, 3, "成果输出", self.active_module.outputs, self.PURPLE)
+
+        # 底：结果、质量与成果状态，直接服务于转换与交付。
+        result_card = self._card(root)
+        result_card.configure(height=112)
+        result_card.grid_propagate(False)
+        result_card.grid(row=2, column=0, sticky="ew", pady=(7, 0))
         result_card.columnconfigure(0, weight=1)
-        result_card.rowconfigure(1, weight=1)
-        self._card_header(result_card, "结果图示")
-
-        result_body = tk.Frame(result_card, bg=self.PANEL)
-        result_body.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 10))
-        result_body.columnconfigure(0, weight=3)
-        result_body.columnconfigure(1, weight=1)
-        result_body.rowconfigure(0, weight=1)
-        radar = tk.Canvas(result_body, bg="#ffffff", highlightthickness=0, bd=0)
-        radar.grid(row=0, column=0, sticky="nsew")
-        radar.bind("<Configure>", lambda _e, canvas=radar: self._draw_radar(canvas))
-
-        legend = tk.Frame(result_body, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1, padx=13, pady=11)
-        legend.grid(row=0, column=1, sticky="nsew", padx=(10, 0), pady=8)
-        tk.Label(legend, text="图例与研判", bg="#f7faf9", fg=self.TEXT, font=self.section_font, anchor="w").pack(anchor="w")
-        for color, text in ((self.GREEN, "0–57  一般"), (self.AMBER, "58–74  关注"), (self.RED, "75–100  较高")):
-            row = tk.Frame(legend, bg="#f7faf9")
-            row.pack(fill="x", pady=(8, 0))
-            tk.Label(row, text="  ", bg=color, width=2).pack(side="left")
-            tk.Label(row, text=text, bg="#f7faf9", fg=self.MUTED, font=self.small_font).pack(side="left", padx=(8, 0))
-        score = self._overall_score()
-        level = self._risk_level(score)
-        tk.Label(legend, text=f"综合等级：{level}", bg="#f7faf9", fg=self.ORANGE if score < 75 else self.RED, font=(self.font_family, 10, "bold"), anchor="w").pack(anchor="w", pady=(18, 0))
-        checks = self._profile()["checks"]
-        tk.Label(legend, text=f"主控因素：{checks[0]}、{checks[1]}", bg="#f7faf9", fg=self.MUTED, font=self.tiny_font, justify="left", wraplength=200).pack(anchor="w", pady=(7, 0))
-        tk.Label(legend, text="说明：图示结果为前端演示，正式数值由后端算法返回。", bg="#f7faf9", fg=self.MUTED, font=self.tiny_font, justify="left", wraplength=205).pack(anchor="w", pady=(12, 0))
-
-        analysis_card = self._card(right)
-        analysis_card.grid(row=1, column=0, sticky="nsew")
-        analysis_card.columnconfigure(0, weight=2)
-        analysis_card.columnconfigure(1, weight=1)
-        analysis_card.rowconfigure(1, weight=1)
-        self._card_header(analysis_card, "分析结果与建议", columnspan=2)
-
-        table_wrap = tk.Frame(analysis_card, bg=self.PANEL)
-        table_wrap.grid(row=1, column=0, sticky="nsew", padx=(12, 6), pady=(0, 10))
-        table_wrap.columnconfigure(0, weight=1)
-        table_wrap.rowconfigure(0, weight=1)
-        result_tree = ttk.Treeview(table_wrap, columns=("type", "basis", "level", "judgement"), show="headings", style="Dashboard.Treeview", height=6)
-        for key, title, width in (("type", "资料类型", 100), ("basis", "汇总依据", 250), ("level", "量级", 75), ("judgement", "研判", 120)):
+        self._card_header(result_card, "转换成果与质量摘要")
+        result_wrap = tk.Frame(result_card, bg=self.PANEL)
+        result_wrap.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        result_wrap.columnconfigure(0, weight=1)
+        result_tree = ttk.Treeview(
+            result_wrap,
+            columns=("artifact", "type", "status", "quality", "trace"),
+            show="headings",
+            height=2,
+            style="Dashboard.Treeview",
+        )
+        columns = (
+            ("artifact", "成果名称", 220),
+            ("type", "成果类型", 150),
+            ("status", "处理状态", 100),
+            ("quality", "质量检查", 180),
+            ("trace", "追溯信息", 220),
+        )
+        for key, title, width in columns:
             result_tree.heading(key, text=title)
             result_tree.column(key, width=width, anchor="w")
-        result_tree.grid(row=0, column=0, sticky="nsew")
-        values = self._score_values()
-        inputs = list(self.active_module.inputs)
-        checks = list(self._profile()["checks"])
-        for index in range(min(5, max(len(inputs), 4))):
-            source = inputs[index % len(inputs)]
-            basis = f"{source}：{checks[index % len(checks)]}检查"
-            magnitude = f"{values[index]}%" if self.run_completed else "待计算"
-            judgement = "稳定" if values[index] < 58 else "需关注" if values[index] < 75 else "重点复核"
-            result_tree.insert("", "end", values=(source[:10], basis, magnitude, judgement))
-
-        advice = tk.Frame(analysis_card, bg=self.PANEL)
-        advice.grid(row=1, column=1, sticky="nsew", padx=(6, 12), pady=(0, 10))
-        conclusion = self._build_conclusion_text()
-        tk.Label(advice, text=conclusion, bg=self.PANEL, fg=self.TEXT, font=self.small_font, justify="left", anchor="nw", wraplength=315).pack(fill="both", expand=True, anchor="nw")
+        result_tree.grid(row=0, column=0, sticky="ew")
+        for row in self._result_rows():
+            result_tree.insert("", "end", values=row)
 
     def _render_params_page(self) -> None:
-        root = self._card(self.content_host)
+        root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="nsew")
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(2, weight=1)
+        root.columnconfigure(0, weight=62)
+        root.columnconfigure(1, weight=38)
+        root.rowconfigure(0, weight=1)
 
-        self._workflow_strip(root).grid(row=0, column=0, sticky="ew", padx=14, pady=(14, 9))
-        self._section_title(root, "参数配置中心", "参数会随任务提交给后端，并由 MySQL 保存任务参数、运行过程、质量结果与成果追溯信息。").grid(
-            row=1, column=0, sticky="ew", padx=15, pady=(0, 8)
-        )
+        form_card = self._card(root)
+        form_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        form_card.columnconfigure(0, weight=1)
+        form_card.rowconfigure(2, weight=1)
+        self._card_header(form_card, "转换规则配置")
+        tk.Label(
+            form_card,
+            text="规则参数将随任务提交，并保存至任务参数与规则模板记录中。",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+            anchor="w",
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 8))
 
-        form = tk.Frame(root, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1)
-        form.grid(row=2, column=0, sticky="nsew", padx=14, pady=(0, 14))
+        form_canvas = tk.Canvas(form_card, bg=self.PANEL, highlightthickness=0)
+        form_canvas.grid(row=2, column=0, sticky="nsew", padx=(12, 2), pady=(0, 8))
+        form_scroll = ttk.Scrollbar(form_card, orient="vertical", command=form_canvas.yview)
+        form_scroll.grid(row=2, column=1, sticky="ns", pady=(0, 8))
+        form_canvas.configure(yscrollcommand=form_scroll.set)
+        form = tk.Frame(form_canvas, bg=self.PANEL)
+        form_window = form_canvas.create_window((0, 0), window=form, anchor="nw")
+        form.bind("<Configure>", lambda _e: form_canvas.configure(scrollregion=form_canvas.bbox("all")))
+        form_canvas.bind("<Configure>", lambda e: form_canvas.itemconfigure(form_window, width=e.width))
         form.columnconfigure(1, weight=1)
         self.param_vars.clear()
-        defaults = {
-            "目标坐标系": "CGCS2000 / 工程坐标",
-            "目标高程基准": "1985 国家高程基准",
-            "转换精度": "标准",
-            "目标格式": "GeoJSON / VTK / IFC / CSV",
-            "日志级别": "INFO",
-        }
+
+        defaults = self._parameter_defaults()
         for row_index, name in enumerate(self.active_module.parameters):
-            tk.Label(form, text=name, bg=self.PANEL, fg=self.TEXT, anchor="w").grid(row=row_index, column=0, sticky="w", padx=18, pady=12)
+            block = tk.Frame(form, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+            block.grid(row=row_index, column=0, columnspan=2, sticky="ew", pady=(0, 7))
+            block.columnconfigure(1, weight=1)
+            tk.Label(block, text=name, bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=0, column=0, sticky="w", padx=13, pady=12
+            )
             initial = self.param_values.get(name, defaults.get(name, "默认"))
             var = tk.StringVar(value=initial)
             self.param_vars[name] = var
-            ttk.Entry(form, textvariable=var).grid(row=row_index, column=1, sticky="ew", padx=(8, 18), pady=8)
-        action = tk.Frame(form, bg=self.PANEL)
-        action.grid(row=len(self.active_module.parameters), column=1, sticky="e", padx=18, pady=(14, 18))
-        ttk.Button(action, text="应用参数", style="Primary.TButton", command=self._apply_params).pack(side="left")
-        ttk.Button(action, text="保存为规则模板", style="Tool.TButton", command=self._save_template_stub).pack(side="left", padx=(8, 0))
+            ttk.Entry(block, textvariable=var).grid(row=0, column=1, sticky="ew", padx=(10, 13), pady=9)
+            tk.Label(
+                block,
+                text=f"用于控制{name}，后端接入后进行合法性与精度校验。",
+                bg="#f8faf9",
+                fg=self.MUTED,
+                font=self.tiny_font,
+                anchor="w",
+            ).grid(row=1, column=0, columnspan=2, sticky="ew", padx=13, pady=(0, 9))
+
+        form_actions = tk.Frame(form_card, bg=self.PANEL)
+        form_actions.grid(row=3, column=0, columnspan=2, sticky="e", padx=13, pady=(3, 12))
+        ttk.Button(form_actions, text="应用参数", style="Primary.TButton", command=self._apply_params).pack(side="left")
+        ttk.Button(form_actions, text="保存为规则模板", style="Tool.TButton", command=self._save_template_stub).pack(
+            side="left", padx=(8, 0)
+        )
+        ttk.Button(form_actions, text="生成任务请求", style="Tool.TButton", command=self._generate_task_payload).pack(
+            side="left", padx=(8, 0)
+        )
+
+        guide_card = self._card(root)
+        guide_card.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        guide_card.columnconfigure(0, weight=1)
+        self._card_header(guide_card, "规则与输出说明")
+        guide = tk.Frame(guide_card, bg=self.PANEL)
+        guide.grid(row=1, column=0, sticky="nsew", padx=13, pady=(0, 12))
+        guide.columnconfigure(0, weight=1)
+        self._info_section(guide, 0, "输入要求", self.active_module.inputs, self.TEAL)
+        self._info_section(guide, 1, "执行流程", self._profile()["workflow"], self.BLUE)
+        self._info_section(guide, 2, "质量约束", self._profile()["checks"], self.ORANGE)
+        self._info_section(guide, 3, "输出成果", self.active_module.outputs, self.PURPLE)
 
     def _render_preview_page(self) -> None:
-        root = self._card(self.content_host)
+        root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="nsew")
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(2, weight=1)
+        root.columnconfigure(0, weight=72)
+        root.columnconfigure(1, weight=28)
+        root.rowconfigure(0, weight=1)
 
-        self._quality_strip(root).grid(row=0, column=0, sticky="ew", padx=14, pady=(14, 9))
-        self._section_title(root, "空间预览与质量检查", "统一展示二维地图、三维场景、剖切对比、质量报告和差异定位结果。").grid(
-            row=1, column=0, sticky="ew", padx=15, pady=(0, 8)
-        )
-        canvas = tk.Canvas(root, bg="#ffffff", highlightthickness=1, highlightbackground=self.BORDER)
-        canvas.grid(row=2, column=0, sticky="nsew", padx=14, pady=(0, 14))
+        preview_card = self._card(root)
+        preview_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        preview_card.columnconfigure(0, weight=1)
+        preview_card.rowconfigure(1, weight=1)
+        self._card_header(preview_card, "二维 / 三维 / 剖切预览")
+        canvas = tk.Canvas(preview_card, bg="#fbfcfc", highlightthickness=0)
+        canvas.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 10))
         canvas.bind("<Configure>", lambda _e, c=canvas: self._draw_preview(c))
 
+        quality_card = self._card(root)
+        quality_card.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        quality_card.columnconfigure(0, weight=1)
+        self._card_header(quality_card, "质量检查清单")
+        body = tk.Frame(quality_card, bg=self.PANEL)
+        body.grid(row=1, column=0, sticky="nsew", padx=13, pady=(0, 12))
+        body.columnconfigure(0, weight=1)
+        score = self._quality_score()
+        tk.Label(body, text=str(score) if self.run_completed else "--", bg=self.PANEL, fg=self.TEAL_DARK, font=(self.font_family, 28, "bold")).grid(
+            row=0, column=0, sticky="w"
+        )
+        tk.Label(body, text=f"质量评分 · {self._quality_grade(score)}", bg=self.PANEL, fg=self.MUTED, font=self.small_font).grid(
+            row=1, column=0, sticky="w", pady=(0, 12)
+        )
+        for row_index, check in enumerate(self._profile()["checks"], start=2):
+            passed = self.run_completed
+            item = tk.Frame(body, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1)
+            item.grid(row=row_index, column=0, sticky="ew", pady=(0, 7))
+            item.columnconfigure(1, weight=1)
+            tk.Label(item, text="✓" if passed else "·", bg=self.GREEN if passed else "#e3ebe8", fg="#ffffff" if passed else self.MUTED, width=3, pady=7).grid(
+                row=0, column=0, sticky="nsw"
+            )
+            tk.Label(item, text=check, bg="#f7faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=0, column=1, sticky="ew", padx=9
+            )
+            tk.Label(item, text="通过" if passed else "待执行", bg="#f7faf9", fg=self.GREEN if passed else self.MUTED, font=self.tiny_font).grid(
+                row=0, column=2, sticky="e", padx=9
+            )
+        ttk.Button(body, text="重新执行质量检查", style="Primary.TButton", command=self._run_stub).grid(
+            row=7, column=0, sticky="ew", pady=(6, 0)
+        )
+
     def _render_task_page(self) -> None:
-        root = self._card(self.content_host)
+        root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="nsew")
         root.columnconfigure(0, weight=1)
-        root.rowconfigure(2, weight=1)
-        self._workflow_strip(root).grid(row=0, column=0, sticky="ew", padx=14, pady=(14, 9))
-        self._section_title(root, "任务、版本与成果追溯", "覆盖批量转换、任务日志、失败重试、版本对比和成果归档管理。").grid(
-            row=1, column=0, sticky="ew", padx=15, pady=(0, 8)
+        root.rowconfigure(1, weight=1)
+
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 7))
+        for index in range(4):
+            summary.columnconfigure(index, weight=1)
+        items = (
+            ("任务状态", self.run_status_var.get(), "当前转换任务", self.TEAL),
+            ("任务模块", self.active_module.name.removesuffix("模块"), self.active_module.group, self.BLUE),
+            ("版本记录", "1 条" if self.run_completed else "0 条", "支持历史版本对比", self.PURPLE),
+            ("追溯链", "完整" if self.run_completed else "待生成", "来源—参数—过程—成果", self.ORANGE),
         )
-        box = tk.Frame(root, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1)
-        box.grid(row=2, column=0, sticky="nsew", padx=14, pady=(0, 14))
-        box.columnconfigure(0, weight=1)
-        box.rowconfigure(1, weight=1)
-        actions = tk.Frame(box, bg=self.PANEL)
-        actions.grid(row=0, column=0, sticky="ew", padx=15, pady=12)
-        ttk.Button(actions, text="生成任务请求", style="Primary.TButton", command=self._generate_task_payload).pack(side="left")
-        ttk.Button(actions, text="预留执行接口", style="Tool.TButton", command=self._run_stub).pack(side="left", padx=8)
-        ttk.Button(actions, text="归档版本", style="Tool.TButton", command=self._archive_stub).pack(side="left")
-        self.task_text = tk.Text(box, relief="flat", bd=0, bg=self.SOFT, fg=self.TEXT, wrap="word")
-        self.task_text.grid(row=1, column=0, sticky="nsew", padx=15, pady=(0, 15))
+        for index, item in enumerate(items):
+            self._metric_card(summary, *item).grid(
+                row=0, column=index, sticky="nsew", padx=(0 if index == 0 else 4, 0 if index == 3 else 4)
+            )
+
+        body = tk.Frame(root, bg=self.BG)
+        body.grid(row=1, column=0, sticky="nsew")
+        body.columnconfigure(0, weight=48)
+        body.columnconfigure(1, weight=52)
+        body.rowconfigure(0, weight=1)
+
+        task_card = self._card(body)
+        task_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        task_card.columnconfigure(0, weight=1)
+        task_card.rowconfigure(2, weight=1)
+        self._card_header(task_card, "任务执行记录")
+        task_actions = tk.Frame(task_card, bg=self.PANEL)
+        task_actions.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 9))
+        ttk.Button(task_actions, text="生成任务请求", style="Primary.TButton", command=self._generate_task_payload).pack(side="left")
+        ttk.Button(task_actions, text="执行任务", style="Tool.TButton", command=self._run_stub).pack(side="left", padx=7)
+        ttk.Button(task_actions, text="归档版本", style="Tool.TButton", command=self._archive_stub).pack(side="left")
+
+        task_tree = ttk.Treeview(
+            task_card,
+            columns=("step", "operation", "status", "record"),
+            show="headings",
+            style="Dashboard.Treeview",
+            height=10,
+        )
+        for key, title, width in (("step", "序号", 55), ("operation", "处理环节", 170), ("status", "状态", 85), ("record", "追溯记录", 220)):
+            task_tree.heading(key, text=title)
+            task_tree.column(key, width=width, anchor="w")
+        task_tree.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        task_steps = ("数据接入",) + tuple(self._profile()["workflow"]) + ("质量报告与成果归档",)
+        for index, step in enumerate(task_steps, start=1):
+            task_tree.insert(
+                "",
+                "end",
+                values=(f"{index:02d}", step, "完成" if self.run_completed else "待执行", "已记录" if self.run_completed else "等待生成"),
+            )
+
+        payload_card = self._card(body)
+        payload_card.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        payload_card.columnconfigure(0, weight=1)
+        payload_card.rowconfigure(1, weight=1)
+        self._card_header(payload_card, "任务请求与追溯载荷")
+        self.task_text = tk.Text(payload_card, relief="flat", bd=0, bg=self.SOFT, fg=self.TEXT, wrap="word", font=self.small_font)
+        self.task_text.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
         self.task_text.insert("1.0", self.task_payload_text)
 
     def _render_backend_page(self) -> None:
-        root = self._card(self.content_host)
+        root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="nsew")
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(2, weight=1)
+        root.columnconfigure(0, weight=52)
+        root.columnconfigure(1, weight=48)
+        root.rowconfigure(0, weight=1)
+
+        api_card = self._card(root)
+        api_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        api_card.columnconfigure(0, weight=1)
+        api_card.rowconfigure(2, weight=1)
+        self._card_header(api_card, "后端服务接口")
+        tk.Label(
+            api_card,
+            text="前端负责请求组装与状态展示，后端负责转换算法、质量校验、文件存储和 MySQL 持久化。",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+            justify="left",
+            wraplength=620,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 9))
+        api_tree = ttk.Treeview(
+            api_card,
+            columns=("name", "method", "path", "purpose"),
+            show="headings",
+            style="Dashboard.Treeview",
+            height=12,
+        )
+        for key, title, width in (("name", "接口", 125), ("method", "方法", 70), ("path", "路径", 255), ("purpose", "用途", 170)):
+            api_tree.heading(key, text=title)
+            api_tree.column(key, width=width, anchor="w")
+        api_tree.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        purposes = {
+            "create_project": "创建项目",
+            "upload_dataset": "上传与登记数据",
+            "save_template": "保存转换规则模板",
+            "create_task": "创建转换任务",
+            "run_task": "执行转换任务",
+            "task_status": "查询运行状态",
+            "quality_report": "获取质量报告",
+            "version_archive": "归档模型版本",
+        }
+        for name, endpoint in BACKEND_ENDPOINTS.items():
+            method, path = endpoint.split(" ", 1)
+            api_tree.insert("", "end", values=(name, method, path, purposes[name]))
+
+        db_card = self._card(root)
+        db_card.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        db_card.columnconfigure(0, weight=1)
+        db_card.rowconfigure(3, weight=1)
+        self._card_header(db_card, "MySQL 数据与成果存储")
         self.mysql_var.set(
             f"{self.backend.mysql_config['host']}:{self.backend.mysql_config['port']} / "
             f"{self.backend.mysql_config['database']} / {self.backend.mysql_config['user']}"
         )
-        self._backend_strip(root).grid(row=0, column=0, sticky="ew", padx=14, pady=(14, 9))
-        self._section_title(root, "MySQL 后端接口预留", "前端负责组装请求、展示状态和接收结果；后端负责算法执行与 MySQL 持久化。").grid(
-            row=1, column=0, sticky="ew", padx=15, pady=(0, 8)
+        tk.Label(db_card, text=self.mysql_var.get(), bg="#f7faf9", fg=self.TEAL_DARK, font=(self.font_family, 9, "bold"), anchor="w", padx=11, pady=9).grid(
+            row=1, column=0, sticky="ew", padx=12, pady=(0, 9)
         )
-        text = tk.Text(root, relief="flat", bd=0, bg=self.SOFT, fg=self.TEXT, wrap="word")
-        text.grid(row=2, column=0, sticky="nsew", padx=14, pady=(0, 14))
-        endpoint_lines = "\n".join(f"- {name}: {value}" for name, value in BACKEND_ENDPOINTS.items())
-        text.insert(
-            "1.0",
-            f"MySQL 连接占位：{self.mysql_var.get()}\n\n"
-            f"{self.backend.preview_sql_tables(self.active_module)}\n\n"
-            "接口占位：\n"
-            f"{endpoint_lines}\n\n"
-            "建议核心表：projects, datasets, conversion_tasks, task_parameters, task_artifacts, "
-            "quality_reports, quality_issues, model_versions, lineage_records, operation_logs。\n",
+        tk.Label(
+            db_card,
+            text="当前模块关联表",
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=self.section_font,
+            anchor="w",
+        ).grid(row=2, column=0, sticky="ew", padx=13, pady=(0, 7))
+        table_tree = ttk.Treeview(
+            db_card,
+            columns=("table", "content", "state"),
+            show="headings",
+            style="Dashboard.Treeview",
+            height=11,
         )
+        for key, title, width in (("table", "数据表", 210), ("content", "保存内容", 230), ("state", "状态", 80)):
+            table_tree.heading(key, text=title)
+            table_tree.column(key, width=width, anchor="w")
+        table_tree.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        table_notes = ("源数据与元信息", "转换任务与参数", "成果文件与质量记录", "版本与追溯关系")
+        all_tables = tuple(self.active_module.mysql_tables) + ("conversion_tasks", "task_artifacts", "operation_logs")
+        for index, table in enumerate(dict.fromkeys(all_tables)):
+            table_tree.insert("", "end", values=(table, table_notes[index % len(table_notes)], "接口预留"))
 
     def _card(self, parent: tk.Widget) -> tk.Frame:
         return tk.Frame(parent, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1)
@@ -1047,36 +1327,50 @@ class GeoConversionApp(tk.Tk):
 
     def _workflow_strip(self, parent: tk.Widget) -> tk.Frame:
         frame = tk.Frame(parent, bg=self.PANEL)
-        frame.columnconfigure((0, 1, 2, 3), weight=1)
-        steps = self._profile()["workflow"]
-        for col, title in enumerate(steps):
+        for index in range(4):
+            frame.columnconfigure(index, weight=1)
+        for col, title in enumerate(self._profile()["workflow"]):
             card = tk.Frame(frame, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1, padx=10, pady=8)
             card.grid(row=0, column=col, sticky="ew", padx=(0 if col == 0 else 5, 0))
-            tk.Label(card, text=str(col + 1), bg=self.TEAL if col == 0 else "#dce9e6", fg="#ffffff" if col == 0 else self.TEAL_DARK, font=(self.font_family, 9, "bold"), padx=7, pady=4).pack(side="left")
-            text = tk.Frame(card, bg="#f7faf9")
-            text.pack(side="left", padx=(8, 0), fill="x", expand=True)
-            tk.Label(text, text=title, bg="#f7faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").pack(anchor="w")
-            tk.Label(text, text="接口预留", bg="#f7faf9", fg=self.MUTED, font=self.tiny_font, anchor="w").pack(anchor="w", pady=(2, 0))
+            tk.Label(
+                card,
+                text=str(col + 1),
+                bg=self.TEAL if col == 0 else "#dce9e6",
+                fg="#ffffff" if col == 0 else self.TEAL_DARK,
+                font=(self.font_family, 9, "bold"),
+                padx=7,
+                pady=4,
+            ).pack(side="left")
+            tk.Label(card, text=title, bg="#f7faf9", fg=self.TEXT, font=(self.font_family, 9, "bold")).pack(
+                side="left", padx=(8, 0)
+            )
         return frame
 
     def _quality_strip(self, parent: tk.Widget) -> tk.Frame:
         frame = tk.Frame(parent, bg=self.PANEL)
-        frame.columnconfigure((0, 1, 2, 3), weight=1)
-        checks = self._profile()["checks"]
-        for col, title in enumerate(checks):
+        for index in range(4):
+            frame.columnconfigure(index, weight=1)
+        for col, title in enumerate(self._profile()["checks"]):
             card = tk.Frame(frame, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1, padx=11, pady=9)
             card.grid(row=0, column=col, sticky="ew", padx=(0 if col == 0 else 5, 0))
             tk.Label(card, text=title, bg="#f7faf9", fg=self.TEXT, font=(self.font_family, 9, "bold")).pack(anchor="w")
-            tk.Label(card, text="通过" if self.run_completed else "待后端计算", bg="#f7faf9", fg=self.GREEN if self.run_completed else self.MUTED, font=self.tiny_font).pack(anchor="w", pady=(4, 0))
+            tk.Label(
+                card,
+                text="通过" if self.run_completed else "待执行",
+                bg="#f7faf9",
+                fg=self.GREEN if self.run_completed else self.MUTED,
+                font=self.tiny_font,
+            ).pack(anchor="w", pady=(4, 0))
         return frame
 
     def _backend_strip(self, parent: tk.Widget) -> tk.Frame:
         frame = tk.Frame(parent, bg=self.PANEL)
-        frame.columnconfigure((0, 1, 2), weight=1)
+        for index in range(3):
+            frame.columnconfigure(index, weight=1)
         items = (
-            ("服务层", "FastAPI / REST 预留"),
+            ("服务层", "REST API / 算法服务"),
             ("数据库", self.backend.mysql_config["database"]),
-            ("追溯链", "数据源 · 参数 · 任务 · 成果"),
+            ("追溯链", "数据源 · 参数 · 过程 · 成果"),
         )
         for col, (title, caption) in enumerate(items):
             card = tk.Frame(frame, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1, padx=13, pady=10)
@@ -1085,148 +1379,261 @@ class GeoConversionApp(tk.Tk):
             tk.Label(card, text=caption, bg="#f7faf9", fg=self.MUTED, font=self.small_font).pack(anchor="w", pady=(5, 0))
         return frame
 
-    def _score_values(self) -> list[int]:
-        seed = sum(ord(ch) for ch in self.active_module.name)
-        if not self.run_completed:
-            return [34, 43, 52, 46, 58]
-        return [58 + ((seed + index * 17) % 23) for index in range(5)]
+    def _metric_card(self, parent: tk.Widget, title: str, value: str, caption: str, accent: str) -> tk.Frame:
+        card = tk.Frame(parent, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1, padx=12, pady=5, height=72)
+        card.pack_propagate(False)
+        tk.Frame(card, bg=accent, width=4).pack(side="left", fill="y", padx=(0, 11))
+        content = tk.Frame(card, bg=self.PANEL)
+        content.pack(side="left", fill="both", expand=True)
+        tk.Label(content, text=title, bg=self.PANEL, fg=self.MUTED, font=self.tiny_font, anchor="w").pack(anchor="w")
+        tk.Label(content, text=value, bg=self.PANEL, fg=self.TEXT, font=(self.font_family, 14, "bold"), anchor="w").pack(
+            anchor="w", pady=(3, 0)
+        )
+        tk.Label(content, text=caption, bg=self.PANEL, fg=self.MUTED, font=self.tiny_font, anchor="w").pack(anchor="w", pady=(3, 0))
+        return card
 
-    def _overall_score(self) -> int:
+    def _compact_info_section(self, parent: tk.Widget, row: int, title: str, items: tuple[str, ...] | list[str], accent: str) -> None:
+        block = tk.Frame(parent, bg=self.PANEL)
+        block.grid(row=row, column=0, sticky="ew", pady=(0, 9))
+        block.columnconfigure(0, weight=1)
+        header = tk.Frame(block, bg=self.PANEL)
+        header.grid(row=0, column=0, sticky="ew")
+        tk.Frame(header, bg=accent, width=4, height=16).pack(side="left")
+        tk.Label(header, text=title, bg=self.PANEL, fg=self.TEXT, font=(self.font_family, 9, "bold")).pack(side="left", padx=(7, 0))
+        tk.Label(
+            block,
+            text=" · ".join(str(item) for item in items),
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.tiny_font,
+            justify="left",
+            anchor="w",
+            wraplength=310,
+        ).grid(row=1, column=0, sticky="ew", pady=(4, 0))
+
+    def _info_section(self, parent: tk.Widget, row: int, title: str, items: tuple[str, ...] | list[str], accent: str) -> None:
+        block = tk.Frame(parent, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+        block.grid(row=row, column=0, sticky="ew", pady=(0, 7))
+        block.columnconfigure(0, weight=1)
+        header = tk.Frame(block, bg="#f8faf9")
+        header.grid(row=0, column=0, sticky="ew", padx=10, pady=(9, 5))
+        tk.Frame(header, bg=accent, width=4, height=17).pack(side="left")
+        tk.Label(header, text=title, bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 9, "bold")).pack(side="left", padx=(7, 0))
+        text = "\n".join(f"• {item}" for item in items)
+        tk.Label(
+            block,
+            text=text,
+            bg="#f8faf9",
+            fg=self.MUTED,
+            font=self.tiny_font,
+            justify="left",
+            anchor="w",
+            wraplength=300,
+        ).grid(row=1, column=0, sticky="ew", padx=11, pady=(0, 9))
+
+    def _input_format_hint(self, item: str) -> str:
+        value = item.lower()
+        if "点云" in item:
+            return "LAS / LAZ / PLY"
+        if "栅格" in item or "dem" in value or "影像" in item:
+            return "TIFF / IMG"
+        if "矢量" in item or "图" in item or "线" in item or "边界" in item:
+            return "SHP / DXF / GeoJSON"
+        if "网格" in item or "模型" in item or "空间对象" in item:
+            return "VTK / OBJ / IFC"
+        if "表" in item or "记录" in item or "字典" in item or "指标" in item:
+            return "CSV / XLSX / JSON"
+        return "待识别"
+
+    def _parameter_defaults(self) -> dict[str, str]:
+        return {
+            "目标坐标系": "CGCS2000 / 工程坐标系",
+            "目标高程基准": "1985 国家高程基准",
+            "单位体系": "m / kN / MPa",
+            "转换精度": "工程级",
+            "目标格式": "GeoJSON / VTK / IFC",
+            "输出格式": "LAS / LAZ / PLY",
+            "日志级别": "INFO",
+            "失败重试次数": "3",
+            "并发数量": "4",
+            "版本号": "V1.0.0",
+            "预览模式": "二维 + 三维 + 剖切",
+        }
+
+    def _quality_score(self) -> int:
         if not self.run_completed:
             return 0
-        values = self._score_values()
-        return round(sum(values) / len(values))
+        seed = sum(ord(ch) for ch in self.active_module.name)
+        return 86 + seed % 10
+
+    @staticmethod
+    def _quality_grade(score: int) -> str:
+        if score == 0:
+            return "待检查"
+        if score >= 90:
+            return "优秀"
+        if score >= 80:
+            return "合格"
+        return "需复核"
+
+    # 兼容原报告字段，现解释为质量评分而非风险评分。
+    def _score_values(self) -> list[int]:
+        score = self._quality_score()
+        if score == 0:
+            return [0, 0, 0, 0, 0]
+        return [max(0, min(100, score + offset)) for offset in (-3, 2, -1, 3, 0)]
+
+    def _overall_score(self) -> int:
+        return self._quality_score()
 
     @staticmethod
     def _risk_level(score: int) -> str:
-        if score == 0:
-            return "待计算"
-        if score <= 57:
-            return "一般"
-        if score <= 74:
-            return "中高"
-        return "较高"
+        return GeoConversionApp._quality_grade(score)
+
+    def _result_rows(self) -> list[tuple[str, str, str, str, str]]:
+        rows: list[tuple[str, str, str, str, str]] = []
+        status = "已生成" if self.run_completed else "待生成"
+        quality = f"{self._quality_score()} 分 / {self._quality_grade(self._quality_score())}" if self.run_completed else "待执行质量检查"
+        for index, output in enumerate(self.active_module.outputs):
+            artifact_type = "模型成果" if any(token in output for token in ("模型", "网格", "对象", "数据")) else "报告/记录"
+            trace = f"{self.active_module.mysql_tables[index % len(self.active_module.mysql_tables)]} · 可追溯"
+            rows.append((output, artifact_type, status, quality, trace))
+        return rows
+
+    def _draw_process_pipeline(self, canvas: tk.Canvas) -> None:
+        canvas.delete("all")
+        width = max(canvas.winfo_width(), 260)
+        height = max(canvas.winfo_height(), 50)
+        steps = ("源数据",) + tuple(self._profile()["workflow"]) + ("成果",)
+        count = len(steps)
+
+        # 当窗口高度较小时使用紧凑流程图，避免图形被裁切。
+        if height < 145:
+            left, right = 24, width - 24
+            center_y = max(20, height * 0.35)
+            gap = (right - left) / max(count - 1, 1)
+            radius = 9
+            for index, step in enumerate(steps):
+                x = left + index * gap
+                finished = self.run_completed or (index == 0 and self.selected_files)
+                active = (index == 1 and self.selected_files and not self.run_completed) or (index == 0 and not self.selected_files)
+                color = self.GREEN if finished else self.TEAL if active else "#c8d5d1"
+                if index < count - 1:
+                    next_x = left + (index + 1) * gap
+                    canvas.create_line(x + radius, center_y, next_x - radius, center_y, fill=color, width=2)
+                canvas.create_oval(x - radius, center_y - radius, x + radius, center_y + radius, fill=color, outline="")
+                canvas.create_text(x, center_y, text="✓" if finished else str(index + 1), fill="#ffffff", font=(self.font_family, 7, "bold"))
+                canvas.create_text(x, center_y + 18, text=step, width=max(50, gap - 3), fill=self.TEXT, font=(self.font_family, 7), justify="center")
+            return
+
+        canvas.create_rectangle(10, 10, width - 10, height - 10, fill="#fbfcfc", outline=self.BORDER)
+        canvas.create_text(25, 28, text=self.active_module.name, anchor="w", fill=self.TEXT, font=self.section_font)
+        canvas.create_text(width - 25, 28, text=self._profile()["layout"].upper(), anchor="e", fill=self.MUTED, font=self.tiny_font)
+        left, right = 45, width - 45
+        center_y = min(92, height * 0.42)
+        gap = (right - left) / max(count - 1, 1)
+        for index, step in enumerate(steps):
+            x = left + index * gap
+            finished = self.run_completed or (index == 0 and self.selected_files)
+            active = (index == 1 and self.selected_files and not self.run_completed) or (index == 0 and not self.selected_files)
+            fill = self.GREEN if finished else self.TEAL if active else "#dfe8e5"
+            outline = self.GREEN if finished else self.TEAL if active else "#bdcbc7"
+            if index < count - 1:
+                next_x = left + (index + 1) * gap
+                canvas.create_line(x + 17, center_y, next_x - 17, center_y, fill=self.TEAL if finished else "#c8d5d1", width=3)
+            canvas.create_oval(x - 16, center_y - 16, x + 16, center_y + 16, fill=fill, outline=outline, width=2)
+            canvas.create_text(x, center_y, text="✓" if finished else str(index + 1), fill="#ffffff" if finished or active else self.MUTED, font=(self.font_family, 8, "bold"))
+            canvas.create_text(x, center_y + 29, text=step, width=max(60, gap - 5), fill=self.TEXT, font=(self.font_family, 7, "bold"), justify="center")
+
+        if height < 205:
+            return
+        visual = self._profile()["visual"]
+        preview_y = height * 0.78
+        if visual in {"coordinate", "section_map", "raster_vector", "boundary"}:
+            canvas.create_line(width * 0.24, preview_y + 20, width * 0.43, preview_y - 14, width * 0.62, preview_y + 10, width * 0.78, preview_y - 20, fill=self.TEAL, width=3, smooth=True)
+            canvas.create_line(width * 0.25, preview_y - 8, width * 0.43, preview_y + 15, width * 0.61, preview_y - 12, width * 0.76, preview_y + 16, fill=self.AMBER, width=2, smooth=True)
+        elif visual in {"borehole", "point_cloud"}:
+            for index in range(32):
+                x = width * 0.28 + (index * 41) % int(max(width * 0.45, 1))
+                y = preview_y - 24 + (index * 29) % 48
+                canvas.create_oval(x, y, x + 4, y + 4, fill=self.TEAL if index % 3 else self.AMBER, outline="")
+        elif visual in {"mesh", "voxel", "local_detail", "property_map", "multiscale"}:
+            size = 22
+            start_x = width / 2 - 4 * size
+            for row in range(3):
+                for col in range(8):
+                    fill = self.RED if visual == "local_detail" and 2 <= col <= 5 and row == 1 else self.TEAL if (row + col) % 3 else self.AMBER
+                    canvas.create_rectangle(start_x + col * size, preview_y - 30 + row * size, start_x + col * size + size - 3, preview_y - 30 + row * size + size - 3, fill=fill, outline="#ffffff")
+        else:
+            for index, value in enumerate((0.78, 0.56, 0.88, 0.69)):
+                y = preview_y - 32 + index * 16
+                canvas.create_rectangle(width * 0.34, y, width * 0.67, y + 8, fill="#e6eeec", outline="")
+                canvas.create_rectangle(width * 0.34, y, width * (0.34 + 0.33 * value), y + 8, fill=self.TEAL if index != 2 else self.AMBER, outline="")
 
     def _draw_radar(self, canvas: tk.Canvas) -> None:
-        canvas.delete("all")
-        width = max(canvas.winfo_width(), 520)
-        height = max(canvas.winfo_height(), 270)
-        cx = width * 0.51
-        cy = height * 0.53
-        radius = min(width * 0.25, height * 0.35)
-        labels = ("输入", "参数", "格式", "空间", "质量")
-        values = self._score_values()
-        angles = [-math.pi / 2 + index * 2 * math.pi / 5 for index in range(5)]
-
-        def point(angle: float, scale: float) -> tuple[float, float]:
-            return cx + math.cos(angle) * radius * scale, cy + math.sin(angle) * radius * scale
-
-        for scale, fill in ((1.0, "#f9e7e4"), (0.75, "#fbf0dc"), (0.5, "#e8f4ec"), (0.25, "#f6faf8")):
-            coords: list[float] = []
-            for angle in angles:
-                x, y = point(angle, scale)
-                coords.extend((x, y))
-            canvas.create_polygon(coords, fill=fill, outline=self.BORDER)
-
-        for angle in angles:
-            x, y = point(angle, 1.0)
-            canvas.create_line(cx, cy, x, y, fill="#c7d3cf")
-
-        data_coords: list[float] = []
-        for value, angle in zip(values, angles):
-            x, y = point(angle, value / 100)
-            data_coords.extend((x, y))
-        canvas.create_polygon(data_coords, fill="#d9f0ea", outline=self.TEAL, width=2)
-
-        for value, angle, label in zip(values, angles, labels):
-            x, y = point(angle, value / 100)
-            canvas.create_oval(x - 4, y - 4, x + 4, y + 4, fill=self.TEAL, outline="#ffffff")
-            lx, ly = point(angle, 1.22)
-            canvas.create_text(lx, ly, text=f"{label}\n{value}", fill=self.TEXT, font=(self.font_family, 9, "bold"), justify="center")
-
-        score = self._overall_score()
-        center_text = str(score) if self.run_completed else "--"
-        canvas.create_oval(cx - 34, cy - 34, cx + 34, cy + 34, fill="#ffffff", outline=self.TEAL, width=2)
-        canvas.create_text(cx, cy - 4, text=center_text, fill=self.GREEN if self.run_completed else self.MUTED, font=(self.font_family, 18, "bold"))
-        canvas.create_text(cx, cy + 17, text="综合评分", fill=self.MUTED, font=self.tiny_font)
-        canvas.create_text(width / 2, 17, text="综合质量与风险研判图", fill=self.TEXT, font=self.section_font)
+        """保留旧调用兼容性，统一绘制新的转换流程图。"""
+        self._draw_process_pipeline(canvas)
 
     def _build_conclusion_text(self) -> str:
-        score = self._overall_score()
-        level = self._risk_level(score)
-        checks = self._profile()["checks"]
-        outputs = self.active_module.outputs
         if not self.run_completed:
             return (
-                "结论：当前任务尚未执行，结果区用于展示后端返回的质量评分、风险等级和处理建议。\n\n"
-                "建议：\n"
-                "· 先加载源数据并完成参数配置；\n"
-                "· 点击“开始处理”或“一键分析”；\n"
-                "· 在预览检查页复核空间与属性结果。"
+                "当前任务尚未执行。请先接入源数据、配置转换规则，再执行转换与质量检查。\n\n"
+                "系统将输出模型成果、质量报告以及来源—参数—过程—成果追溯记录。"
             )
         return (
-            f"结论：综合评分为 {score}，等级为“{level}”。当前重点关注 {checks[0]} 与 {checks[1]}。\n\n"
-            "建议：\n"
-            f"· 对{checks[0]}异常项进行复核；\n"
-            f"· 校验{checks[1]}并保留处理日志；\n"
-            f"· 输出“{outputs[0]}”及配套质量报告；\n"
-            "· 正式工程判断以接入后的后端算法结果为准。"
+            f"转换已完成，质量评分 {self._quality_score()} 分，等级为“{self._quality_grade(self._quality_score())}”。\n\n"
+            f"已完成：{'、'.join(self._profile()['checks'])}。\n"
+            f"可输出：{'、'.join(self.active_module.outputs)}。"
         )
 
     def _draw_preview(self, canvas: tk.Canvas) -> None:
         canvas.delete("all")
-        width = max(canvas.winfo_width(), 700)
-        height = max(canvas.winfo_height(), 400)
-        for x in range(30, width, 44):
-            canvas.create_line(x, 0, x, height, fill="#edf3f1")
-        for y in range(30, height, 44):
-            canvas.create_line(0, y, width, y, fill="#edf3f1")
-        cx, cy = width / 2, height / 2
-        canvas.create_rectangle(24, 24, width - 24, height - 24, outline=self.BORDER)
-        canvas.create_text(43, 43, text="结果图示", fill=self.TEXT, anchor="w", font=self.section_font)
-        canvas.create_text(width - 43, 43, text="2D / 3D / SECTION", fill=self.MUTED, anchor="e", font=self.small_font)
+        width = max(canvas.winfo_width(), 720)
+        height = max(canvas.winfo_height(), 430)
+        canvas.create_rectangle(16, 16, width - 16, height - 16, fill="#fbfcfc", outline=self.BORDER)
+        canvas.create_text(34, 35, text=f"{self.active_module.name} · 成果预览", fill=self.TEXT, anchor="w", font=self.section_font)
+        canvas.create_text(width - 34, 35, text="2D  |  3D  |  SECTION", fill=self.MUTED, anchor="e", font=self.small_font)
+
+        split_x = width * 0.52
+        canvas.create_rectangle(34, 58, split_x - 8, height - 62, fill="#f6f9f8", outline=self.BORDER)
+        canvas.create_rectangle(split_x + 8, 58, width - 34, height - 62, fill="#f6f9f8", outline=self.BORDER)
+        canvas.create_text(48, 76, text="转换前", fill=self.MUTED, anchor="w", font=(self.font_family, 9, "bold"))
+        canvas.create_text(split_x + 22, 76, text="转换后", fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 9, "bold"))
+
         visual = self._profile()["visual"]
-        if visual in {"audit", "attribute_table", "semantic"}:
-            for index, length in enumerate((260, 210, 300, 180)):
-                y = cy - 95 + index * 48
-                canvas.create_rectangle(cx - 180, y, cx + 180, y + 30, fill="#f5f8f7", outline=self.BORDER)
-                canvas.create_rectangle(cx - 170, y + 9, cx - 170 + length, y + 20, fill=self.TEAL, outline="")
-                canvas.create_oval(cx + 150, y + 8, cx + 164, y + 22, fill=self.AMBER, outline="")
-        elif visual in {"coordinate", "section_map", "raster_vector"}:
-            canvas.create_rectangle(cx - 245, cy - 120, cx + 245, cy + 120, fill="#f7faf9", outline=self.BORDER)
-            for index in range(6):
-                y = cy - 100 + index * 40
-                canvas.create_line(cx - 230, y, cx + 230, y + (18 if index % 2 else -12), fill="#b9cac5")
-            canvas.create_line(cx - 200, cy + 70, cx + 205, cy - 55, fill=self.TEAL, width=3)
-            canvas.create_line(cx - 170, cy - 75, cx + 180, cy + 62, fill=self.AMBER, width=2)
-        elif visual in {"borehole", "boundary"}:
-            for index, color in enumerate(("#d6bb6f", "#58aaa3", "#b98265", "#7399a7")):
-                y = cy - 100 + index * 46
-                canvas.create_polygon(cx - 220, y, cx + 90, y - 22, cx + 220, y + 12, cx - 150, y + 34, fill=color, outline="#ffffff")
-            for x in (cx - 120, cx - 40, cx + 55, cx + 135):
-                canvas.create_line(x, cy - 145, x, cy + 120, fill="#e06155", width=3)
-        elif visual == "point_cloud":
-            for index in range(100):
-                x = cx - 230 + (index * 37) % 460
-                y = cy - 120 + (index * 53) % 240
-                canvas.create_oval(x, y, x + 4, y + 4, fill=self.TEAL if index % 3 else self.AMBER, outline="")
-        elif visual in {"mesh", "voxel", "local_detail", "property_map", "multiscale"}:
-            size = 42
-            for row in range(5):
-                for col in range(7):
-                    x = cx - 145 + col * size
-                    y = cy - 110 + row * size
-                    fill = self.TEAL if (row + col) % 3 else self.AMBER
-                    if visual == "local_detail" and 2 <= row <= 3 and 2 <= col <= 4:
-                        fill = "#e06155"
-                    canvas.create_rectangle(x, y, x + size - 5, y + size - 5, fill=fill, outline="#ffffff")
-        else:
-            canvas.create_rectangle(cx - 250, cy - 110, cx - 30, cy + 100, fill="#f7faf9", outline=self.BORDER)
-            canvas.create_rectangle(cx + 30, cy - 110, cx + 250, cy + 100, fill="#f7faf9", outline=self.BORDER)
-            for offset, color in ((-65, self.TEAL), (-20, "#8aa9a6"), (25, self.AMBER)):
-                canvas.create_rectangle(cx - 220, cy + offset, cx - 80, cy + offset + 18, fill=color, outline="")
-                canvas.create_rectangle(cx + 65, cy + offset, cx + 220, cy + offset + 18, fill=color, outline="")
-        canvas.create_text(cx, height - 42, text=f"{self.active_module.name}：预览组件占位，后续接入二维/三维渲染结果", fill=self.MUTED)
+        centers = ((width * 0.27, height * 0.52, False), (width * 0.75, height * 0.52, True))
+        for cx, cy, converted in centers:
+            accent = self.TEAL if converted else "#8fa5a0"
+            if visual in {"coordinate", "section_map", "raster_vector", "boundary"}:
+                for index in range(5):
+                    y = cy - 88 + index * 40
+                    canvas.create_line(cx - 150, y, cx + 150, y + (16 if index % 2 else -10), fill="#b9cac5")
+                canvas.create_line(cx - 135, cy + 58, cx + 128, cy - 46, fill=accent, width=3, smooth=True)
+                canvas.create_line(cx - 120, cy - 60, cx + 118, cy + 48, fill=self.AMBER, width=2, smooth=True)
+            elif visual in {"borehole", "point_cloud"}:
+                for index in range(72):
+                    x = cx - 150 + (index * 37) % 300
+                    y = cy - 92 + (index * 53) % 184
+                    canvas.create_oval(x, y, x + 4, y + 4, fill=accent if index % 4 else self.AMBER, outline="")
+                if visual == "borehole":
+                    for x in (cx - 85, cx - 25, cx + 45, cx + 105):
+                        canvas.create_line(x, cy - 105, x, cy + 105, fill=self.RED if converted else "#a98b86", width=3)
+            elif visual in {"mesh", "voxel", "local_detail", "property_map", "multiscale"}:
+                size = 34
+                for row in range(5):
+                    for col in range(8):
+                        fill = accent if (row + col) % 3 else self.AMBER
+                        if visual == "local_detail" and converted and 2 <= row <= 3 and 2 <= col <= 5:
+                            fill = self.RED
+                        canvas.create_rectangle(cx - 136 + col * size, cy - 86 + row * size, cx - 136 + col * size + size - 4, cy - 86 + row * size + size - 4, fill=fill, outline="#ffffff")
+            else:
+                for index, length in enumerate((230, 170, 260, 205, 145)):
+                    y = cy - 92 + index * 42
+                    canvas.create_rectangle(cx - 145, y, cx + 145, y + 25, fill="#edf3f1", outline=self.BORDER)
+                    canvas.create_rectangle(cx - 135, y + 8, cx - 135 + length * (1.0 if converted else 0.72), y + 17, fill=accent if index != 2 else self.AMBER, outline="")
+
+        state_text = "转换完成，可进行空间、属性与边界对比检查" if self.run_completed else "演示预览：执行转换后显示后端返回的真实模型与差异结果"
+        canvas.create_text(width / 2, height - 36, text=state_text, fill=self.GREEN if self.run_completed else self.MUTED, font=self.small_font)
 
     def _choose_files(self) -> None:
         files = list(filedialog.askopenfilenames(title="选择源数据文件"))
@@ -1238,6 +1645,19 @@ class GeoConversionApp(tk.Tk):
         self._append_log(f"已加载 {len(files)} 个数据文件。")
         self.status_var.set(f"已添加 {len(files)} 个文件")
         self.run_status_var.set("数据已加载")
+        self._render_current_page()
+
+    def _clear_files(self) -> None:
+        if not self.selected_files:
+            self.status_var.set("当前没有已加载的数据")
+            return
+        count = len(self.selected_files)
+        self.selected_files.clear()
+        self.run_completed = False
+        self.run_status_var.set("待处理")
+        self._append_log(f"已清空 {count} 个数据文件。")
+        self.status_var.set("数据列表已清空")
+        self._render_progress_strip()
         self._render_current_page()
 
     def _apply_params(self) -> None:
@@ -1303,8 +1723,8 @@ class GeoConversionApp(tk.Tk):
             "input_files": self.selected_files,
             "parameters": self.param_values,
             "outputs": list(self.active_module.outputs),
-            "score": self._overall_score(),
-            "level": self._risk_level(self._overall_score()),
+            "quality_score": self._quality_score(),
+            "quality_grade": self._quality_grade(self._quality_score()),
             "logs": self.logs,
             "exported_at": datetime.now().isoformat(timespec="seconds"),
         }
@@ -1348,6 +1768,8 @@ class GeoConversionApp(tk.Tk):
         self.active_module = module
         self.module_title.set(module.name)
         self.module_desc.set(module.description)
+        if hasattr(self, "group_badge") and self.group_badge.winfo_exists():
+            self.group_badge.configure(text=module.group)
         self.status_var.set(f"当前模块：{module.name}")
         self.run_status_var.set("待处理")
         self.run_completed = False
@@ -1377,7 +1799,7 @@ class GeoConversionApp(tk.Tk):
         tk.Label(bar, textvariable=self.status_var, bg="#dde9e6", fg="#516660", anchor="w", padx=12, font=self.small_font).grid(
             row=0, column=0, sticky="nsew"
         )
-        tk.Label(bar, text="本地前端原型 · 后端 MySQL 接口待接入", bg="#dde9e6", fg=self.TEAL, padx=12, font=self.small_font).grid(
+        tk.Label(bar, text="地质模型转换工作台 · MySQL 与算法服务接口已预留", bg="#dde9e6", fg=self.TEAL, padx=12, font=self.small_font).grid(
             row=0, column=1, sticky="e"
         )
 
