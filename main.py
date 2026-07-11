@@ -11,6 +11,8 @@ from tkinter import filedialog, font as tkfont
 from tkinter import ttk
 
 from function.model_quality_check import build_model_quality_report
+from function.obj_renderer import ObjModel, RenderState, load_models, transform_vertices, collect_face_depths, face_visible, project_ortho, parse_obj
+from function.obj_renderer import rotate_x as _rot_x, rotate_y as _rot_y
 
 
 APP_TITLE = "地质环境模型数据模态转换工具包"
@@ -476,6 +478,14 @@ class GeoConversionApp(tk.Tk):
         self.logs: list[str] = []
         self.quality_report: dict[str, object] | None = None
 
+        # —— 三维模型预览状态 ——
+        self._3d_models: list[ObjModel] = []
+        self._3d_state = RenderState()
+        self._3d_anim_id: str | None = None
+        self._3d_drag_start: tuple[int, int] | None = None
+        self._3d_drag_rot_x0: float = 0.0
+        self._3d_drag_rot_y0: float = 0.0
+
         self.search_var = tk.StringVar(value="")
         self.project_var = tk.StringVar(value="默认项目")
         self.module_title = tk.StringVar()
@@ -880,6 +890,7 @@ class GeoConversionApp(tk.Tk):
         self._render_current_page()
 
     def _render_current_page(self) -> None:
+        self._stop_3d_preview()
         for child in self.content_host.winfo_children():
             child.destroy()
         for name, button in self.page_buttons.items():
@@ -1298,10 +1309,10 @@ class GeoConversionApp(tk.Tk):
         preview_card.rowconfigure(1, weight=1)
         preview_title = "导入模型与复核文件预览" if self._is_quality_module() else "空间数据与成果预览"
         self._card_header(preview_card, preview_title)
-        canvas = tk.Canvas(preview_card, bg="#fbfcfc", highlightthickness=0)
+        canvas = tk.Canvas(preview_card, bg="#fbfcfc", highlightthickness=0, height=520)
         canvas.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 10))
         if self._is_quality_module():
-            canvas.bind("<Configure>", lambda _e, c=canvas: self._draw_quality_model_preview(c))
+            self._start_3d_preview(canvas)
         else:
             canvas.bind("<Configure>", lambda _e, c=canvas: self._draw_preview(c))
 
@@ -1815,59 +1826,232 @@ class GeoConversionApp(tk.Tk):
         state_text = "转换完成，可进行空间、属性与边界对比检查" if self.run_completed else "演示预览：执行转换后显示后端返回的真实模型与差异结果"
         canvas.create_text(width / 2, height - 36, text=state_text, fill=self.GREEN if self.run_completed else self.MUTED, font=self.small_font)
 
-    def _draw_quality_model_preview(self, canvas: tk.Canvas) -> None:
+    # ---------- 三维 OBJ 模型预览 ----------
+
+    def _start_3d_preview(self, canvas: tk.Canvas) -> None:
+        """初始化三维预览：加载模型、绑定交互、启动动画。"""
+        self._stop_3d_preview()
+        self._3d_models = load_models(self.selected_files)
+        self._3d_state = RenderState()
+        self._3d_preview_canvas = canvas
+
+        # 鼠标交互
+        canvas.bind("<ButtonPress-1>", self._3d_on_press)
+        canvas.bind("<B1-Motion>", self._3d_on_drag)
+        canvas.bind("<ButtonRelease-1>", self._3d_on_release)
+        canvas.bind("<MouseWheel>", self._3d_on_wheel)
+        # 当画布尺寸变化时立刻重绘（停止自动旋转时不依赖动画帧）
+        canvas.bind("<Configure>", lambda _event, c=canvas: self._draw_3d_frame(c), add="+")
+
+        self._3d_anim_id = self.after(30, lambda c=canvas: self._3d_tick(c))
+
+    def _stop_3d_preview(self) -> None:
+        """停止动画并释放模型数据。"""
+        if self._3d_anim_id is not None:
+            self.after_cancel(self._3d_anim_id)
+            self._3d_anim_id = None
+        self._3d_models.clear()
+
+    def _3d_tick(self, canvas: tk.Canvas) -> None:
+        """动画帧：自动旋转 + 重绘。"""
+        if self.current_page != "预览检查" or not self._is_quality_module():
+            self._stop_3d_preview()
+            return
+        if self._3d_state.auto_spin:
+            self._3d_state.rot_y += self._3d_state.spin_speed
+        self._draw_3d_frame(canvas)
+        self._3d_anim_id = self.after(30, lambda c=canvas: self._3d_tick(c))
+
+    # -- 鼠标事件 -------------------------------------------------
+    def _3d_on_press(self, event: tk.Event) -> None:
+        self._3d_state.auto_spin = False
+        self._3d_drag_start = (event.x, event.y)
+        self._3d_drag_rot_x0 = self._3d_state.rot_x
+        self._3d_drag_rot_y0 = self._3d_state.rot_y
+
+    def _3d_on_drag(self, event: tk.Event) -> None:
+        if self._3d_drag_start is None:
+            return
+        dx = event.x - self._3d_drag_start[0]
+        dy = event.y - self._3d_drag_start[1]
+        self._3d_state.rot_y = self._3d_drag_rot_y0 + dx * 0.008
+        self._3d_state.rot_x = self._3d_drag_rot_x0 + dy * 0.008
+
+    def _3d_on_release(self, _event: tk.Event) -> None:
+        self._3d_drag_start = None
+        # 松手后 1.2 秒恢复自动旋转
+        self.after(1200, self._3d_resume_spin)
+
+    def _3d_resume_spin(self) -> None:
+        if self._3d_drag_start is None:
+            self._3d_state.auto_spin = True
+
+    def _3d_on_wheel(self, event: tk.Event) -> None:
+        delta = 1.1 if event.delta > 0 else 0.9
+        self._3d_state.zoom = max(0.2, min(5.0, self._3d_state.zoom * delta))
+
+    # -- 核心渲染 -------------------------------------------------
+    def _draw_3d_frame(self, canvas: tk.Canvas) -> None:
         canvas.delete("all")
-        width = max(canvas.winfo_width(), 720)
-        height = max(canvas.winfo_height(), 430)
-        canvas.create_rectangle(16, 16, width - 16, height - 16, fill="#fbfcfc", outline=self.BORDER)
-        canvas.create_text(34, 35, text="导入三维模型与复核文件", fill=self.TEXT, anchor="w", font=self.section_font)
-        canvas.create_text(width - 34, 35, text="MODEL  |  ATTRIBUTES  |  BOUNDARY", fill=self.MUTED, anchor="e", font=self.small_font)
+        width = max(canvas.winfo_width(), 200)
+        height = max(canvas.winfo_height(), 200)
 
-        left_w = width * 0.58
-        canvas.create_rectangle(34, 58, left_w - 8, height - 62, fill="#f6f9f8", outline=self.BORDER)
-        canvas.create_rectangle(left_w + 8, 58, width - 34, height - 62, fill="#f6f9f8", outline=self.BORDER)
-        canvas.create_text(48, 78, text="三维模型视图", fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 10, "bold"))
-        canvas.create_text(left_w + 24, 78, text="复核文件", fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 10, "bold"))
+        # 背景
+        canvas.create_rectangle(0, 0, width, height, fill="#fbfcfc", outline="")
+        canvas.create_text(14, 16, text="三维模型视图", fill=self.TEXT, anchor="w", font=self.section_font)
 
-        cx, cy = left_w * 0.5, height * 0.52
-        points = [
-            (cx, cy - 100),
-            (cx - 150, cy - 18),
-            (cx - 95, cy + 110),
-            (cx + 95, cy + 110),
-            (cx + 150, cy - 18),
-        ]
-        faces = ((0, 1, 2), (0, 2, 3), (0, 3, 4))
-        colors = ("#7fb3ad", "#0b8d80", "#d88213")
-        for index, face in enumerate(faces):
-            coords = []
-            for point_index in face:
-                coords.extend(points[point_index])
-            canvas.create_polygon(*coords, fill=colors[index], outline="#ffffff", width=2)
-        for x, y in points:
-            canvas.create_oval(x - 4, y - 4, x + 4, y + 4, fill="#10231f", outline="")
-        canvas.create_line(points[1][0], points[1][1], points[4][0], points[4][1], fill=self.RED, width=3, dash=(6, 4))
-        canvas.create_text(cx, cy + 145, text="示例：红色虚线表示待复核开口边界 / 非闭合区域", fill=self.MUTED, font=self.small_font)
+        # 3D 视口区域
+        margin = 40
+        vp_x, vp_y = margin, 48
+        vp_w = int(width * 0.62) - margin
+        vp_h = height - vp_y - 16
+        vp_cx = vp_x + vp_w / 2
+        vp_cy = vp_y + vp_h / 2
+
+        canvas.create_rectangle(vp_x, vp_y, vp_x + vp_w, vp_y + vp_h, fill="#f0f4f3", outline=self.BORDER)
+
+        # 无模型时提示
+        if not self._3d_models:
+            canvas.create_text(vp_cx, vp_cy, text="请通过「加载数据」导入 OBJ 三维模型文件", fill=self.MUTED, font=self.small_font)
+            self._draw_3d_file_panel(canvas, width, height, vp_x + vp_w)
+            return
+
+        state = self._3d_state
+        view_scale = min(vp_w, vp_h) * 0.38 * state.zoom
+
+        # 参考网格
+        self._draw_3d_grid(canvas, vp_cx, vp_cy, view_scale, state)
+
+        # 收集所有模型的面片（带深度）
+        all_faces: list[tuple[float, int, tuple[float, float, float, float, float, float, float, float, float], tuple[int, int, int]]] = []
+        for mi, model in enumerate(self._3d_models):
+            transformed = transform_vertices(model, state)
+            depths = collect_face_depths(transformed, model.faces)
+            for avg_z, _fi, face in depths:
+                try:
+                    pts = [transformed[i] for i in face]
+                except IndexError:
+                    continue
+                # 简单背面剔除
+                if len(pts) >= 3 and face_visible(pts[0], pts[1], pts[2]):
+                    proj = tuple(project_ortho(p, view_scale, vp_cx, vp_cy) for p in pts)
+                    shade = self._face_shade(pts)
+                    all_faces.append((avg_z, mi, self._flatten_pts(proj), shade))
+
+        # 画家算法：远到近排序
+        all_faces.sort(key=lambda item: item[0], reverse=True)
+
+        # 绘制面片
+        for _avg_z, mi, flat, shade in all_faces:
+            color = self._model_color(mi, shade)
+            outline = self._model_color(mi, 0.45)
+            canvas.create_polygon(*flat, fill=color, outline=outline, width=1)
+
+        # 文件信息面板
+        self._draw_3d_file_panel(canvas, width, height, vp_x + vp_w)
+
+        # 状态栏
+        info = f"顶点: {sum(m.vertex_count for m in self._3d_models)} | 面片: {sum(m.face_count for m in self._3d_models)} | 拖拽旋转 · 滚轮缩放"
+        quality_issues = self.quality_report.get("issue_count", 0) if self.quality_report else 0
+        if quality_issues:
+            info = f"⚠ 发现 {quality_issues} 项缺陷/异常  |  {info}"
+        canvas.create_text(width / 2, height - 14, text=info, fill=self.RED if quality_issues else self.MUTED, font=self.tiny_font)
+
+    def _draw_3d_grid(self, canvas: tk.Canvas, cx: float, cy: float, scale: float, state: RenderState) -> None:
+        """绘制参考网格平面 (XZ 平面)。"""
+        grid_size = 1.0
+        steps = 8
+
+        def _rot(p: tuple[float, float, float]) -> tuple[float, float, float]:
+            result = p
+            if state.rot_x:
+                result = _rot_x(result, state.rot_x)
+            if state.rot_y:
+                result = _rot_y(result, state.rot_y)
+            return result
+
+        for i in range(-steps, steps + 1):
+            t = i / steps
+            # X 方向线（沿 Z 延伸）
+            x = t * grid_size
+            sx, sy = project_ortho(_rot((x, 0.0, -grid_size)), scale, cx, cy)
+            ex, ey = project_ortho(_rot((x, 0.0, grid_size)), scale, cx, cy)
+            canvas.create_line(sx, sy, ex, ey, fill="#dce6e3", width=1)
+            # Z 方向线（沿 X 延伸）
+            z = t * grid_size
+            sx, sy = project_ortho(_rot((-grid_size, 0.0, z)), scale, cx, cy)
+            ex, ey = project_ortho(_rot((grid_size, 0.0, z)), scale, cx, cy)
+            canvas.create_line(sx, sy, ex, ey, fill="#dce6e3", width=1)
+
+    def _draw_3d_file_panel(self, canvas: tk.Canvas, width: float, height: float, left: float) -> None:
+        """右侧：导入文件清单。"""
+        panel_x = left + 20
+        canvas.create_rectangle(left + 1, 48, width - 14, height - 22, fill="#f6f9f8", outline=self.BORDER)
+        canvas.create_text(panel_x + 4, 70, text="复核文件清单", fill=self.TEAL_DARK, anchor="w", font=(self.font_family, 10, "bold"))
 
         files = self.quality_report.get("files", []) if self.quality_report else []
         if not files and self.selected_files:
-            files = [{"name": Path(path).name, "type": Path(path).suffix.lower() or "unknown", "status": "待检查"} for path in self.selected_files]
+            files = [{"name": Path(p).name, "type": Path(p).suffix.lower() or "unknown", "status": "待检查"} for p in self.selected_files]
         if not files:
             files = [{"name": "尚未加载复核文件", "type": "-", "status": "待接入"}]
 
-        start_y = 108
-        for index, item in enumerate(files[:7]):
-            y = start_y + index * 42
+        y0 = 106
+        for idx, item in enumerate(files[:10]):
+            y = y0 + idx * 38
+            if y > height - 50:
+                break
             status = str(item.get("status", ""))
-            color = self.GREEN if status == "已检查" else self.AMBER if status == "待检查" else self.RED if status == "解析失败" else self.MUTED
-            canvas.create_rectangle(left_w + 24, y, width - 55, y + 30, fill="#ffffff", outline=self.BORDER)
-            canvas.create_rectangle(left_w + 24, y, left_w + 31, y + 30, fill=color, outline="")
-            canvas.create_text(left_w + 42, y + 15, text=str(item.get("name", "")), fill=self.TEXT, anchor="w", font=self.small_font)
-            canvas.create_text(width - 68, y + 15, text=str(item.get("type", "")), fill=self.MUTED, anchor="e", font=self.tiny_font)
+            accent = self.GREEN if status == "已检查" else self.AMBER if status == "待检查" else self.RED if status == "解析失败" else self.MUTED
+            canvas.create_rectangle(panel_x + 4, y, width - 30, y + 28, fill="#ffffff", outline=self.BORDER)
+            canvas.create_rectangle(panel_x + 4, y, panel_x + 10, y + 28, fill=accent, outline="")
+            fname = str(item.get("name", ""))
+            ftype = str(item.get("type", ""))
+            canvas.create_text(panel_x + 20, y + 14, text=fname[:28], fill=self.TEXT, anchor="w", font=self.small_font)
+            canvas.create_text(width - 38, y + 14, text=ftype, fill=self.MUTED, anchor="e", font=self.tiny_font)
 
-        issue_count = self.quality_report.get("issue_count", 0) if self.quality_report else 0
-        status_text = f"已完成复核：发现 {issue_count} 项缺陷/异常" if self.quality_report else "加载模型和复核文件后，可执行质量校验并定位缺陷"
-        canvas.create_text(width / 2, height - 36, text=status_text, fill=self.RED if issue_count else self.MUTED, font=self.small_font)
+    # -- 着色辅助 -------------------------------------------------
+    _MODEL_COLORS = (
+        ("#0b8d80", "#e0f2ef"),   # 青
+        ("#2f6ed0", "#e5edfa"),   # 蓝
+        ("#d88213", "#fdf3e5"),   # 橙
+        ("#654bd5", "#efecfa"),   # 紫
+        ("#16934f", "#e8f5ed"),   # 绿
+        ("#d34234", "#fce9e7"),   # 红
+    )
+
+    def _model_color(self, model_index: int, shade: float) -> str:
+        """根据模型索引和亮度系数返回颜色 (hex)。"""
+        dark, light = self._MODEL_COLORS[model_index % len(self._MODEL_COLORS)]
+        t = max(0.15, min(0.95, shade))
+        dr, dg, db = int(dark[1:3], 16), int(dark[3:5], 16), int(dark[5:7], 16)
+        lr, lg, lb = int(light[1:3], 16), int(light[3:5], 16), int(light[5:7], 16)
+        r = int(dr * t + lr * (1 - t))
+        g = int(dg * t + lg * (1 - t))
+        b = int(db * t + lb * (1 - t))
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    @staticmethod
+    def _face_shade(pts: list[tuple[float, float, float]]) -> float:
+        """根据面法线与光源夹角计算亮度 (0=暗, 1=亮)。"""
+        if len(pts) < 3:
+            return 0.6
+        from function.obj_renderer import compute_face_normal
+        nx, ny, nz = compute_face_normal(pts[0], pts[1], pts[2])
+        length = (nx * nx + ny * ny + nz * nz) ** 0.5
+        if length < 1e-9:
+            return 0.6
+        # 光源从右上方来
+        light = (0.5, 0.7, 0.5)
+        dot = (nx * light[0] + ny * light[1] + nz * light[2]) / length
+        return 0.35 + 0.65 * max(0.0, dot)
+
+    @staticmethod
+    def _flatten_pts(pts: tuple[tuple[float, float], ...]) -> tuple[float, ...]:
+        """将 ((x1,y1),(x2,y2),...) 展平为 (x1,y1,x2,y2,...)。"""
+        result: list[float] = []
+        for p in pts:
+            result.extend(p)
+        return tuple(result)
 
     def _choose_files(self) -> None:
         files = list(filedialog.askopenfilenames(title="选择源数据文件"))
