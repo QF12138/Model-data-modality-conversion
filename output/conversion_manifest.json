@@ -1,0 +1,212 @@
+{
+  "task": "model_format_conversion",
+  "created_at": "2026-07-11T15:29:15",
+  "status": "部分完成",
+  "target_platform": "三维建模软件",
+  "target_format": "OBJ",
+  "output_dir": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output",
+  "coordinate_rule": "保留源坐标",
+  "attribute_rule": "全部保留",
+  "source_count": 7,
+  "success_count": 6,
+  "failure_count": 1,
+  "warning_count": 0,
+  "artifacts": [
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\source\\01_封闭地质块体.obj",
+      "source_name": "01_封闭地质块体.obj",
+      "source_format": ".obj",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "成功",
+      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\01_封闭地质块体_converted_1.obj",
+      "message": "转换完成",
+      "vertex_count": 8,
+      "face_count": 6,
+      "line_count": 0,
+      "attribute_fields": [],
+      "bounds": {
+        "min": [
+          500000.0,
+          3400000.0,
+          100.0
+        ],
+        "max": [
+          500100.0,
+          3400080.0,
+          130.0
+        ]
+      },
+      "size_bytes": 317
+    },
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\source\\02_四面体岩体_ASCII.stl",
+      "source_name": "02_四面体岩体_ASCII.stl",
+      "source_format": ".stl",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "成功",
+      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\02_四面体岩体_ASCII_converted_1.obj",
+      "message": "转换完成",
+      "vertex_count": 4,
+      "face_count": 4,
+      "line_count": 0,
+      "attribute_fields": [],
+      "bounds": {
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          60.0,
+          50.0,
+          45.0
+        ]
+      },
+      "size_bytes": 156
+    },
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\source\\03_带属性地质表面_ASCII.ply",
+      "source_name": "03_带属性地质表面_ASCII.ply",
+      "source_format": ".ply",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "成功",
+      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\03_带属性地质表面_ASCII_converted_1.obj",
+      "message": "转换完成",
+      "vertex_count": 5,
+      "face_count": 4,
+      "line_count": 0,
+      "attribute_fields": [
+        "blue",
+        "green",
+        "lithology_code",
+        "red"
+      ],
+      "bounds": {
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          80.0,
+          60.0,
+          25.0
+        ]
+      },
+      "size_bytes": 172
+    },
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\source\\04_数值模拟表面网格_ASCII.vtk",
+      "source_name": "04_数值模拟表面网格_ASCII.vtk",
+      "source_format": ".vtk",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "成功",
+      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\04_数值模拟表面网格_ASCII_converted_1.obj",
+      "message": "转换完成",
+      "vertex_count": 8,
+      "face_count": 6,
+      "line_count": 0,
+      "attribute_fields": [],
+      "bounds": {
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          100.0,
+          80.0,
+          30.0
+        ]
+      },
+      "size_bytes": 241
+    },
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\source\\05_地质图斑.geojson",
+      "source_name": "05_地质图斑.geojson",
+      "source_format": ".geojson",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "成功",
+      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\05_地质图斑_converted_1.obj",
+      "message": "转换完成",
+      "vertex_count": 6,
+      "face_count": 2,
+      "line_count": 0,
+      "attribute_fields": [
+        "density",
+        "elastic_modulus_mpa",
+        "id",
+        "lithology",
+        "name",
+        "stratum"
+      ],
+      "bounds": {
+        "min": [
+          500000.0,
+          3400000.0,
+          100.0
+        ],
+        "max": [
+          500150.0,
+          3400060.0,
+          103.0
+        ]
+      },
+      "size_bytes": 223
+    },
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\source\\06_钻孔与监测点.csv",
+      "source_name": "06_钻孔与监测点.csv",
+      "source_format": ".csv",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "成功",
+      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\06_钻孔与监测点_converted_1.obj",
+      "message": "转换完成",
+      "vertex_count": 5,
+      "face_count": 0,
+      "line_count": 0,
+      "attribute_fields": [
+        "id",
+        "layer",
+        "lithology",
+        "name",
+        "rock_grade",
+        "water_level"
+      ],
+      "bounds": {
+        "min": [
+          500010.0,
+          3400010.0,
+          121.4
+        ],
+        "max": [
+          500140.0,
+          3400050.0,
+          128.5
+        ]
+      },
+      "size_bytes": 220
+    },
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\source\\07_错误示例_非法面索引.obj",
+      "source_name": "07_错误示例_非法面索引.obj",
+      "source_format": ".obj",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "失败",
+      "output": "",
+      "message": "面引用了不存在的顶点。"
+    }
+  ],
+  "warnings": [],
+  "errors": [
+    "07_错误示例_非法面索引.obj：面引用了不存在的顶点。"
+  ],
+  "quality_score": 86
+}

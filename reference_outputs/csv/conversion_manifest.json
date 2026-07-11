@@ -1,0 +1,46 @@
+{
+  "task": "model_format_conversion",
+  "created_at": "2026-07-11T07:23:26",
+  "status": "完成",
+  "target_platform": "GIS平台",
+  "target_format": "CSV",
+  "output_dir": "/mnt/data/format_conversion_examples/reference_outputs/csv",
+  "coordinate_rule": "平移到局部原点",
+  "attribute_rule": "全部保留",
+  "source_count": 1,
+  "success_count": 1,
+  "failure_count": 0,
+  "warning_count": 0,
+  "artifacts": [
+    {
+      "source": "/mnt/data/format_conversion_examples/input_examples/01_封闭地质块体.obj",
+      "source_name": "01_封闭地质块体.obj",
+      "source_format": ".obj",
+      "target_format": "CSV",
+      "target_platform": "GIS平台",
+      "status": "成功",
+      "output": "/mnt/data/format_conversion_examples/reference_outputs/csv/01_封闭地质块体_converted.csv",
+      "message": "转换完成",
+      "vertex_count": 8,
+      "face_count": 6,
+      "line_count": 0,
+      "attribute_fields": [],
+      "bounds": {
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          100.0,
+          80.0,
+          30.0
+        ]
+      },
+      "size_bytes": 156
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "quality_score": 100
+}

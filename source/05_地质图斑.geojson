@@ -1,0 +1,93 @@
+{
+  "type": "FeatureCollection",
+  "name": "geological_zones",
+  "crs_note": "示例工程坐标，仅用于格式转换测试",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "GEO-001",
+        "name": "砂岩区",
+        "stratum": "J2s",
+        "lithology": "中风化砂岩",
+        "density": 2450,
+        "elastic_modulus_mpa": 8200
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              500000.0,
+              3400000.0,
+              100.0
+            ],
+            [
+              500080.0,
+              3400000.0,
+              101.0
+            ],
+            [
+              500080.0,
+              3400060.0,
+              103.0
+            ],
+            [
+              500000.0,
+              3400060.0,
+              102.0
+            ],
+            [
+              500000.0,
+              3400000.0,
+              100.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "GEO-002",
+        "name": "泥岩区",
+        "stratum": "J2m",
+        "lithology": "强风化泥岩",
+        "density": 2180,
+        "elastic_modulus_mpa": 3200
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              500080.0,
+              3400000.0,
+              101.0
+            ],
+            [
+              500150.0,
+              3400000.0,
+              100.0
+            ],
+            [
+              500150.0,
+              3400060.0,
+              101.0
+            ],
+            [
+              500080.0,
+              3400060.0,
+              103.0
+            ],
+            [
+              500080.0,
+              3400000.0,
+              101.0
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

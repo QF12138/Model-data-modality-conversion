@@ -11,6 +11,14 @@ from tkinter import filedialog, font as tkfont
 from tkinter import ttk
 
 from function.model_quality_check import build_model_quality_report
+from function.model_format_conversion import (
+    ATTRIBUTE_RULES,
+    COORDINATE_RULES,
+    SUPPORTED_TARGET_FORMATS,
+    TARGET_PLATFORM_FORMATS,
+    convert_model_files,
+    infer_target_platform,
+)
 from function.obj_renderer import ObjModel, RenderState, load_models, transform_vertices, collect_face_depths, face_visible, project_ortho, parse_obj
 from function.obj_renderer import rotate_x as _rot_x, rotate_y as _rot_y
 
@@ -477,6 +485,11 @@ class GeoConversionApp(tk.Tk):
         )
         self.logs: list[str] = []
         self.quality_report: dict[str, object] | None = None
+        self.conversion_report: dict[str, object] | None = None
+        self.conversion_target_var = tk.StringVar(value="OBJ")
+        self.conversion_coordinate_var = tk.StringVar(value="保留源坐标")
+        self.conversion_attribute_var = tk.StringVar(value="全部保留")
+        self.conversion_output_var = tk.StringVar(value=str(Path(__file__).resolve().parent / "output"))
 
         # —— 三维模型预览状态 ——
         self._3d_models: list[ObjModel] = []
@@ -906,6 +919,10 @@ class GeoConversionApp(tk.Tk):
             self._render_model_quality_page()
             self._refresh_content_scrollregion()
             return
+        if self._is_format_conversion_module() and self.current_page == "工作台":
+            self._render_format_conversion_page()
+            self._refresh_content_scrollregion()
+            return
 
         renderers = {
             "工作台": self._render_dashboard_page,
@@ -1221,6 +1238,190 @@ class GeoConversionApp(tk.Tk):
         else:
             issue_tree.insert("", "end", values=("待检查", "全部", "-", "加载模型文件后执行质量校验。"))
         tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
+
+    def _render_format_conversion_page(self) -> None:
+        """模型格式转换与输出模块专用工作台。"""
+        root = tk.Frame(self.content_host, bg=self.BG)
+        root.grid(row=0, column=0, sticky="ew")
+        root.columnconfigure(0, weight=1)
+
+        report = self.conversion_report or {}
+        success_count = int(report.get("success_count", 0) or 0)
+        failure_count = int(report.get("failure_count", 0) or 0)
+        target_format = str(report.get("target_format", self.conversion_target_var.get()))
+        target_platform = str(report.get("target_platform", infer_target_platform(target_format)))
+
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for index in range(4):
+            summary.columnconfigure(index, weight=1)
+        summary_items = (
+            ("源数据", f"{len(self.selected_files)} 个", "OBJ/STL/PLY/VTK/GeoJSON/CSV", self.TEAL),
+            ("目标平台", target_platform, "按目标格式自动识别平台类型", self.BLUE),
+            ("转换成果", f"{success_count} 个" if self.run_completed else "待生成", f"失败 {failure_count} 个", self.GREEN if success_count else self.ORANGE),
+            ("输出格式", target_format, "GIS、三维、BIM、数值模拟", self.PURPLE),
+        )
+        for index, item in enumerate(summary_items):
+            self._metric_card(summary, *item).grid(
+                row=0,
+                column=index,
+                sticky="nsew",
+                padx=(0 if index == 0 else 4, 0 if index == 3 else 4),
+            )
+
+        work = tk.Frame(root, bg=self.BG)
+        work.grid(row=1, column=0, sticky="nsew")
+        work.columnconfigure(0, weight=30)
+        work.columnconfigure(1, weight=35)
+        work.columnconfigure(2, weight=35)
+
+        input_card = self._card(work)
+        input_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        input_card.columnconfigure(0, weight=1)
+        input_card.rowconfigure(3, weight=1)
+        self._card_header(input_card, "源模型与属性数据")
+        tk.Label(
+            input_card,
+            text="加载待转换的模型、表面网格、GeoJSON 或坐标表。专有格式会明确提示所需 SDK，不会生成伪成果。",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+            justify="left",
+            wraplength=350,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
+        input_actions = tk.Frame(input_card, bg=self.PANEL)
+        input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
+        ttk.Button(input_actions, text="添加文件", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
+
+        file_tree = ttk.Treeview(
+            input_card,
+            columns=("name", "type", "state"),
+            show="headings",
+            style="Dashboard.Treeview",
+            height=10,
+        )
+        for key, title, width in (("name", "文件", 220), ("type", "源格式", 80), ("state", "状态", 90)):
+            file_tree.heading(key, text=title)
+            file_tree.column(key, width=width, anchor="w")
+        file_tree.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        artifact_by_source = {
+            str(item.get("source", "")): item
+            for item in report.get("artifacts", [])
+            if isinstance(item, dict)
+        } if isinstance(report.get("artifacts"), list) else {}
+        if self.selected_files:
+            for file_path in self.selected_files:
+                item = artifact_by_source.get(file_path, {})
+                file_tree.insert(
+                    "",
+                    "end",
+                    values=(Path(file_path).name, Path(file_path).suffix.lower() or "unknown", item.get("status", "待转换")),
+                )
+        else:
+            file_tree.insert("", "end", values=("未加载源数据", "-", "待接入"))
+
+        config_card = self._card(work)
+        config_card.grid(row=0, column=1, sticky="nsew", padx=5)
+        config_card.columnconfigure(1, weight=1)
+        self._card_header(config_card, "转换与输出配置", columnspan=2)
+
+        config_rows = (
+            ("目标格式", self.conversion_target_var, SUPPORTED_TARGET_FORMATS),
+            ("坐标输出规则", self.conversion_coordinate_var, COORDINATE_RULES),
+            ("属性保留规则", self.conversion_attribute_var, ATTRIBUTE_RULES),
+        )
+        for row_index, (label, variable, values) in enumerate(config_rows, start=1):
+            tk.Label(config_card, text=label, bg=self.PANEL, fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=row_index, column=0, sticky="w", padx=(13, 8), pady=8
+            )
+            ttk.Combobox(config_card, textvariable=variable, values=values, state="readonly").grid(
+                row=row_index, column=1, sticky="ew", padx=(0, 13), pady=8
+            )
+
+        tk.Label(config_card, text="成果目录", bg=self.PANEL, fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+            row=4, column=0, sticky="w", padx=(13, 8), pady=8
+        )
+        output_line = tk.Frame(config_card, bg=self.PANEL)
+        output_line.grid(row=4, column=1, sticky="ew", padx=(0, 13), pady=8)
+        output_line.columnconfigure(0, weight=1)
+        ttk.Entry(output_line, textvariable=self.conversion_output_var).grid(row=0, column=0, sticky="ew")
+        ttk.Button(output_line, text="选择", style="Tool.TButton", command=self._choose_conversion_output_dir).grid(row=0, column=1, padx=(6, 0))
+
+        matrix = tk.Frame(config_card, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+        matrix.grid(row=5, column=0, columnspan=2, sticky="ew", padx=12, pady=(8, 10))
+        matrix.columnconfigure(1, weight=1)
+        tk.Label(matrix, text="平台", bg="#f8faf9", fg=self.MUTED, font=self.tiny_font).grid(row=0, column=0, sticky="w", padx=10, pady=(8, 4))
+        tk.Label(matrix, text="可直接输出格式", bg="#f8faf9", fg=self.MUTED, font=self.tiny_font).grid(row=0, column=1, sticky="w", padx=10, pady=(8, 4))
+        for row_index, (platform, formats) in enumerate(TARGET_PLATFORM_FORMATS.items(), start=1):
+            tk.Label(matrix, text=platform, bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=row_index, column=0, sticky="w", padx=10, pady=5
+            )
+            tk.Label(matrix, text=" / ".join(formats), bg="#f8faf9", fg=self.TEAL_DARK, font=self.small_font, anchor="w").grid(
+                row=row_index, column=1, sticky="w", padx=10, pady=5
+            )
+
+        ttk.Button(config_card, text="执行格式转换", style="Blue.TButton", command=self._run_format_conversion).grid(
+            row=6, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 12)
+        )
+
+        result_card = self._card(work)
+        result_card.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        result_card.columnconfigure(0, weight=1)
+        result_card.rowconfigure(2, weight=1)
+        self._card_header(result_card, "成果输出与转换状态")
+        result_note = "点击“执行格式转换”后生成成果文件与 conversion_manifest.json。"
+        if report:
+            result_note = (
+                f"任务状态：{report.get('status', '')}；成功 {success_count} 个，失败 {failure_count} 个。\n"
+                f"成果目录：{report.get('output_dir', '')}"
+            )
+        tk.Label(
+            result_card,
+            text=result_note,
+            bg="#f8faf9",
+            fg=self.TEXT,
+            font=self.small_font,
+            justify="left",
+            anchor="nw",
+            wraplength=390,
+            padx=11,
+            pady=9,
+        ).grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 9))
+
+        artifact_tree = ttk.Treeview(
+            result_card,
+            columns=("source", "target", "status", "message"),
+            show="headings",
+            style="Dashboard.Treeview",
+            height=10,
+        )
+        for key, title, width in (("source", "源文件", 150), ("target", "成果文件", 170), ("status", "状态", 65), ("message", "说明", 180)):
+            artifact_tree.heading(key, text=title)
+            artifact_tree.column(key, width=width, anchor="w")
+        artifact_tree.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        artifacts = report.get("artifacts", []) if isinstance(report.get("artifacts"), list) else []
+        if artifacts:
+            for item in artifacts:
+                target_name = Path(str(item.get("output", ""))).name if item.get("output") else "-"
+                artifact_tree.insert(
+                    "",
+                    "end",
+                    values=(item.get("source_name", ""), target_name, item.get("status", ""), item.get("message", "")),
+                )
+        else:
+            artifact_tree.insert("", "end", values=("-", "待生成", "待执行", "尚未执行转换"))
+
+        ttk.Button(result_card, text="导出任务报告", style="Purple.TButton", command=self._export_report).grid(
+            row=3, column=0, sticky="ew", padx=12, pady=(0, 12)
+        )
+
+    def _choose_conversion_output_dir(self) -> None:
+        directory = filedialog.askdirectory(title="选择成果输出目录")
+        if directory:
+            self.conversion_output_var.set(directory)
+            self.param_values["成果目录"] = directory
+            self.status_var.set(f"成果目录：{directory}")
 
     def _render_params_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
@@ -1640,7 +1841,10 @@ class GeoConversionApp(tk.Tk):
             "目标高程基准": "1985 国家高程基准",
             "单位体系": "m / kN / MPa",
             "转换精度": "工程级",
-            "目标格式": "GeoJSON / VTK / IFC",
+            "目标格式": "OBJ",
+            "坐标输出规则": "保留源坐标",
+            "属性保留规则": "全部保留",
+            "成果目录": str(Path(__file__).resolve().parent / "output"),
             "输出格式": "LAS / LAZ / PLY",
             "日志级别": "INFO",
             "失败重试次数": "3",
@@ -1652,6 +1856,8 @@ class GeoConversionApp(tk.Tk):
     def _quality_score(self) -> int:
         if self.quality_report:
             return int(self.quality_report.get("score", 0) or 0)
+        if self.conversion_report:
+            return int(self.conversion_report.get("quality_score", 0) or 0)
         if not self.run_completed:
             return 0
         seed = sum(ord(ch) for ch in self.active_module.name)
@@ -2089,6 +2295,7 @@ class GeoConversionApp(tk.Tk):
         self.selected_files.clear()
         self.run_completed = False
         self.quality_report = None
+        self.conversion_report = None
         self.run_status_var.set("待处理")
         self._append_log(f"已清空 {count} 个数据文件。")
         self.status_var.set("数据列表已清空")
@@ -2097,6 +2304,11 @@ class GeoConversionApp(tk.Tk):
 
     def _apply_params(self) -> None:
         self.param_values.update({name: var.get().strip() for name, var in self.param_vars.items()})
+        if self._is_format_conversion_module():
+            self.conversion_target_var.set(self.param_values.get("目标格式", self.conversion_target_var.get()))
+            self.conversion_coordinate_var.set(self.param_values.get("坐标输出规则", self.conversion_coordinate_var.get()))
+            self.conversion_attribute_var.set(self.param_values.get("属性保留规则", self.conversion_attribute_var.get()))
+            self.conversion_output_var.set(self.param_values.get("成果目录", self.conversion_output_var.get()))
         self._append_log(f"已应用 {len(self.param_values)} 项参数配置。")
         self.status_var.set("参数配置已应用")
         self.run_status_var.set("参数已配置")
@@ -2109,6 +2321,9 @@ class GeoConversionApp(tk.Tk):
     def _run_stub(self) -> None:
         if self._is_quality_module():
             self._run_model_quality_check()
+            return
+        if self._is_format_conversion_module():
+            self._run_format_conversion()
             return
         self.run_completed = True
         self.run_status_var.set("处理完成")
@@ -2124,6 +2339,61 @@ class GeoConversionApp(tk.Tk):
 
     def _is_quality_module(self) -> bool:
         return self.active_module.name == "模型质量校验模块"
+
+    def _is_format_conversion_module(self) -> bool:
+        return self.active_module.name == "模型格式转换与输出模块"
+
+    def _run_format_conversion(self) -> None:
+        self.param_values.update(
+            {
+                "目标格式": self.conversion_target_var.get(),
+                "坐标输出规则": self.conversion_coordinate_var.get(),
+                "属性保留规则": self.conversion_attribute_var.get(),
+                "成果目录": self.conversion_output_var.get(),
+            }
+        )
+        self._append_log(
+            f"开始执行格式转换：{self.conversion_target_var.get()} / {infer_target_platform(self.conversion_target_var.get())}。"
+        )
+        report = convert_model_files(
+            self.selected_files,
+            self.conversion_output_var.get() or (Path(__file__).resolve().parent / "output"),
+            self.conversion_target_var.get(),
+            coordinate_rule=self.conversion_coordinate_var.get(),
+            attribute_rule=self.conversion_attribute_var.get(),
+        )
+        self.conversion_report = report
+        self.run_completed = int(report.get("success_count", 0) or 0) > 0
+        self.run_status_var.set(str(report.get("status", "转换失败")))
+        self.status_var.set(
+            f"格式转换{report.get('status', '')}：成功 {report.get('success_count', 0)} 个，失败 {report.get('failure_count', 0)} 个"
+        )
+        self.task_payload_text = json.dumps(
+            {
+                "task": "model_format_conversion",
+                "project": self.project_var.get(),
+                "module": self.active_module.name,
+                "input_files": self.selected_files,
+                "parameters": self.param_values,
+                "conversion_report": report,
+                "mysql_tables": list(self.active_module.mysql_tables),
+                "backend_endpoint": BACKEND_ENDPOINTS["run_task"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        for item in report.get("artifacts", []):
+            if isinstance(item, dict):
+                self._append_log(
+                    f"{item.get('source_name', '')} → {Path(str(item.get('output', ''))).name if item.get('output') else '-'}："
+                    f"{item.get('status', '')}，{item.get('message', '')}"
+                )
+        for warning in report.get("warnings", []):
+            self._append_log(f"警告：{warning}")
+        for error in report.get("errors", []):
+            self._append_log(f"失败：{error}")
+        self._render_progress_strip()
+        self._render_current_page()
 
     def _run_model_quality_check(self) -> None:
         self._append_log("开始执行模型质量校验。")
@@ -2222,6 +2492,8 @@ class GeoConversionApp(tk.Tk):
     def _build_html_report(self, exported_at: datetime) -> str:
         if self._is_quality_module():
             return self._build_quality_html_report(exported_at)
+        if self._is_format_conversion_module():
+            return self._build_conversion_html_report(exported_at)
         return self._build_generic_html_report(exported_at)
 
     def _html_shell(self, title: str, subtitle: str, body: str) -> str:
@@ -2264,6 +2536,56 @@ li {{ margin: 6px 0; }}
 </body>
 </html>
 """
+
+    def _build_conversion_html_report(self, exported_at: datetime) -> str:
+        report = self.conversion_report or {
+            "status": "待执行",
+            "target_platform": infer_target_platform(self.conversion_target_var.get()),
+            "target_format": self.conversion_target_var.get(),
+            "output_dir": self.conversion_output_var.get(),
+            "success_count": 0,
+            "failure_count": 0,
+            "artifacts": [],
+            "warnings": [],
+            "errors": [],
+        }
+        artifacts = report.get("artifacts", []) if isinstance(report.get("artifacts"), list) else []
+        artifact_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('source_name', '')))}</td>"
+            f"<td>{escape(str(item.get('source_format', '')))}</td>"
+            f"<td>{escape(Path(str(item.get('output', ''))).name if item.get('output') else '-')}</td>"
+            f"<td>{escape(str(item.get('status', '')))}</td>"
+            f"<td>{escape(str(item.get('message', '')))}</td>"
+            "</tr>"
+            for item in artifacts
+            if isinstance(item, dict)
+        ) or "<tr><td colspan='5'>尚未生成转换成果</td></tr>"
+        warnings = "".join(f"<li>{escape(str(item))}</li>" for item in report.get("warnings", [])) or "<li>无</li>"
+        errors = "".join(f"<li>{escape(str(item))}</li>" for item in report.get("errors", [])) or "<li>无</li>"
+        body = f"""
+<div class="section">
+  <h2>任务摘要</h2>
+  <div class="grid">
+    <div class="metric"><b>任务状态</b>{escape(str(report.get('status', '')))}</div>
+    <div class="metric"><b>目标平台</b>{escape(str(report.get('target_platform', '')))}</div>
+    <div class="metric"><b>目标格式</b>{escape(str(report.get('target_format', '')))}</div>
+    <div class="metric"><b>成功 / 失败</b>{escape(str(report.get('success_count', 0)))} / {escape(str(report.get('failure_count', 0)))}</div>
+  </div>
+  <p class="note">输出目录：{escape(str(report.get('output_dir', '')))}</p>
+</div>
+<div class="section">
+  <h2>成果文件</h2>
+  <table><thead><tr><th>源文件</th><th>源格式</th><th>成果文件</th><th>状态</th><th>说明</th></tr></thead><tbody>{artifact_rows}</tbody></table>
+</div>
+<div class="section"><h2>警告</h2><ul>{warnings}</ul></div>
+<div class="section"><h2>错误</h2><ul>{errors}</ul></div>
+"""
+        return self._html_shell(
+            "模型格式转换与输出报告",
+            f"项目：{self.project_var.get()} · 导出时间：{exported_at.strftime('%Y-%m-%d %H:%M:%S')}",
+            body,
+        )
 
     def _build_quality_html_report(self, exported_at: datetime) -> str:
         if not self.quality_report:
@@ -2423,6 +2745,8 @@ li {{ margin: 6px 0; }}
         self.status_var.set(f"当前模块：{module.name}")
         self.run_status_var.set("待处理")
         self.run_completed = False
+        self.quality_report = None
+        self.conversion_report = None
         self.param_values = {}
         if not keep_page:
             self.current_page = "工作台"

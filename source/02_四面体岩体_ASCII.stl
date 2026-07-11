@@ -1,0 +1,30 @@
+solid rock_mass
+  facet normal 0.00000000 0.00000000 -1.00000000
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 30.000 50.000 0.000
+      vertex 60.000 0.000 0.000
+    endloop
+  endfacet
+  facet normal 0.00000000 -0.91381155 0.40613847
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 60.000 0.000 0.000
+      vertex 30.000 20.000 45.000
+    endloop
+  endfacet
+  facet normal 0.81110711 0.48666426 0.32444284
+    outer loop
+      vertex 60.000 0.000 0.000
+      vertex 30.000 50.000 0.000
+      vertex 30.000 20.000 45.000
+    endloop
+  endfacet
+  facet normal -0.81110711 0.48666426 0.32444284
+    outer loop
+      vertex 30.000 50.000 0.000
+      vertex 0.000 0.000 0.000
+      vertex 30.000 20.000 45.000
+    endloop
+  endfacet
+endsolid rock_mass

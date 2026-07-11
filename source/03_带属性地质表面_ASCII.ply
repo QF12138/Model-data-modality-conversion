@@ -1,0 +1,23 @@
+ply
+format ascii 1.0
+comment 地质表面示例，包含颜色和岩性编码
+element vertex 5
+property double x
+property double y
+property double z
+property uchar red
+property uchar green
+property uchar blue
+property int lithology_code
+element face 4
+property list uchar int vertex_indices
+end_header
+0 0 0 194 178 128 101
+80 0 0 194 178 128 101
+80 60 0 160 140 100 101
+0 60 0 160 140 100 101
+40 30 25 120 100 80 205
+3 0 1 4
+3 1 2 4
+3 2 3 4
+3 3 0 4
