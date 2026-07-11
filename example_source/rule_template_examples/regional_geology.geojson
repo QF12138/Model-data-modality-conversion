@@ -1,0 +1,40 @@
+{
+  "type": "FeatureCollection",
+  "name": "regional_geology_sample",
+  "crs": {"type": "name", "properties": {"name": "EPSG:4326"}},
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "要素编号": "ST-001",
+        "要素类型": "地层面",
+        "地层代号": "T3x",
+        "地层名称": "须家河组",
+        "岩性": "砂岩夹页岩",
+        "走向": 125,
+        "倾向": 215,
+        "倾角": 32
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[104.02, 30.68], [104.03, 30.68], [104.03, 30.69], [104.02, 30.69], [104.02, 30.68]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "要素编号": "F-001",
+        "要素类型": "断层",
+        "断层名称": "F1断层",
+        "断层性质": "逆断层",
+        "走向": 88,
+        "倾向": 178,
+        "倾角": 65
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[104.021, 30.681], [104.028, 30.688]]
+      }
+    }
+  ]
+}

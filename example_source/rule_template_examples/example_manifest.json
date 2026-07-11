@@ -1,0 +1,58 @@
+[
+  {
+    "file": "tunnel_boreholes.csv",
+    "project_type": "隧道工程",
+    "data_source": "钻孔数据",
+    "description": "隧道钻孔、围岩和地下水示例，含缺失值和异常值。",
+    "kind": "data"
+  },
+  {
+    "file": "tunnel_forecast.csv",
+    "project_type": "隧道工程",
+    "data_source": "物探数据",
+    "description": "TSP、GPR、TEM 超前预报示例。",
+    "kind": "data"
+  },
+  {
+    "file": "slope_sections.csv",
+    "project_type": "边坡工程",
+    "data_source": "地质剖面",
+    "description": "边坡几何、岩土参数和稳定性示例。",
+    "kind": "data"
+  },
+  {
+    "file": "urban_boreholes.csv",
+    "project_type": "城市地质调查",
+    "data_source": "钻孔数据",
+    "description": "城市第四系钻孔分层示例。",
+    "kind": "data"
+  },
+  {
+    "file": "point_cloud_sample.csv",
+    "project_type": "通用工程",
+    "data_source": "点云数据",
+    "description": "点云字段与 LAS 分类编码示例。",
+    "kind": "data"
+  },
+  {
+    "file": "mesh_nodes.csv",
+    "project_type": "通用工程",
+    "data_source": "网格模型",
+    "description": "数值模拟节点、单元和材料参数示例。",
+    "kind": "data"
+  },
+  {
+    "file": "regional_geology.geojson",
+    "project_type": "区域地质调查",
+    "data_source": "地质图",
+    "description": "地层面和断层线 GeoJSON 示例。",
+    "kind": "data"
+  },
+  {
+    "file": "custom_template_example.json",
+    "project_type": "环境地质评价",
+    "data_source": "属性表",
+    "description": "可通过 import_template 导入的自定义模板示例。",
+    "kind": "template"
+  }
+]

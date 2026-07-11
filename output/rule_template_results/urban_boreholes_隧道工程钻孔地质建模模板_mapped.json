@@ -1,0 +1,132 @@
+{
+  "template": "隧道工程钻孔地质建模模板",
+  "version": "2.0.0",
+  "rows": [
+    {
+      "borehole_id": "CZK001",
+      "x": 504210.5,
+      "y": 3398210.2,
+      "z_surface": 512.6,
+      "total_depth": null,
+      "layer_top": 0.0,
+      "layer_bottom": 3.2,
+      "lithology": "杂填土",
+      "rock_class": null,
+      "rqd": null,
+      "groundwater": null,
+      "weathering_grade": null,
+      "rock_class_std": "",
+      "weathering_std": ""
+    },
+    {
+      "borehole_id": "CZK001",
+      "x": 504210.5,
+      "y": 3398210.2,
+      "z_surface": 512.6,
+      "total_depth": null,
+      "layer_top": 3.2,
+      "layer_bottom": 15.8,
+      "lithology": "粉质黏土",
+      "rock_class": null,
+      "rqd": null,
+      "groundwater": null,
+      "weathering_grade": null,
+      "rock_class_std": "",
+      "weathering_std": ""
+    },
+    {
+      "borehole_id": "CZK001",
+      "x": 504210.5,
+      "y": 3398210.2,
+      "z_surface": 512.6,
+      "total_depth": null,
+      "layer_top": 15.8,
+      "layer_bottom": 32.0,
+      "lithology": "泥岩",
+      "rock_class": null,
+      "rqd": null,
+      "groundwater": null,
+      "weathering_grade": null,
+      "rock_class_std": "",
+      "weathering_std": ""
+    },
+    {
+      "borehole_id": "CZK002",
+      "x": 504355.2,
+      "y": 3398348.9,
+      "z_surface": 509.3,
+      "total_depth": null,
+      "layer_top": 0.0,
+      "layer_bottom": 5.0,
+      "lithology": "素填土",
+      "rock_class": null,
+      "rqd": null,
+      "groundwater": null,
+      "weathering_grade": null,
+      "rock_class_std": "",
+      "weathering_std": ""
+    }
+  ],
+  "fields_mapped": [
+    "borehole_id",
+    "x",
+    "y",
+    "z_surface",
+    "total_depth",
+    "layer_top",
+    "layer_bottom",
+    "lithology",
+    "rock_class",
+    "rqd",
+    "groundwater",
+    "weathering_grade"
+  ],
+  "errors": [
+    "第 1 行缺少必填字段“孔深”。",
+    "第 2 行缺少必填字段“孔深”。",
+    "第 3 行缺少必填字段“孔深”。",
+    "第 4 行缺少必填字段“孔深”。",
+    "必填字段 total_depth 有 4 条缺失记录。"
+  ],
+  "warnings": [
+    "字段 groundwater 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 rock_class 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 rock_class_std 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 rqd 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 weathering_grade 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 weathering_std 缺失率 100.0% 超过阈值 8.0%。"
+  ],
+  "quality": {
+    "row_count": 4,
+    "errors": [
+      "必填字段 total_depth 有 4 条缺失记录。"
+    ],
+    "warnings": [
+      "字段 groundwater 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 rock_class 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 rock_class_std 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 rqd 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 weathering_grade 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 weathering_std 缺失率 100.0% 超过阈值 8.0%。"
+    ],
+    "missing_ratio": {
+      "borehole_id": 0.0,
+      "groundwater": 1.0,
+      "layer_bottom": 0.0,
+      "layer_top": 0.0,
+      "lithology": 0.0,
+      "rock_class": 1.0,
+      "rock_class_std": 1.0,
+      "rqd": 1.0,
+      "total_depth": 1.0,
+      "weathering_grade": 1.0,
+      "weathering_std": 1.0,
+      "x": 0.0,
+      "y": 0.0,
+      "z_surface": 0.0
+    },
+    "duplicate_count": 0,
+    "range_violation_count": 0,
+    "allowed_value_violation_count": 0
+  }
+}

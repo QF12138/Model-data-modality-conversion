@@ -11,6 +11,21 @@ from tkinter import filedialog, font as tkfont
 from tkinter import ttk
 
 from function.data_preprocessing import build_preprocessing_report
+from function.batch_conversion import (
+    BatchJob, FileEntry, build_batch_report, create_batch_from_paths,
+    format_summary, get_manager, size_fmt, WORKFLOW_STEPS,
+)
+from function.rule_template_library import (
+    DATA_SOURCES,
+    PROJECT_TYPES,
+    apply_template_to_file,
+    build_template_report,
+    export_template_library,
+    get_example_files,
+    get_template,
+    get_template_names,
+    list_templates,
+)
 from function.semantic_encoding import ALL_DICTIONARIES, LIBRARY_METADATA, build_semantic_report, semantic_library_stats
 from function.model_quality_check import build_model_quality_report
 from function.model_format_conversion import (
@@ -486,6 +501,7 @@ class GeoConversionApp(tk.Tk):
             "- 质量报告、模型版本、成果归档\n"
         )
         self.logs: list[str] = []
+        self.selected_template_name = ""
         self.quality_report: dict[str, object] | None = None
         self.conversion_report: dict[str, object] | None = None
         self.conversion_target_var = tk.StringVar(value="OBJ")
@@ -921,7 +937,7 @@ class GeoConversionApp(tk.Tk):
         # 数据预处理 & 地质语义编码模块隐藏"预览检查"页签
         preview_btn = self.page_buttons.get("预览检查")
         if preview_btn:
-            if self._is_preprocessing_module() or self._is_semantic_module():
+            if self._is_preprocessing_module() or self._is_semantic_module() or self._is_template_module() or self._is_batch_module():
                 preview_btn.pack_forget()
             elif not preview_btn.winfo_ismapped():
                 preview_btn.pack(side="left", before=self.page_buttons["任务与追溯"])
@@ -952,6 +968,24 @@ class GeoConversionApp(tk.Tk):
         if self._is_semantic_module() and self.current_page == "预览检查":
             self.current_page = "工作台"
             self._render_semantic_page()
+            self._refresh_content_scrollregion()
+            return
+        if self._is_template_module() and self.current_page == "工作台":
+            self._render_template_page()
+            self._refresh_content_scrollregion()
+            return
+        if self._is_template_module() and self.current_page == "预览检查":
+            self.current_page = "工作台"
+            self._render_template_page()
+            self._refresh_content_scrollregion()
+            return
+        if self._is_batch_module() and self.current_page == "工作台":
+            self._render_batch_page()
+            self._refresh_content_scrollregion()
+            return
+        if self._is_batch_module() and self.current_page == "预览检查":
+            self.current_page = "工作台"
+            self._render_batch_page()
             self._refresh_content_scrollregion()
             return
         if self._is_quality_module() and self.current_page == "工作台":
@@ -1339,6 +1373,7 @@ class GeoConversionApp(tk.Tk):
         input_actions = tk.Frame(input_card, bg=self.PANEL)
         input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
         ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(input_actions, text="加载示例", style="Blue.TButton", command=self._load_template_sample_data).pack(side="left", padx=(7, 0))
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
@@ -1591,6 +1626,379 @@ class GeoConversionApp(tk.Tk):
             unmatched_tree.insert("", "end", values=(msg, "-", "-"))
 
         tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
+
+    def _render_template_page(self) -> None:
+        """转换规则模板库模块专用工作台。"""
+        root = tk.Frame(self.content_host, bg=self.BG)
+        root.grid(row=0, column=0, sticky="ew")
+        root.columnconfigure(0, weight=1)
+
+        report = self.quality_report or {}
+        matching = report.get("matching_templates", []) if isinstance(report.get("matching_templates"), list) else []
+        all_tmpl = report.get("all_templates", []) if isinstance(report.get("all_templates"), list) else []
+        total = report.get("summary", {}).get("total_templates", len(all_tmpl))
+
+        # 顶部指标
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for idx in range(4):
+            summary.columnconfigure(idx, weight=1)
+        summary_items = (
+            ("模板总数", f"{total} 个", "内置预置 + 用户保存", self.TEAL),
+            ("匹配推荐", f"{len(matching)} 个" if self.run_completed else "待分析", "按项目类型与数据来源筛选", self.BLUE),
+            ("规则类别", "5 类", "字段映射 · 坐标 · 属性 · 输出 · 质检", self.PURPLE),
+            ("适用场景", f"{len(PROJECT_TYPES)} 类工程", "隧道·边坡·城市地质·矿山·水利…", self.GREEN),
+        )
+        for idx, item in enumerate(summary_items):
+            self._metric_card(summary, *item).grid(
+                row=0, column=idx, sticky="nsew",
+                padx=(0 if idx == 0 else 4, 0 if idx == 3 else 4),
+            )
+
+        work = tk.Frame(root, bg=self.BG)
+        work.grid(row=1, column=0, sticky="nsew")
+        work.columnconfigure(0, weight=26)
+        work.columnconfigure(1, weight=42)
+        work.columnconfigure(2, weight=32)
+
+        # 左：数据与筛选
+        filter_card = self._card(work)
+        filter_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        filter_card.columnconfigure(0, weight=1)
+        filter_card.rowconfigure(4, weight=1)
+        self._card_header(filter_card, "项目筛选与数据文件")
+        tk.Label(
+            filter_card,
+            text="选择项目类型和数据来源筛选条件，添加数据文件以获得精准的模板匹配推荐。",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font,
+            justify="left", wraplength=310,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
+
+        # 筛选参数
+        filter_form = tk.Frame(filter_card, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+        filter_form.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
+        filter_form.columnconfigure(1, weight=1)
+        for ri, (label, values, default) in enumerate((
+            ("项目类型", ("全部",) + PROJECT_TYPES, "全部"),
+            ("数据来源", ("全部",) + DATA_SOURCES, "全部"),
+        )):
+            tk.Label(filter_form, text=label, bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=ri, column=0, sticky="w", padx=(10, 8), pady=6)
+            var = tk.StringVar(value=default)
+            combo = ttk.Combobox(filter_form, textvariable=var, values=list(values), state="readonly", width=18)
+            combo.grid(row=ri, column=1, sticky="ew", padx=(0, 10), pady=6)
+            self.param_vars[{"项目类型": "项目类型", "数据来源": "数据来源说明"}.get(label, label)] = var
+
+        input_actions = tk.Frame(filter_card, bg=self.PANEL)
+        input_actions.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 9))
+        ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
+
+        file_tree = ttk.Treeview(
+            filter_card, columns=("name", "type"), show="headings",
+            style="Dashboard.Treeview", height=6,
+        )
+        for key, title, width in (("name", "文件", 170), ("type", "类型", 70)):
+            file_tree.heading(key, text=title)
+            file_tree.column(key, width=width, anchor="w")
+        file_tree.grid(row=4, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        if self.selected_files:
+            for fp in self.selected_files:
+                file_tree.insert("", "end", values=(Path(fp).name, Path(fp).suffix.lower() or "unknown"))
+        else:
+            file_tree.insert("", "end", values=("未加载数据", "-"))
+
+        # 中：模板列表
+        tmpl_card = self._card(work)
+        tmpl_card.grid(row=0, column=1, sticky="nsew", padx=5)
+        tmpl_card.columnconfigure(0, weight=1)
+        tmpl_card.rowconfigure(3, weight=1)
+        self._card_header(tmpl_card, "规则模板库")
+        tk.Label(
+            tmpl_card,
+            text=f"共 {total} 个模板，" + (f"匹配 {len(matching)} 个" if self.run_completed else "请点击「分析匹配」获取推荐"),
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font, anchor="w",
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 8))
+
+        # 模板表格
+        tmpl_tree = ttk.Treeview(
+            tmpl_card, columns=("name", "project", "datasrc", "rules", "score"),
+            show="headings", style="Dashboard.Treeview", height=10,
+        )
+        for key, title, width in (("name", "模板名称", 200), ("project", "项目类型", 100),
+                                    ("datasrc", "数据来源", 90), ("rules", "规则数", 60), ("score", "匹配度", 65)):
+            tmpl_tree.heading(key, text=title)
+            tmpl_tree.column(key, width=width, anchor="w")
+        tmpl_tree.grid(row=2, column=0, sticky="nsew", padx=12)
+
+        source_data = matching if self.run_completed and matching else all_tmpl
+        template_names_by_item: dict[str, str] = {}
+        selected_item = ""
+        if source_data:
+            for tmpl in source_data:
+                name = tmpl.get("name", "")
+                score = tmpl.get("score", "")
+                score_str = f"{'★' * min(5, max(1, score // 20 + 1))} {score}" if isinstance(score, int) and score > 0 else "-"
+                item_id = tmpl_tree.insert("", "end", values=(
+                    name, tmpl.get("project_type", ""), tmpl.get("data_source", ""),
+                    tmpl.get("rule_count", "-"), score_str,
+                ))
+                template_names_by_item[item_id] = name
+                if name == self.selected_template_name:
+                    selected_item = item_id
+        else:
+            tmpl_tree.insert("", "end", values=("待分析", "-", "-", "-", "-"))
+
+        if selected_item:
+            tmpl_tree.selection_set(selected_item)
+            tmpl_tree.focus(selected_item)
+            tmpl_tree.see(selected_item)
+
+        action_row = tk.Frame(tmpl_card, bg=self.PANEL)
+        action_row.grid(row=3, column=0, sticky="ew", padx=12, pady=(10, 12))
+        ttk.Button(action_row, text="分析匹配", style="Blue.TButton", command=self._run_template).pack(side="left")
+        ttk.Button(action_row, text="应用所选模板", style="Primary.TButton", command=self._apply_selected_template).pack(side="left", padx=(7, 0))
+        ttk.Button(action_row, text="导出模板库", style="Tool.TButton", command=self._export_template_library_files).pack(side="left", padx=(7, 0))
+
+        # 右：模板详情
+        detail_card = self._card(work)
+        detail_card.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        detail_card.columnconfigure(0, weight=1)
+        detail_card.rowconfigure(2, weight=1)
+        self._card_header(detail_card, "模板详情与规则类目")
+        tk.Label(
+            detail_card,
+            text="选择一个模板查看其包含的字段映射、坐标转换、属性映射、输出规则和质量检查规则。",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font,
+            justify="left", wraplength=370,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
+
+        detail_list = tk.Frame(detail_card, bg=self.PANEL)
+        detail_list.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        # 让详情列表的唯一一列占满整个右侧卡片宽度，避免右侧大片留白
+        detail_list.columnconfigure(0, weight=1)
+
+        best_name = (self.selected_template_name or
+                     (matching[0].get("name", "") if matching else
+                      all_tmpl[0].get("name", "") if all_tmpl else ""))
+        if best_name:
+            t = get_template(best_name)
+            if t:
+                info_items = (
+                    ("模板名称", t.name, self.TEAL),
+                    ("版本", t.version, self.BLUE),
+                    ("项目类型", t.project_type, self.PURPLE),
+                    ("数据来源", t.data_source, self.ORANGE),
+                    ("标签", " · ".join(t.tags) if t.tags else "无", self.GREEN),
+                )
+                for ri, (label, value, accent) in enumerate(info_items):
+                    item = tk.Frame(detail_list, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+                    item.grid(row=ri, column=0, sticky="ew", pady=(0, 4))
+                    item.columnconfigure(1, weight=1)
+                    tk.Frame(item, bg=accent, width=3).grid(row=0, column=0, rowspan=1, sticky="ns")
+                    tk.Label(item, text=label, bg="#f8faf9", fg=self.MUTED, font=self.tiny_font, anchor="w").grid(
+                        row=0, column=1, sticky="ew", padx=(9, 8), pady=(6, 0))
+                    tk.Label(item, text=str(value)[:60], bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                        row=1, column=1, sticky="ew", padx=(9, 8), pady=(1, 6))
+
+                # 规则统计
+                rules = [
+                    ("字段映射", len(t.field_mappings), self.TEAL),
+                    ("坐标规则", 1 if t.coordinate_rule else 0, self.BLUE),
+                    ("属性映射", len(t.attribute_mappings), self.ORANGE),
+                    ("输出规则", 1 if t.output_rule else 0, self.PURPLE),
+                    ("质量检查", 1 if t.quality_check_rule else 0, self.GREEN),
+                ]
+                rule_bar = tk.Frame(detail_list, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+                rule_bar.grid(row=len(info_items), column=0, sticky="ew", pady=(4, 0))
+                rule_bar.columnconfigure(0, weight=1)
+                tk.Label(rule_bar, text="规则覆盖", bg="#f8faf9", fg=self.MUTED, font=self.tiny_font, anchor="w").grid(
+                    row=0, column=0, sticky="w", padx=10, pady=(8, 4))
+                for ri, (rname, rcount, accent) in enumerate(rules):
+                    ritem = tk.Frame(rule_bar, bg="#f8faf9")
+                    ritem.grid(row=ri + 1, column=0, sticky="ew", padx=10, pady=(2, 2 if ri < 4 else 8))
+                    tk.Frame(ritem, bg=accent if rcount else "#d8e2dd", width=8, height=8).pack(side="left", padx=(0, 8))
+                    tk.Label(ritem, text=f"{rname}", bg="#f8faf9", fg=self.TEXT if rcount else self.MUTED, font=(self.font_family, 8, "bold")).pack(side="left")
+                    tk.Label(ritem, text=f"{rcount} 条" if rcount else "无", bg="#f8faf9", fg=accent if rcount else self.MUTED, font=self.tiny_font).pack(side="right")
+        else:
+            tk.Label(detail_list, text="暂无模板", bg=self.PANEL, fg=self.MUTED, font=self.small_font).pack()
+
+        def _on_template_selected(_event: tk.Event) -> None:
+            selection = tmpl_tree.selection()
+            if not selection:
+                return
+            selected_name = template_names_by_item.get(selection[0], "")
+            if selected_name and selected_name != self.selected_template_name:
+                self.selected_template_name = selected_name
+                self.status_var.set(f"已选择规则模板：{selected_name}")
+                self._render_current_page()
+
+        tmpl_tree.bind("<<TreeviewSelect>>", _on_template_selected)
+
+        tk.Frame(root, bg=self.BG, height=18).grid(row=2, column=0, sticky="ew")
+
+    def _render_batch_page(self) -> None:
+        """自动化批量转换模块专用工作台。"""
+        root = tk.Frame(self.content_host, bg=self.BG)
+        root.grid(row=0, column=0, sticky="ew")
+        root.columnconfigure(0, weight=1)
+
+        mgr = get_manager()
+        stats = mgr.stats
+        jobs = mgr.list_jobs()
+
+        # 顶部指标
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for idx in range(4):
+            summary.columnconfigure(idx, weight=1)
+        summary_items = (
+            ("待处理文件", f"{len(self.selected_files)} 个", "已加载待批量转换的数据", self.TEAL),
+            ("作业总数", f"{stats['total']} 个", f"排队 {stats['queued']} · 已完成 {stats['completed']}", self.BLUE),
+            ("成功率", f"{stats['completed']}/{max(stats['total'], 1)}",
+             "批量任务完成统计", self.GREEN if stats['failed'] == 0 else self.AMBER),
+            ("队列状态", f"{mgr.queue_length} 个待执行", "FIFO 先进先出队列", self.PURPLE),
+        )
+        for idx, item in enumerate(summary_items):
+            self._metric_card(summary, *item).grid(
+                row=0, column=idx, sticky="nsew",
+                padx=(0 if idx == 0 else 4, 0 if idx == 3 else 4),
+            )
+
+        work = tk.Frame(root, bg=self.BG)
+        work.grid(row=1, column=0, sticky="nsew")
+        work.columnconfigure(0, weight=28)
+        work.columnconfigure(1, weight=40)
+        work.columnconfigure(2, weight=32)
+
+        # 左：文件导入 + 流程编排
+        left_card = self._card(work)
+        left_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        left_card.columnconfigure(0, weight=1)
+        left_card.rowconfigure(3, weight=1)
+        self._card_header(left_card, "数据导入与流程")
+        tk.Label(
+            left_card,
+            text="选择多批次、多格式源文件，系统将按流程编排自动执行扫描、转换、质检与归档。",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font,
+            justify="left", wraplength=330,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 9))
+
+        btn_row = tk.Frame(left_card, bg=self.PANEL)
+        btn_row.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 8))
+        ttk.Button(btn_row, text="添加文件", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(btn_row, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=7)
+
+        # 流程编排步骤
+        flow_label = tk.Frame(left_card, bg=self.PANEL)
+        flow_label.grid(row=3, column=0, sticky="ew", padx=12)
+        tk.Label(flow_label, text="流程编排", bg=self.PANEL, fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").pack(anchor="w")
+        for si, step_name in enumerate(WORKFLOW_STEPS):
+            step_frame = tk.Frame(left_card, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1)
+            step_frame.grid(row=4 + si, column=0, sticky="ew", padx=12, pady=(0, 4))
+            step_frame.columnconfigure(1, weight=1)
+            done = self.run_completed
+            color = self.GREEN if done else self.TEAL if si == 0 else "#c8d5d1"
+            tk.Frame(step_frame, bg=color, width=4).grid(row=0, column=0, rowspan=1, sticky="ns")
+            badge_text = "✓" if done else str(si + 1)
+            badge = tk.Label(step_frame, text=badge_text, bg=color, fg="#ffffff",
+                            font=(self.font_family, 7, "bold"), width=2, padx=3, pady=3)
+            badge.grid(row=0, column=1, sticky="w", padx=(8, 6), pady=8)
+            tk.Label(step_frame, text=step_name, bg="#f7faf9", fg=self.TEXT if done or si == 0 else self.MUTED,
+                    font=(self.font_family, 9, "bold" if si == 0 else "normal"), anchor="w").grid(
+                row=0, column=2, sticky="w", pady=8)
+            tk.Label(step_frame, text="完成" if done else "待执行", bg="#f7faf9",
+                    fg=self.GREEN if done else self.MUTED, font=self.tiny_font).grid(
+                row=0, column=3, sticky="e", padx=(0, 10), pady=8)
+
+        # 中：作业队列
+        mid_card = self._card(work)
+        mid_card.grid(row=0, column=1, sticky="nsew", padx=5)
+        mid_card.columnconfigure(0, weight=1)
+        mid_card.rowconfigure(3, weight=1)
+        self._card_header(mid_card, "任务队列与执行状态")
+        tk.Label(
+            mid_card,
+            text=f"共 {len(jobs)} 个作业 · 队列中 {mgr.queue_length} 个 · FIFO 先进先出",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font, anchor="w",
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 8))
+
+        job_tree = ttk.Treeview(
+            mid_card, columns=("id", "name", "status", "progress", "result"),
+            show="headings", style="Dashboard.Treeview", height=7,
+        )
+        for key, title, width in (("id", "作业ID", 140), ("name", "名称", 150),
+                                    ("status", "状态", 80), ("progress", "进度", 90), ("result", "成功/失败", 90)):
+            job_tree.heading(key, text=title)
+            job_tree.column(key, width=width, anchor="w")
+        job_tree.grid(row=2, column=0, sticky="nsew", padx=12)
+
+        if jobs:
+            for j in jobs[:10]:
+                job_tree.insert("", "end", values=(
+                    j.job_id, j.name, j.status,
+                    f"{j.success + j.failed}/{j.total} ({j.progress_pct:.0%})",
+                    f"{j.success} / {j.failed}",
+                ))
+        else:
+            job_tree.insert("", "end", values=("无作业", "-", "待创建", "-", "-"))
+
+        # 日志摘要
+        log_frame = tk.Frame(mid_card, bg=self.PANEL)
+        log_frame.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        log_frame.columnconfigure(0, weight=1)
+        tk.Label(log_frame, text="运行日志", bg=self.PANEL, fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").pack(anchor="w", pady=(0, 4))
+        log_text = tk.Text(log_frame, relief="flat", bd=0, bg=self.SOFT, fg=self.TEXT,
+                          font=self.tiny_font, wrap="word", height=7)
+        log_text.pack(fill="both", expand=True)
+        if self.logs:
+            log_text.insert("1.0", "\n".join(self.logs[-30:]))
+        else:
+            log_text.insert("1.0", "等待执行批量转换任务……")
+        log_text.configure(state="disabled")
+
+        ttk.Button(mid_card, text="执行批量转换", style="Blue.TButton", command=self._run_batch).grid(
+            row=4, column=0, sticky="ew", padx=12, pady=(0, 12))
+
+        # 右：参数配置
+        right_card = self._card(work)
+        right_card.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        right_card.columnconfigure(0, weight=1)
+        self._card_header(right_card, "批量参数配置")
+        param_form = tk.Frame(right_card, bg=self.PANEL)
+        param_form.grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 12))
+        param_form.columnconfigure(1, weight=1)
+
+        batch_params = (
+            ("批次名称", "手动批次"),
+            ("输出格式", "OBJ"),
+            ("失败重试次数", "3"),
+            ("重试间隔(秒)", "2.0"),
+            ("并发数量", "4"),
+            ("日志级别", "INFO"),
+        )
+        for ri, (label, default) in enumerate(batch_params):
+            tk.Label(param_form, text=label, bg=self.PANEL, fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=ri, column=0, sticky="w", padx=(0, 8), pady=6)
+            var = tk.StringVar(value=self.param_values.get(label, default))
+            self.param_vars[label] = var
+            ttk.Entry(param_form, textvariable=var, width=18).grid(row=ri, column=1, sticky="ew", pady=6)
+
+        # 文件格式分布
+        if self.selected_files:
+            dist = format_summary([FileEntry(path=fp) for fp in self.selected_files])
+            dist_frame = tk.Frame(right_card, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+            dist_frame.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 12))
+            dist_frame.columnconfigure(1, weight=1)
+            tk.Label(dist_frame, text="文件分布", bg="#f8faf9", fg=self.MUTED, font=self.tiny_font, anchor="w").grid(
+                row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(8, 4))
+            for ri, (cat, info) in enumerate(sorted(dist.items()), start=1):
+                tk.Label(dist_frame, text=cat, bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 8, "bold"), anchor="w").grid(
+                    row=ri, column=0, sticky="w", padx=10, pady=2)
+                tk.Label(dist_frame, text=f"{info['count']} 个 · {size_fmt(info['size_bytes'])}",
+                         bg="#f8faf9", fg=self.MUTED, font=self.tiny_font, anchor="w").grid(
+                    row=ri, column=1, sticky="w", padx=10, pady=2)
+        tk.Frame(root, bg=self.BG, height=18).grid(row=2, column=0, sticky="ew")
 
     def _render_model_quality_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
@@ -2956,6 +3364,95 @@ class GeoConversionApp(tk.Tk):
         self._render_progress_strip()
         self._render_current_page()
 
+    def _load_template_sample_data(self) -> None:
+        self._apply_params()
+        project_type = self.param_values.get("项目类型", "全部")
+        data_source = self.param_values.get("数据来源说明", "全部")
+        source_dir = Path(__file__).resolve().parent / "source"
+        sample_files = get_example_files(source_dir, project_type, data_source)
+        self.selected_files = sample_files
+        self.quality_report = None
+        self.run_completed = False
+        self.run_status_var.set("示例数据已加载")
+        self.status_var.set(f"已加载 {len(sample_files)} 个规则模板示例文件")
+        if sample_files:
+            self._append_log(
+                f"已从 source/rule_template_examples 加载示例：项目={project_type}，数据源={data_source}。"
+            )
+        else:
+            self._append_log("未找到匹配的规则模板示例文件，请检查 source/rule_template_examples 目录。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _export_template_library_files(self) -> None:
+        default_dir = Path(__file__).resolve().parent / "output" / "rule_templates"
+        default_dir.parent.mkdir(parents=True, exist_ok=True)
+        output_dir = filedialog.askdirectory(title="选择规则模板库导出目录", initialdir=str(default_dir.parent))
+        if not output_dir:
+            self.status_var.set("已取消模板库导出")
+            return
+        try:
+            exported = export_template_library(output_dir)
+        except Exception as exc:
+            self.status_var.set(f"模板库导出失败：{exc}")
+            self._append_log(f"模板库导出失败：{exc}")
+            return
+        self.status_var.set(f"已导出 {len(exported) - 1} 个规则模板")
+        self._append_log(f"规则模板库已导出至：{Path(output_dir).resolve()}")
+
+    def _apply_selected_template(self) -> None:
+        report = self.quality_report or {}
+        matching = report.get("matching_templates", []) if isinstance(report.get("matching_templates"), list) else []
+        template_name = self.selected_template_name or (matching[0].get("name", "") if matching else "")
+        if not template_name:
+            self.status_var.set("请先分析匹配并选择一个规则模板")
+            self._append_log("未选择模板，无法执行规则映射。")
+            return
+        if not self.selected_files:
+            self.status_var.set("请先添加数据或加载示例数据")
+            return
+
+        output_dir = Path(__file__).resolve().parent / "output" / "rule_template_results"
+        success = 0
+        skipped = 0
+        total_errors = 0
+        total_warnings = 0
+        output_files: list[str] = []
+        for file_path in self.selected_files:
+            suffix = Path(file_path).suffix.lower()
+            if suffix not in {".csv", ".json", ".geojson"}:
+                skipped += 1
+                self._append_log(f"跳过暂不支持直接映射的示例格式：{Path(file_path).name}")
+                continue
+            try:
+                result = apply_template_to_file(template_name, file_path, output_dir)
+            except Exception as exc:
+                total_errors += 1
+                self._append_log(f"应用模板失败：{Path(file_path).name} —— {exc}")
+                continue
+            success += 1
+            total_errors += len(result.get("errors", []))
+            total_warnings += len(result.get("warnings", []))
+            if result.get("output_file"):
+                output_files.append(str(result["output_file"]))
+                self._append_log(f"已输出规则映射结果：{result['output_file']}")
+
+        self.conversion_report = {
+            "template": template_name,
+            "success_files": success,
+            "skipped_files": skipped,
+            "errors": total_errors,
+            "warnings": total_warnings,
+            "output_files": output_files,
+        }
+        self.run_completed = success > 0
+        self.run_status_var.set("模板应用完成" if success else "模板应用失败")
+        self.status_var.set(
+            f"模板“{template_name}”应用完成：成功 {success}，跳过 {skipped}，错误 {total_errors}，警告 {total_warnings}"
+        )
+        self._render_progress_strip()
+        self._render_current_page()
+
     def _load_quality_sample_data(self) -> None:
         source_dir = Path(__file__).resolve().parent / "source"
         sample_files = [
@@ -3010,6 +3507,12 @@ class GeoConversionApp(tk.Tk):
         if self._is_semantic_module():
             self._run_semantic()
             return
+        if self._is_template_module():
+            self._run_template()
+            return
+        if self._is_batch_module():
+            self._run_batch()
+            return
         if self._is_quality_module():
             self._run_model_quality_check()
             return
@@ -3036,6 +3539,12 @@ class GeoConversionApp(tk.Tk):
 
     def _is_semantic_module(self) -> bool:
         return self.active_module.name == "地质语义编码转换模块"
+
+    def _is_template_module(self) -> bool:
+        return self.active_module.name == "转换规则模板库模块"
+
+    def _is_batch_module(self) -> bool:
+        return self.active_module.name == "自动化批量转换模块"
 
     def _is_format_conversion_module(self) -> bool:
         return self.active_module.name == "模型格式转换与输出模块"
@@ -3174,6 +3683,62 @@ class GeoConversionApp(tk.Tk):
             self._append_log(f"已输出规范化成果：{output_file}")
         if report.get("relations"):
             self._append_log(f"已生成 {len(report['relations'])} 条语义关联记录。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _run_template(self) -> None:
+        self._apply_params()
+        project_type = self.param_values.get("项目类型", "全部")
+        data_source = self.param_values.get("数据来源说明", "全部")
+        self._append_log(f"开始分析规则模板匹配：项目={project_type}，数据源={data_source}。")
+        report = build_template_report(self.selected_files, project_type, data_source)
+        self.quality_report = report
+        self.run_completed = True
+        self.run_status_var.set("分析完成")
+        best = report.get("summary", {}).get("best_match")
+        if best:
+            self.selected_template_name = str(best)
+        matching = report.get("summary", {}).get("matching_count", 0)
+        self.status_var.set(f"模板分析完成：匹配 {matching} 个，推荐“{best}”")
+        self.task_payload_text = json.dumps(
+            {
+                "task": "rule_template_matching",
+                "project": self.project_var.get(),
+                "module": self.active_module.name,
+                "input_files": self.selected_files,
+                "parameters": self.param_values,
+                "template_report": report,
+                "mysql_tables": list(self.active_module.mysql_tables),
+                "backend_endpoint": BACKEND_ENDPOINTS["save_template"],
+            },
+            ensure_ascii=False, indent=2,
+        )
+        for tmpl in report.get("matching_templates", [])[:4]:
+            self._append_log(f"匹配模板“{tmpl['name']}”（得分 {tmpl['score']}）：{', '.join(tmpl.get('reasons', []))}")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _run_batch(self) -> None:
+        self._apply_params()
+        self._append_log("开始执行批量转换。")
+        mgr = get_manager()
+        job = create_batch_from_paths(
+            self.selected_files,
+            job_name=self.param_values.get("批次名称", "手动批次"),
+            target_format=self.param_values.get("输出格式", "OBJ"),
+            output_dir=self.param_values.get("成果目录", str(Path(__file__).resolve().parent / "output")),
+        )
+        mgr.submit(job.job_id)
+        mgr.run_job(job.job_id)
+        self.run_completed = True
+        self.run_status_var.set(job.status)
+        self.status_var.set(f"批量转换{job.status}：成功 {job.success} / 失败 {job.failed}")
+        self.task_payload_text = json.dumps(
+            build_batch_report([job.job_id]),
+            ensure_ascii=False, indent=2,
+        )
+        for entry in job.logs:
+            self._append_log(f"[{entry.level}] {entry.file_name}: {entry.message}" if entry.file_name else f"[{entry.level}] {entry.message}")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -3531,6 +4096,8 @@ li {{ margin: 6px 0; }}
         self.conversion_report = None
         self.param_values = {}
         self.param_vars.clear()
+        if module.name != "转换规则模板库模块":
+            self.selected_template_name = ""
         if not keep_page:
             self.current_page = "工作台"
         self._append_log(f"已切换模块：{module.name}")

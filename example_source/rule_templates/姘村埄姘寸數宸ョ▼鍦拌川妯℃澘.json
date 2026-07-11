@@ -1,0 +1,243 @@
+{
+  "name": "水利水电工程地质模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "水利水电工程",
+  "data_source": "地质剖面",
+  "input_formats": [
+    "CSV",
+    "XLSX",
+    "DXF",
+    "GeoJSON"
+  ],
+  "description": "用于坝址、库区、地下厂房地质剖面、岩体分级及渗透参数。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "水利水电",
+    "坝址",
+    "渗透",
+    "岩体分级"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "对象编号",
+      "target_field": "object_id",
+      "aliases": [
+        "剖面编号",
+        "单元编号"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "工程部位",
+      "target_field": "engineering_part",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "岩性",
+      "target_field": "lithology",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "岩体等级",
+      "target_field": "rock_mass_class",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "渗透系数",
+      "target_field": "permeability",
+      "aliases": [
+        "K"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m/s",
+      "description": ""
+    },
+    {
+      "source_field": "吕荣值",
+      "target_field": "lugeon",
+      "aliases": [
+        "Lu"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "弹性模量",
+      "target_field": "elastic_modulus",
+      "aliases": [
+        "E"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "GPa",
+      "description": ""
+    },
+    {
+      "source_field": "泊松比",
+      "target_field": "poisson_ratio",
+      "aliases": [
+        "μ"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "断层编号",
+      "target_field": "fault_id",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "地下水类型",
+      "target_field": "groundwater_type",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "CGCS2000",
+    "target_crs": "CGCS2000",
+    "source_epsg": "",
+    "target_epsg": "",
+    "source_datum": "1985国家高程基准",
+    "target_datum": "1985国家高程基准",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": ""
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "rock_mass_class",
+      "target_field": "rock_mass_class_std",
+      "value_map": {
+        "A": "A类",
+        "B": "B类",
+        "C": "C类",
+        "D": "D类",
+        "I": "I级",
+        "II": "II级",
+        "III": "III级",
+        "IV": "IV级",
+        "V": "V级"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    }
+  ],
+  "output_rule": {
+    "target_format": "GPKG",
+    "target_platform": "GIS平台",
+    "encoding": "UTF-8",
+    "include_normals": true,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 6,
+    "layer_name": "hydropower_geology",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {},
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": true,
+    "check_topology": true,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.1,
+    "required_fields": [
+      "object_id",
+      "engineering_part",
+      "lithology"
+    ],
+    "unique_fields": [],
+    "numeric_ranges": {
+      "permeability": [
+        0,
+        null
+      ],
+      "lugeon": [
+        0,
+        null
+      ],
+      "poisson_ratio": [
+        0,
+        0.5
+      ]
+    },
+    "allowed_values": {},
+    "description": ""
+  }
+}

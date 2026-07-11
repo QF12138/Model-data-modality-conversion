@@ -1,0 +1,235 @@
+{
+  "name": "环境地质评价模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "环境地质评价",
+  "data_source": "属性表",
+  "input_formats": [
+    "CSV",
+    "XLSX",
+    "GeoJSON",
+    "SHP"
+  ],
+  "description": "用于地质灾害、地下水污染、地面沉降及生态地质评价指标标准化。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "环境地质",
+    "灾害",
+    "污染",
+    "评价"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "评价单元编号",
+      "target_field": "unit_id",
+      "aliases": [
+        "单元编号",
+        "ID"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "评价类型",
+      "target_field": "assessment_type",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "危险性",
+      "target_field": "hazard_level",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "易发性",
+      "target_field": "susceptibility",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "脆弱性",
+      "target_field": "vulnerability",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "风险等级",
+      "target_field": "risk_level",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "污染物",
+      "target_field": "pollutant",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "浓度",
+      "target_field": "concentration",
+      "aliases": [],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "沉降速率",
+      "target_field": "subsidence_rate",
+      "aliases": [],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "mm/a",
+      "description": ""
+    },
+    {
+      "source_field": "数据来源",
+      "target_field": "source",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "CGCS2000",
+    "target_crs": "CGCS2000",
+    "source_epsg": "",
+    "target_epsg": "",
+    "source_datum": "1985国家高程基准",
+    "target_datum": "1985国家高程基准",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": ""
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "risk_level",
+      "target_field": "risk_level_std",
+      "value_map": {
+        "低": "低风险",
+        "较低": "较低风险",
+        "中": "中风险",
+        "较高": "较高风险",
+        "高": "高风险"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    },
+    {
+      "source_field": "assessment_type",
+      "target_field": "assessment_type_std",
+      "value_map": {
+        "滑坡": "地质灾害",
+        "崩塌": "地质灾害",
+        "泥石流": "地质灾害",
+        "污染": "地下水污染",
+        "沉降": "地面沉降"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    }
+  ],
+  "output_rule": {
+    "target_format": "GeoJSON",
+    "target_platform": "GIS平台",
+    "encoding": "UTF-8",
+    "include_normals": true,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 6,
+    "layer_name": "environmental_geology",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {},
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": true,
+    "check_topology": true,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.1,
+    "required_fields": [
+      "unit_id",
+      "assessment_type",
+      "risk_level"
+    ],
+    "unique_fields": [
+      "unit_id"
+    ],
+    "numeric_ranges": {},
+    "allowed_values": {},
+    "description": ""
+  }
+}

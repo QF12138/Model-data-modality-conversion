@@ -1,0 +1,254 @@
+{
+  "name": "隧道超前地质预报数据模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "隧道工程",
+  "data_source": "物探数据",
+  "input_formats": [
+    "CSV",
+    "XLSX",
+    "JSON",
+    "TXT"
+  ],
+  "description": "用于 TSP、地质雷达、瞬变电磁、超前水平钻探等预报成果的统一编码。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "隧道",
+    "TSP",
+    "GPR",
+    "TEM",
+    "超前预报"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "项目编号",
+      "target_field": "project_id",
+      "aliases": [
+        "工程编号"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "方法",
+      "target_field": "method",
+      "aliases": [
+        "预报方法",
+        "探测方法"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "起始里程",
+      "target_field": "start_chainage",
+      "aliases": [
+        "起点里程",
+        "开始里程"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "终止里程",
+      "target_field": "end_chainage",
+      "aliases": [
+        "终点里程",
+        "结束里程"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "长度",
+      "target_field": "length",
+      "aliases": [
+        "预报长度"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "综合结论",
+      "target_field": "conclusion",
+      "aliases": [
+        "结论",
+        "解释结论"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "岩石坚硬程度",
+      "target_field": "rock_hardness",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "岩体完整程度",
+      "target_field": "rock_integrity",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "地下水状态",
+      "target_field": "groundwater_state",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "风险等级",
+      "target_field": "risk_level",
+      "aliases": [
+        "风险级别"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "工程里程坐标",
+    "target_crs": "工程里程坐标",
+    "source_epsg": "",
+    "target_epsg": "",
+    "source_datum": "",
+    "target_datum": "",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": "保留线路里程体系，并记录与平面坐标的关联。"
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "method",
+      "target_field": "method_std",
+      "value_map": {
+        "tsp": "TSP",
+        "地震波": "TSP",
+        "gpr": "GPR",
+        "地质雷达": "GPR",
+        "tem": "TEM",
+        "瞬变电磁": "TEM",
+        "钻探": "超前水平钻探",
+        "超前钻探": "超前水平钻探"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    },
+    {
+      "source_field": "risk_level",
+      "target_field": "risk_level_std",
+      "value_map": {
+        "低": "低风险",
+        "一般": "一般风险",
+        "中": "中风险",
+        "高": "高风险",
+        "极高": "极高风险"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    }
+  ],
+  "output_rule": {
+    "target_format": "JSON",
+    "target_platform": "GIS平台",
+    "encoding": "UTF-8",
+    "include_normals": false,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 3,
+    "layer_name": "tunnel_forecast",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {},
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": false,
+    "check_topology": false,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.05,
+    "required_fields": [
+      "project_id",
+      "method",
+      "start_chainage",
+      "end_chainage",
+      "conclusion"
+    ],
+    "unique_fields": [],
+    "numeric_ranges": {},
+    "allowed_values": {},
+    "description": ""
+  }
+}

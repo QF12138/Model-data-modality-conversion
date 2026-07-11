@@ -1,0 +1,206 @@
+{
+  "name": "BIM地质模型交付模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "通用工程",
+  "data_source": "网格模型",
+  "input_formats": [
+    "OBJ",
+    "STL",
+    "IFC",
+    "RVT",
+    "DWG",
+    "CSV"
+  ],
+  "description": "用于地质体、钻孔和工程构筑物向 BIM 平台交付，保留分类、属性和坐标基点。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "BIM",
+    "IFC",
+    "Revit",
+    "交付"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "对象编号",
+      "target_field": "global_id",
+      "aliases": [
+        "GUID",
+        "ID"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "对象名称",
+      "target_field": "name",
+      "aliases": [
+        "名称"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "对象类型",
+      "target_field": "object_type",
+      "aliases": [
+        "类型"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "岩性",
+      "target_field": "lithology",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "地层",
+      "target_field": "stratum",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "材料",
+      "target_field": "material",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "阶段",
+      "target_field": "phase",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "来源模型",
+      "target_field": "source_model",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "工程坐标系",
+    "target_crs": "BIM共享坐标系",
+    "source_epsg": "",
+    "target_epsg": "",
+    "source_datum": "",
+    "target_datum": "",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": "记录项目基点、测量点和真北旋转角。"
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "object_type",
+      "target_field": "ifc_class",
+      "value_map": {
+        "地质体": "IfcGeographicElement",
+        "钻孔": "IfcProxy",
+        "断层": "IfcGeographicElement",
+        "隧道": "IfcTunnel",
+        "构件": "IfcBuildingElementProxy"
+      },
+      "default_value": "IfcProxy",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    }
+  ],
+  "output_rule": {
+    "target_format": "IFC",
+    "target_platform": "BIM平台",
+    "encoding": "UTF-8",
+    "include_normals": true,
+    "include_textures": true,
+    "include_properties": true,
+    "coordinate_precision": 4,
+    "layer_name": "geology_bim",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {
+      "ifc_schema": "IFC4.3",
+      "georeference": true,
+      "property_sets": true
+    },
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": true,
+    "check_topology": true,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.05,
+    "required_fields": [
+      "global_id",
+      "name",
+      "object_type"
+    ],
+    "unique_fields": [
+      "global_id"
+    ],
+    "numeric_ranges": {},
+    "allowed_values": {},
+    "description": ""
+  }
+}

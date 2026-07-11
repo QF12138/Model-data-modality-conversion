@@ -1,0 +1,184 @@
+{
+  "name": "GIS地质成果输出模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "通用工程",
+  "data_source": "通用数据",
+  "input_formats": [
+    "CSV",
+    "GeoJSON",
+    "SHP",
+    "GPKG",
+    "TIFF",
+    "GeoTIFF"
+  ],
+  "description": "用于向 ArcGIS、QGIS 等 GIS 平台输出点、线、面、栅格及属性成果。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "GIS",
+    "GeoJSON",
+    "GPKG",
+    "ArcGIS",
+    "QGIS"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "要素编号",
+      "target_field": "feature_id",
+      "aliases": [
+        "ID",
+        "编号"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "要素名称",
+      "target_field": "feature_name",
+      "aliases": [
+        "名称"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "图层",
+      "target_field": "layer",
+      "aliases": [
+        "图层名"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "几何类型",
+      "target_field": "geometry_type",
+      "aliases": [
+        "类型"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "数据来源",
+      "target_field": "source",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "更新时间",
+      "target_field": "updated_at",
+      "aliases": [],
+      "data_type": "date",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "CGCS2000",
+    "target_crs": "CGCS2000",
+    "source_epsg": "",
+    "target_epsg": "",
+    "source_datum": "1985国家高程基准",
+    "target_datum": "1985国家高程基准",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": ""
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "geometry_type",
+      "target_field": "geometry_type_std",
+      "value_map": {
+        "点": "Point",
+        "线": "LineString",
+        "面": "Polygon",
+        "多点": "MultiPoint",
+        "多线": "MultiLineString",
+        "多面": "MultiPolygon"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    }
+  ],
+  "output_rule": {
+    "target_format": "GPKG",
+    "target_platform": "GIS平台",
+    "encoding": "UTF-8",
+    "include_normals": false,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 6,
+    "layer_name": "geology_delivery",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {
+      "spatial_index": true
+    },
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": true,
+    "check_topology": true,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.05,
+    "required_fields": [
+      "feature_id",
+      "layer",
+      "geometry_type"
+    ],
+    "unique_fields": [
+      "feature_id"
+    ],
+    "numeric_ranges": {},
+    "allowed_values": {},
+    "description": ""
+  }
+}

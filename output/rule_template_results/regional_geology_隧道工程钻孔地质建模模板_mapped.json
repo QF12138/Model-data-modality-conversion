@@ -1,0 +1,119 @@
+{
+  "template": "隧道工程钻孔地质建模模板",
+  "version": "2.0.0",
+  "rows": [
+    {
+      "borehole_id": null,
+      "x": null,
+      "y": null,
+      "z_surface": null,
+      "total_depth": null,
+      "layer_top": 0.0,
+      "layer_bottom": null,
+      "lithology": "砂岩夹页岩",
+      "rock_class": null,
+      "rqd": null,
+      "groundwater": null,
+      "weathering_grade": null,
+      "rock_class_std": "",
+      "weathering_std": ""
+    },
+    {
+      "borehole_id": null,
+      "x": null,
+      "y": null,
+      "z_surface": null,
+      "total_depth": null,
+      "layer_top": 0.0,
+      "layer_bottom": null,
+      "lithology": null,
+      "rock_class": null,
+      "rqd": null,
+      "groundwater": null,
+      "weathering_grade": null,
+      "rock_class_std": "",
+      "weathering_std": ""
+    }
+  ],
+  "fields_mapped": [
+    "borehole_id",
+    "x",
+    "y",
+    "z_surface",
+    "total_depth",
+    "layer_top",
+    "layer_bottom",
+    "lithology",
+    "rock_class",
+    "rqd",
+    "groundwater",
+    "weathering_grade"
+  ],
+  "errors": [
+    "第 1 行缺少必填字段“钻孔编号”。",
+    "第 1 行缺少必填字段“X坐标”。",
+    "第 1 行缺少必填字段“Y坐标”。",
+    "第 1 行缺少必填字段“孔口高程”。",
+    "第 1 行缺少必填字段“孔深”。",
+    "第 2 行缺少必填字段“钻孔编号”。",
+    "第 2 行缺少必填字段“X坐标”。",
+    "第 2 行缺少必填字段“Y坐标”。",
+    "第 2 行缺少必填字段“孔口高程”。",
+    "第 2 行缺少必填字段“孔深”。",
+    "第 2 行缺少必填字段“岩性描述”。",
+    "必填字段 borehole_id 有 2 条缺失记录。",
+    "必填字段 lithology 有 1 条缺失记录。",
+    "必填字段 total_depth 有 2 条缺失记录。",
+    "必填字段 x 有 2 条缺失记录。",
+    "必填字段 y 有 2 条缺失记录。",
+    "必填字段 z_surface 有 2 条缺失记录。"
+  ],
+  "warnings": [
+    "字段 groundwater 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 layer_bottom 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 rock_class 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 rock_class_std 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 rqd 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 weathering_grade 缺失率 100.0% 超过阈值 8.0%。",
+    "字段 weathering_std 缺失率 100.0% 超过阈值 8.0%。"
+  ],
+  "quality": {
+    "row_count": 2,
+    "errors": [
+      "必填字段 borehole_id 有 2 条缺失记录。",
+      "必填字段 lithology 有 1 条缺失记录。",
+      "必填字段 total_depth 有 2 条缺失记录。",
+      "必填字段 x 有 2 条缺失记录。",
+      "必填字段 y 有 2 条缺失记录。",
+      "必填字段 z_surface 有 2 条缺失记录。"
+    ],
+    "warnings": [
+      "字段 groundwater 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 layer_bottom 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 rock_class 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 rock_class_std 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 rqd 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 weathering_grade 缺失率 100.0% 超过阈值 8.0%。",
+      "字段 weathering_std 缺失率 100.0% 超过阈值 8.0%。"
+    ],
+    "missing_ratio": {
+      "borehole_id": 1.0,
+      "groundwater": 1.0,
+      "layer_bottom": 1.0,
+      "layer_top": 0.0,
+      "lithology": 0.5,
+      "rock_class": 1.0,
+      "rock_class_std": 1.0,
+      "rqd": 1.0,
+      "total_depth": 1.0,
+      "weathering_grade": 1.0,
+      "weathering_std": 1.0,
+      "x": 1.0,
+      "y": 1.0,
+      "z_surface": 1.0
+    },
+    "duplicate_count": 0,
+    "range_violation_count": 0,
+    "allowed_value_violation_count": 0
+  }
+}

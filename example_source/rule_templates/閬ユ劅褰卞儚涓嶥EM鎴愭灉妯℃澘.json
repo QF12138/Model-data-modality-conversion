@@ -1,0 +1,169 @@
+{
+  "name": "遥感影像与DEM成果模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "区域地质调查",
+  "data_source": "遥感影像",
+  "input_formats": [
+    "TIFF",
+    "GeoTIFF",
+    "IMG",
+    "ASC"
+  ],
+  "description": "用于遥感影像、DEM/DSM 栅格的坐标、像元、NoData 和输出压缩规则配置。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "遥感",
+    "DEM",
+    "栅格",
+    "GeoTIFF"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "影像编号",
+      "target_field": "raster_id",
+      "aliases": [
+        "ID"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "分辨率",
+      "target_field": "resolution",
+      "aliases": [
+        "像元大小"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "波段数",
+      "target_field": "band_count",
+      "aliases": [],
+      "data_type": "integer",
+      "transform": "int(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "无效值",
+      "target_field": "nodata",
+      "aliases": [
+        "NoData"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "采集日期",
+      "target_field": "acquisition_date",
+      "aliases": [],
+      "data_type": "date",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "传感器",
+      "target_field": "sensor",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "WGS84",
+    "target_crs": "CGCS2000",
+    "source_epsg": "4326",
+    "target_epsg": "",
+    "source_datum": "1985国家高程基准",
+    "target_datum": "1985国家高程基准",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": "栅格重投影由 GDAL 后端执行。"
+  },
+  "attribute_mappings": [],
+  "output_rule": {
+    "target_format": "GeoTIFF",
+    "target_platform": "GIS平台",
+    "encoding": "UTF-8",
+    "include_normals": false,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 3,
+    "layer_name": "remote_sensing",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {
+      "compression": "LZW",
+      "tiled": true,
+      "build_overviews": true
+    },
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": false,
+    "check_topology": false,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.05,
+    "required_fields": [
+      "raster_id",
+      "resolution"
+    ],
+    "unique_fields": [],
+    "numeric_ranges": {
+      "resolution": [
+        0,
+        null
+      ],
+      "band_count": [
+        1,
+        1000
+      ]
+    },
+    "allowed_values": {},
+    "description": ""
+  }
+}

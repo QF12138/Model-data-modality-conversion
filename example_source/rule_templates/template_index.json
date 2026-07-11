@@ -1,0 +1,260 @@
+[
+  {
+    "name": "区域地质图标准化模板",
+    "version": "2.0.0",
+    "project_type": "区域地质调查",
+    "data_source": "地质图",
+    "input_formats": [
+      "SHP",
+      "GPKG",
+      "GeoJSON",
+      "DXF",
+      "CSV"
+    ],
+    "file": "区域地质图标准化模板.json"
+  },
+  {
+    "name": "遥感影像与DEM成果模板",
+    "version": "2.0.0",
+    "project_type": "区域地质调查",
+    "data_source": "遥感影像",
+    "input_formats": [
+      "TIFF",
+      "GeoTIFF",
+      "IMG",
+      "ASC"
+    ],
+    "file": "遥感影像与DEM成果模板.json"
+  },
+  {
+    "name": "地基与基础工程勘察模板",
+    "version": "2.0.0",
+    "project_type": "地基与基础工程",
+    "data_source": "钻孔数据",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "JSON"
+    ],
+    "file": "地基与基础工程勘察模板.json"
+  },
+  {
+    "name": "城市地质三维建模模板",
+    "version": "2.0.0",
+    "project_type": "城市地质调查",
+    "data_source": "钻孔数据",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "JSON",
+      "GeoJSON"
+    ],
+    "file": "城市地质三维建模模板.json"
+  },
+  {
+    "name": "水利水电工程地质模板",
+    "version": "2.0.0",
+    "project_type": "水利水电工程",
+    "data_source": "地质剖面",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "DXF",
+      "GeoJSON"
+    ],
+    "file": "水利水电工程地质模板.json"
+  },
+  {
+    "name": "环境地质评价模板",
+    "version": "2.0.0",
+    "project_type": "环境地质评价",
+    "data_source": "属性表",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "GeoJSON",
+      "SHP"
+    ],
+    "file": "环境地质评价模板.json"
+  },
+  {
+    "name": "矿山三维地质建模模板",
+    "version": "2.0.0",
+    "project_type": "矿山工程",
+    "data_source": "钻孔数据",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "JSON",
+      "DXF"
+    ],
+    "file": "矿山三维地质建模模板.json"
+  },
+  {
+    "name": "边坡工程稳定性评价模板",
+    "version": "2.0.0",
+    "project_type": "边坡工程",
+    "data_source": "地质剖面",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "DXF",
+      "GeoJSON"
+    ],
+    "file": "边坡工程稳定性评价模板.json"
+  },
+  {
+    "name": "地质剖面空间化模板",
+    "version": "2.0.0",
+    "project_type": "通用工程",
+    "data_source": "地质剖面",
+    "input_formats": [
+      "DXF",
+      "DWG",
+      "CSV",
+      "GeoJSON",
+      "SVG"
+    ],
+    "file": "地质剖面空间化模板.json"
+  },
+  {
+    "name": "地质属性表标准化模板",
+    "version": "2.0.0",
+    "project_type": "通用工程",
+    "data_source": "属性表",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "JSON"
+    ],
+    "file": "地质属性表标准化模板.json"
+  },
+  {
+    "name": "点云标准化与分类模板",
+    "version": "2.0.0",
+    "project_type": "通用工程",
+    "data_source": "点云数据",
+    "input_formats": [
+      "LAS",
+      "LAZ",
+      "PLY",
+      "XYZ",
+      "CSV"
+    ],
+    "file": "点云标准化与分类模板.json"
+  },
+  {
+    "name": "BIM地质模型交付模板",
+    "version": "2.0.0",
+    "project_type": "通用工程",
+    "data_source": "网格模型",
+    "input_formats": [
+      "OBJ",
+      "STL",
+      "IFC",
+      "RVT",
+      "DWG",
+      "CSV"
+    ],
+    "file": "BIM地质模型交付模板.json"
+  },
+  {
+    "name": "三维建模软件交换模板",
+    "version": "2.0.0",
+    "project_type": "通用工程",
+    "data_source": "网格模型",
+    "input_formats": [
+      "OBJ",
+      "STL",
+      "PLY",
+      "FBX",
+      "GLTF",
+      "GLB"
+    ],
+    "file": "三维建模软件交换模板.json"
+  },
+  {
+    "name": "网格模型数值模拟输出模板",
+    "version": "2.0.0",
+    "project_type": "通用工程",
+    "data_source": "网格模型",
+    "input_formats": [
+      "OBJ",
+      "STL",
+      "VTK",
+      "VTU",
+      "INP",
+      "CSV"
+    ],
+    "file": "网格模型数值模拟输出模板.json"
+  },
+  {
+    "name": "GIS地质成果输出模板",
+    "version": "2.0.0",
+    "project_type": "通用工程",
+    "data_source": "通用数据",
+    "input_formats": [
+      "CSV",
+      "GeoJSON",
+      "SHP",
+      "GPKG",
+      "TIFF",
+      "GeoTIFF"
+    ],
+    "file": "GIS地质成果输出模板.json"
+  },
+  {
+    "name": "地质模型全面质量检查模板",
+    "version": "2.0.0",
+    "project_type": "通用工程",
+    "data_source": "通用数据",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "JSON",
+      "GeoJSON",
+      "SHP",
+      "GPKG",
+      "DXF",
+      "DWG",
+      "OBJ",
+      "STL",
+      "PLY",
+      "LAS",
+      "LAZ",
+      "TIFF",
+      "GeoTIFF",
+      "VTK",
+      "VTU",
+      "INP",
+      "IFC",
+      "TXT"
+    ],
+    "file": "地质模型全面质量检查模板.json"
+  },
+  {
+    "name": "隧道超前地质预报数据模板",
+    "version": "2.0.0",
+    "project_type": "隧道工程",
+    "data_source": "物探数据",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "JSON",
+      "TXT"
+    ],
+    "file": "隧道超前地质预报数据模板.json"
+  },
+  {
+    "name": "隧道工程钻孔地质建模模板",
+    "version": "2.0.0",
+    "project_type": "隧道工程",
+    "data_source": "钻孔数据",
+    "input_formats": [
+      "CSV",
+      "XLSX",
+      "JSON"
+    ],
+    "file": "隧道工程钻孔地质建模模板.json"
+  }
+]

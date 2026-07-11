@@ -1,0 +1,329 @@
+{
+  "name": "隧道工程钻孔地质建模模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "隧道工程",
+  "data_source": "钻孔数据",
+  "input_formats": [
+    "CSV",
+    "XLSX",
+    "JSON"
+  ],
+  "description": "用于铁路、公路隧道钻孔、岩性分层、围岩等级和地下水信息标准化。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "隧道",
+    "钻孔",
+    "围岩",
+    "地下水"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "钻孔编号",
+      "target_field": "borehole_id",
+      "aliases": [
+        "孔号",
+        "钻孔ID",
+        "hole_id"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "X坐标",
+      "target_field": "x",
+      "aliases": [
+        "X",
+        "东坐标",
+        "E"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "Y坐标",
+      "target_field": "y",
+      "aliases": [
+        "Y",
+        "北坐标",
+        "N"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "孔口高程",
+      "target_field": "z_surface",
+      "aliases": [
+        "高程",
+        "Z",
+        "孔口标高"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "孔深",
+      "target_field": "total_depth",
+      "aliases": [
+        "钻孔深度",
+        "终孔深度"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "层顶深度",
+      "target_field": "layer_top",
+      "aliases": [
+        "顶深"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": 0.0,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "层底深度",
+      "target_field": "layer_bottom",
+      "aliases": [
+        "底深",
+        "分层深度"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "岩性描述",
+      "target_field": "lithology",
+      "aliases": [
+        "岩性",
+        "岩性名称"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "围岩等级",
+      "target_field": "rock_class",
+      "aliases": [
+        "围岩级别"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "RQD值",
+      "target_field": "rqd",
+      "aliases": [
+        "RQD"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "地下水",
+      "target_field": "groundwater",
+      "aliases": [
+        "地下水情况",
+        "水文情况"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "风化程度",
+      "target_field": "weathering_grade",
+      "aliases": [
+        "风化等级"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "CGCS2000",
+    "target_crs": "CGCS2000",
+    "source_epsg": "",
+    "target_epsg": "",
+    "source_datum": "1985国家高程基准",
+    "target_datum": "1985国家高程基准",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": "默认采用 CGCS2000 平面坐标及 1985 国家高程基准。"
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "rock_class",
+      "target_field": "rock_class_std",
+      "value_map": {
+        "I": "I级围岩",
+        "Ⅰ": "I级围岩",
+        "II": "II级围岩",
+        "Ⅱ": "II级围岩",
+        "III": "III级围岩",
+        "Ⅲ": "III级围岩",
+        "IV": "IV级围岩",
+        "Ⅳ": "IV级围岩",
+        "V": "V级围岩",
+        "Ⅴ": "V级围岩",
+        "VI": "VI级围岩",
+        "Ⅵ": "VI级围岩"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": "统一罗马数字和中文围岩等级。"
+    },
+    {
+      "source_field": "weathering_grade",
+      "target_field": "weathering_std",
+      "value_map": {
+        "全风化": "全风化",
+        "强风化": "强风化",
+        "中风化": "中等风化",
+        "中等风化": "中等风化",
+        "弱风化": "微风化",
+        "微风化": "微风化",
+        "未风化": "未风化"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    }
+  ],
+  "output_rule": {
+    "target_format": "OBJ",
+    "target_platform": "三维建模软件",
+    "encoding": "UTF-8",
+    "include_normals": true,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 4,
+    "layer_name": "tunnel_boreholes",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {},
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": true,
+    "check_topology": true,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.08,
+    "required_fields": [
+      "borehole_id",
+      "x",
+      "y",
+      "z_surface",
+      "total_depth",
+      "lithology"
+    ],
+    "unique_fields": [
+      "borehole_id+layer_top"
+    ],
+    "numeric_ranges": {
+      "total_depth": [
+        0,
+        5000
+      ],
+      "rqd": [
+        0,
+        100
+      ],
+      "layer_top": [
+        0,
+        null
+      ],
+      "layer_bottom": [
+        0,
+        null
+      ]
+    },
+    "allowed_values": {
+      "rock_class_std": [
+        "I级围岩",
+        "II级围岩",
+        "III级围岩",
+        "IV级围岩",
+        "V级围岩",
+        "VI级围岩"
+      ]
+    },
+    "description": ""
+  }
+}

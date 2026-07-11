@@ -1,0 +1,265 @@
+{
+  "name": "点云标准化与分类模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "通用工程",
+  "data_source": "点云数据",
+  "input_formats": [
+    "LAS",
+    "LAZ",
+    "PLY",
+    "XYZ",
+    "CSV"
+  ],
+  "description": "用于激光扫描或摄影测量点云的字段统一、分类编码和质量检查。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "点云",
+    "LAS",
+    "分类",
+    "抽稀"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "X",
+      "target_field": "x",
+      "aliases": [
+        "X坐标"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "Y",
+      "target_field": "y",
+      "aliases": [
+        "Y坐标"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "Z",
+      "target_field": "z",
+      "aliases": [
+        "Z坐标",
+        "高程"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    },
+    {
+      "source_field": "强度",
+      "target_field": "intensity",
+      "aliases": [
+        "Intensity"
+      ],
+      "data_type": "integer",
+      "transform": "int(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "分类",
+      "target_field": "classification",
+      "aliases": [
+        "Class",
+        "类别"
+      ],
+      "data_type": "integer",
+      "transform": "int(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "回波序号",
+      "target_field": "return_number",
+      "aliases": [
+        "ReturnNumber"
+      ],
+      "data_type": "integer",
+      "transform": "int(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "回波总数",
+      "target_field": "number_of_returns",
+      "aliases": [
+        "NumberOfReturns"
+      ],
+      "data_type": "integer",
+      "transform": "int(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "红",
+      "target_field": "red",
+      "aliases": [
+        "R"
+      ],
+      "data_type": "integer",
+      "transform": "int(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "绿",
+      "target_field": "green",
+      "aliases": [
+        "G"
+      ],
+      "data_type": "integer",
+      "transform": "int(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "蓝",
+      "target_field": "blue",
+      "aliases": [
+        "B"
+      ],
+      "data_type": "integer",
+      "transform": "int(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "CGCS2000",
+    "target_crs": "CGCS2000",
+    "source_epsg": "",
+    "target_epsg": "",
+    "source_datum": "1985国家高程基准",
+    "target_datum": "1985国家高程基准",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": ""
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "classification",
+      "target_field": "classification_name",
+      "value_map": {
+        "0": "未分类",
+        "1": "未分类",
+        "2": "地面",
+        "3": "低植被",
+        "4": "中植被",
+        "5": "高植被",
+        "6": "建筑物",
+        "9": "水体",
+        "17": "桥面"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    }
+  ],
+  "output_rule": {
+    "target_format": "LAZ",
+    "target_platform": "三维建模软件",
+    "encoding": "UTF-8",
+    "include_normals": false,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 3,
+    "layer_name": "classified_point_cloud",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {
+      "compression": true
+    },
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": false,
+    "check_topology": false,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.02,
+    "required_fields": [
+      "x",
+      "y",
+      "z"
+    ],
+    "unique_fields": [],
+    "numeric_ranges": {
+      "intensity": [
+        0,
+        65535
+      ],
+      "classification": [
+        0,
+        255
+      ],
+      "red": [
+        0,
+        65535
+      ],
+      "green": [
+        0,
+        65535
+      ],
+      "blue": [
+        0,
+        65535
+      ]
+    },
+    "allowed_values": {},
+    "description": ""
+  }
+}

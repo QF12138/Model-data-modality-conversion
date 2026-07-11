@@ -1,0 +1,261 @@
+{
+  "name": "地基与基础工程勘察模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "地基与基础工程",
+  "data_source": "钻孔数据",
+  "input_formats": [
+    "CSV",
+    "XLSX",
+    "JSON"
+  ],
+  "description": "用于房建、桥梁及场地地基勘察钻孔、土层、标贯和承载力数据。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "地基",
+    "基础",
+    "勘察",
+    "标贯"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "钻孔编号",
+      "target_field": "borehole_id",
+      "aliases": [
+        "孔号"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "X坐标",
+      "target_field": "x",
+      "aliases": [
+        "X"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "Y坐标",
+      "target_field": "y",
+      "aliases": [
+        "Y"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "孔口高程",
+      "target_field": "z_surface",
+      "aliases": [
+        "孔口标高"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "层顶深度",
+      "target_field": "layer_top",
+      "aliases": [],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": 0.0,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "层底深度",
+      "target_field": "layer_bottom",
+      "aliases": [
+        "分层深度"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "土层名称",
+      "target_field": "soil_name",
+      "aliases": [
+        "岩土名称",
+        "地层名称"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "标贯击数",
+      "target_field": "spt_n",
+      "aliases": [
+        "SPT_N",
+        "N值"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "地基承载力",
+      "target_field": "bearing_capacity",
+      "aliases": [
+        "承载力特征值",
+        "faK"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "kPa",
+      "description": ""
+    },
+    {
+      "source_field": "压缩模量",
+      "target_field": "compression_modulus",
+      "aliases": [
+        "Es"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "MPa",
+      "description": ""
+    },
+    {
+      "source_field": "地下水位",
+      "target_field": "water_table",
+      "aliases": [],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "m",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "CGCS2000",
+    "target_crs": "CGCS2000",
+    "source_epsg": "",
+    "target_epsg": "",
+    "source_datum": "1985国家高程基准",
+    "target_datum": "1985国家高程基准",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": ""
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "soil_name",
+      "target_field": "soil_class_std",
+      "value_map": {
+        "黏土": "黏性土",
+        "粘土": "黏性土",
+        "粉质黏土": "黏性土",
+        "砂土": "砂土",
+        "粉砂": "砂土",
+        "卵石土": "碎石土",
+        "填土": "人工填土"
+      },
+      "default_value": "其他土",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    }
+  ],
+  "output_rule": {
+    "target_format": "GeoJSON",
+    "target_platform": "GIS平台",
+    "encoding": "UTF-8",
+    "include_normals": true,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 6,
+    "layer_name": "foundation_boreholes",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {},
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": true,
+    "check_topology": true,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.08,
+    "required_fields": [
+      "borehole_id",
+      "x",
+      "y",
+      "z_surface",
+      "layer_bottom",
+      "soil_name"
+    ],
+    "unique_fields": [],
+    "numeric_ranges": {
+      "spt_n": [
+        0,
+        200
+      ],
+      "bearing_capacity": [
+        0,
+        10000
+      ]
+    },
+    "allowed_values": {},
+    "description": ""
+  }
+}

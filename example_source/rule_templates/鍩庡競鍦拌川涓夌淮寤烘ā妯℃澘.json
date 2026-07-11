@@ -1,0 +1,281 @@
+{
+  "name": "城市地质三维建模模板",
+  "version": "2.0.0",
+  "schema_version": "2.0",
+  "project_type": "城市地质调查",
+  "data_source": "钻孔数据",
+  "input_formats": [
+    "CSV",
+    "XLSX",
+    "JSON",
+    "GeoJSON"
+  ],
+  "description": "用于城市第四系分层、基岩面、含水层及工程地质分区建模。",
+  "author": "系统预置",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": [
+    "城市地质",
+    "第四系",
+    "基岩面",
+    "工程地质分区"
+  ],
+  "enabled": true,
+  "field_mappings": [
+    {
+      "source_field": "钻孔编号",
+      "target_field": "borehole_id",
+      "aliases": [
+        "孔号"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "X坐标",
+      "target_field": "x",
+      "aliases": [
+        "X",
+        "东坐标"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "Y坐标",
+      "target_field": "y",
+      "aliases": [
+        "Y",
+        "北坐标"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "孔口高程",
+      "target_field": "z_surface",
+      "aliases": [
+        "高程"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "层顶深度",
+      "target_field": "layer_top",
+      "aliases": [],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": 0.0,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "层底深度",
+      "target_field": "layer_bottom",
+      "aliases": [
+        "分层深度"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "地层名称",
+      "target_field": "strata_name",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "岩性名称",
+      "target_field": "lithology",
+      "aliases": [
+        "岩性"
+      ],
+      "data_type": "string",
+      "transform": "",
+      "required": true,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "地层时代",
+      "target_field": "strata_age",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "标贯击数",
+      "target_field": "spt_n",
+      "aliases": [
+        "SPT_N"
+      ],
+      "data_type": "float",
+      "transform": "float(value)",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "含水层",
+      "target_field": "aquifer",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    },
+    {
+      "source_field": "工程地质分区",
+      "target_field": "engineering_zone",
+      "aliases": [],
+      "data_type": "string",
+      "transform": "",
+      "required": false,
+      "default_value": null,
+      "source_unit": "",
+      "target_unit": "",
+      "description": ""
+    }
+  ],
+  "coordinate_rule": {
+    "source_crs": "CGCS2000",
+    "target_crs": "CGCS2000",
+    "source_epsg": "",
+    "target_epsg": "",
+    "source_datum": "1985国家高程基准",
+    "target_datum": "1985国家高程基准",
+    "axis_order": "XY",
+    "horizontal_unit": "m",
+    "vertical_unit": "m",
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "offset_z": 0.0,
+    "scale_factor": 1.0,
+    "precision": 6,
+    "description": ""
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "strata_age",
+      "target_field": "era_std",
+      "value_map": {
+        "Qh": "全新世",
+        "Qp": "更新世",
+        "Q": "第四纪",
+        "N": "新近纪",
+        "E": "古近纪",
+        "K": "白垩纪",
+        "J": "侏罗纪",
+        "T": "三叠纪"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    },
+    {
+      "source_field": "engineering_zone",
+      "target_field": "engineering_zone_std",
+      "value_map": {
+        "I": "适宜区",
+        "II": "较适宜区",
+        "III": "一般适宜区",
+        "IV": "限制区"
+      },
+      "default_value": "",
+      "case_sensitive": false,
+      "strip_value": true,
+      "description": ""
+    }
+  ],
+  "output_rule": {
+    "target_format": "GeoJSON",
+    "target_platform": "GIS平台",
+    "encoding": "UTF-8",
+    "include_normals": true,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 6,
+    "layer_name": "urban_geology_boreholes",
+    "file_name_pattern": "{template}_{date}",
+    "platform_options": {},
+    "description": ""
+  },
+  "quality_check_rule": {
+    "check_geometry_closure": true,
+    "check_topology": true,
+    "check_attribute_completeness": true,
+    "check_consistency": true,
+    "check_coordinate_precision": true,
+    "check_duplicates": true,
+    "check_units": true,
+    "closure_tolerance": 0.001,
+    "outlier_sigma": 3.0,
+    "min_face_quality": 0.3,
+    "max_missing_ratio": 0.08,
+    "required_fields": [
+      "borehole_id",
+      "x",
+      "y",
+      "z_surface",
+      "layer_bottom",
+      "strata_name",
+      "lithology"
+    ],
+    "unique_fields": [],
+    "numeric_ranges": {
+      "spt_n": [
+        0,
+        200
+      ]
+    },
+    "allowed_values": {},
+    "description": ""
+  }
+}

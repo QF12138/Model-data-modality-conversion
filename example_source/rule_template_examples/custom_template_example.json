@@ -1,0 +1,52 @@
+{
+  "name": "用户自定义地质灾害点模板",
+  "version": "1.0.0",
+  "schema_version": "2.0",
+  "project_type": "环境地质评价",
+  "data_source": "属性表",
+  "input_formats": ["CSV", "GeoJSON"],
+  "description": "演示如何通过 JSON 导入自定义规则模板。",
+  "author": "示例用户",
+  "created_at": "2026-07-11T00:00:00",
+  "updated_at": "2026-07-11T00:00:00",
+  "tags": ["示例", "地质灾害", "自定义"],
+  "enabled": true,
+  "field_mappings": [
+    {"source_field": "灾害点编号", "target_field": "hazard_id", "aliases": ["编号"], "data_type": "string", "required": true},
+    {"source_field": "灾害类型", "target_field": "hazard_type", "aliases": ["类型"], "data_type": "string", "required": true},
+    {"source_field": "经度", "target_field": "x", "aliases": ["lon"], "data_type": "float", "transform": "float(value)", "required": true},
+    {"source_field": "纬度", "target_field": "y", "aliases": ["lat"], "data_type": "float", "transform": "float(value)", "required": true},
+    {"source_field": "风险等级", "target_field": "risk_level", "aliases": [], "data_type": "string", "required": true}
+  ],
+  "coordinate_rule": {
+    "source_crs": "WGS84",
+    "target_crs": "CGCS2000",
+    "source_epsg": "4326",
+    "target_epsg": "",
+    "description": "实际投影转换由 GIS 后端执行。"
+  },
+  "attribute_mappings": [
+    {
+      "source_field": "risk_level",
+      "target_field": "risk_level_std",
+      "value_map": {"低": "低风险", "中": "中风险", "高": "高风险"},
+      "default_value": "未定风险"
+    }
+  ],
+  "output_rule": {
+    "target_format": "GeoJSON",
+    "target_platform": "GIS平台",
+    "encoding": "UTF-8",
+    "include_normals": false,
+    "include_textures": false,
+    "include_properties": true,
+    "coordinate_precision": 6,
+    "layer_name": "geological_hazards"
+  },
+  "quality_check_rule": {
+    "required_fields": ["hazard_id", "hazard_type", "x", "y", "risk_level"],
+    "unique_fields": ["hazard_id"],
+    "numeric_ranges": {"x": [-180, 180], "y": [-90, 90]},
+    "max_missing_ratio": 0.05
+  }
+}
