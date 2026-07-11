@@ -1,43 +1,59 @@
 from __future__ import annotations
 
-import csv
-import json
-import math
-import os
-import re
 import time
-import traceback
+import threading
 from collections import defaultdict
-from dataclasses import dataclass, field
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+
+try:
+    # 放在 function/ 目录中时使用相对导入。
+    from .model_format_conversion import convert_model_files as _convert_model_files
+except Exception:  # pragma: no cover - 兼容直接运行或模块尚未放入项目
+    try:
+        from model_format_conversion import convert_model_files as _convert_model_files  # type: ignore
+    except Exception:
+        _convert_model_files = None
 
 
 # ============================================================================
 # 常量
 # ============================================================================
 
-# 支持批量扫描的格式
 SCAN_EXTENSIONS: dict[str, list[str]] = {
     "表格": [".csv", ".txt"],
     "三维模型": [".obj", ".stl", ".ply", ".vtk"],
     "地理空间": [".geojson", ".json"],
     "点云": [".las", ".laz"],
     "BIM/IFC": [".ifc"],
-    "全部": [".csv", ".txt", ".obj", ".stl", ".ply", ".vtk", ".geojson", ".json", ".las", ".laz", ".ifc"],
+    "全部": [
+        ".csv", ".txt", ".obj", ".stl", ".ply", ".vtk",
+        ".geojson", ".json", ".las", ".laz", ".ifc",
+    ],
 }
 
 FORMAT_CATEGORY: dict[str, str] = {}
-for _cat, _exts in SCAN_EXTENSIONS.items():
-    if _cat != "全部":
-        for _ext in _exts:
-            FORMAT_CATEGORY[_ext] = _cat
+for _category, _extensions in SCAN_EXTENSIONS.items():
+    if _category != "全部":
+        for _extension in _extensions:
+            FORMAT_CATEGORY[_extension] = _category
 
 JOB_STATUSES = ("排队中", "运行中", "已完成", "部分失败", "已失败", "已取消")
 RETRY_STRATEGIES = ("立即重试", "延迟重试", "跳过", "中止")
-
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
+_LOG_RANK = {name: index for index, name in enumerate(LOG_LEVELS)}
+
+WORKFLOW_STEPS = (
+    "目录扫描与文件发现",
+    "格式识别与分类",
+    "规则模板匹配",
+    "批量格式转换",
+    "质量检查与校验",
+    "成果汇总与归档",
+)
 
 
 # ============================================================================
@@ -47,6 +63,7 @@ LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
 @dataclass
 class FileEntry:
     """扫描到的文件条目。"""
+
     path: str
     name: str = ""
     suffix: str = ""
@@ -54,45 +71,71 @@ class FileEntry:
     size_bytes: int = 0
     selected: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        file_path = Path(self.path).expanduser()
         if not self.name:
-            self.name = Path(self.path).name
+            self.name = file_path.name
         if not self.suffix:
-            self.suffix = Path(self.path).suffix.lower()
+            self.suffix = file_path.suffix.lower()
         if self.category == "未知":
             self.category = FORMAT_CATEGORY.get(self.suffix, "未知")
+        if self.size_bytes <= 0 and file_path.is_file():
+            try:
+                self.size_bytes = file_path.stat().st_size
+            except OSError:
+                self.size_bytes = 0
 
 
 @dataclass
 class BatchConfig:
     """批次配置。"""
+
     name: str = ""
     directories: list[str] = field(default_factory=list)
     file_patterns: list[str] = field(default_factory=lambda: ["*"])
-    format_category: str = "全部"           # 全部 / 表格 / 三维模型 / 地理空间 / 点云 / BIM/IFC
+    format_category: str = "全部"
     recursive: bool = True
     max_files: int = 500
-    template_name: str = ""                 # 绑定的规则模板
+    template_name: str = ""
     target_format: str = "OBJ"
     coordinate_rule: str = "保留源坐标"
     attribute_rule: str = "全部保留"
     output_dir: str = ""
+    concurrency: int = 4
+    log_level: str = "INFO"
+    overwrite: bool = True
+
+    def __post_init__(self) -> None:
+        self.max_files = max(1, int(self.max_files or 1))
+        self.concurrency = max(1, min(32, int(self.concurrency or 1)))
+        if self.log_level not in LOG_LEVELS:
+            self.log_level = "INFO"
+        if self.format_category not in SCAN_EXTENSIONS:
+            self.format_category = "全部"
 
 
 @dataclass
 class RetryPolicy:
     """失败重试策略。"""
+
     max_retries: int = 3
     retry_delay_seconds: float = 2.0
-    strategy: str = "立即重试"              # 立即重试 / 延迟重试 / 跳过 / 中止
-    retryable_errors: list[str] = field(default_factory=lambda: ["超时", "连接", "I/O", "临时"])
+    strategy: str = "延迟重试"
+    retryable_errors: list[str] = field(
+        default_factory=lambda: ["解析", "读取", "写入", "超时", "连接", "I/O", "临时"]
+    )
+
+    def __post_init__(self) -> None:
+        self.max_retries = max(0, min(20, int(self.max_retries or 0)))
+        self.retry_delay_seconds = max(0.0, float(self.retry_delay_seconds or 0.0))
+        if self.strategy not in RETRY_STRATEGIES:
+            self.strategy = "延迟重试"
 
 
 @dataclass
 class JobLogEntry:
-    """作业日志条目。"""
     timestamp: str
-    level: str                              # DEBUG / INFO / WARNING / ERROR
+    level: str
     file_name: str = ""
     message: str = ""
 
@@ -100,6 +143,7 @@ class JobLogEntry:
 @dataclass
 class BatchJob:
     """批量转换作业。"""
+
     job_id: str
     name: str
     config: BatchConfig = field(default_factory=BatchConfig)
@@ -119,6 +163,8 @@ class BatchJob:
     logs: list[JobLogEntry] = field(default_factory=list)
     errors: list[dict[str, str]] = field(default_factory=list)
     outputs: list[str] = field(default_factory=list)
+    artifacts: list[dict[str, Any]] = field(default_factory=list)
+    workflow: list[dict[str, Any]] = field(default_factory=list)
 
 
 # ============================================================================
@@ -126,119 +172,133 @@ class BatchJob:
 # ============================================================================
 
 class BatchJobManager:
-    """批量转换作业管理器 —— 单例风格的任务队列。"""
+    """线程安全的内存任务队列。后续可替换为数据库或消息队列。"""
 
     def __init__(self) -> None:
         self._jobs: dict[str, BatchJob] = {}
-        self._queue: list[str] = []          # job_id 列表（FIFO）
-        self._counter: int = 0
-
-    # ---- CRUD ----
+        self._queue: list[str] = []
+        self._counter = 0
+        self._lock = threading.RLock()
 
     def create_job(
         self,
         name: str,
         config: BatchConfig,
         retry_policy: RetryPolicy | None = None,
+        files: list[FileEntry] | None = None,
     ) -> BatchJob:
-        self._counter += 1
-        job_id = f"BATCH-{datetime.now().strftime('%Y%m%d')}-{self._counter:04d}"
-        job = BatchJob(
-            job_id=job_id,
-            name=name,
-            config=config,
-            retry_policy=retry_policy or RetryPolicy(),
-            created_at=datetime.now().isoformat(timespec="seconds"),
-        )
-        job.files = scan_directories(config)
-        job.total = len(job.files)
-        job.logs.append(JobLogEntry(
-            timestamp=datetime.now().isoformat(timespec="seconds"),
-            level="INFO", message=f"作业已创建，扫描到 {job.total} 个文件。",
-        ))
-        self._jobs[job_id] = job
-        return job
+        with self._lock:
+            self._counter += 1
+            job_id = f"BATCH-{datetime.now().strftime('%Y%m%d')}-{self._counter:04d}"
+            imported_files = list(files) if files is not None else scan_directories(config)
+            job = BatchJob(
+                job_id=job_id,
+                name=name,
+                config=config,
+                retry_policy=retry_policy or RetryPolicy(),
+                files=imported_files,
+                total=len(imported_files),
+                created_at=_ts(),
+                workflow=build_workflow(config),
+            )
+            source_text = "导入" if files is not None else "扫描"
+            self._append_job_log(job, "INFO", f"作业已创建，{source_text}到 {job.total} 个文件。")
+            self._jobs[job_id] = job
+            return job
 
     def submit(self, job_id: str) -> bool:
-        job = self._jobs.get(job_id)
-        if not job or job.status != "排队中":
-            return False
-        self._queue.append(job_id)
-        job.logs.append(JobLogEntry(
-            timestamp=datetime.now().isoformat(timespec="seconds"),
-            level="INFO", message="已加入执行队列。",
-        ))
-        return True
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if not job or job.status != "排队中" or job_id in self._queue:
+                return False
+            self._queue.append(job_id)
+            self._append_job_log(job, "INFO", "已加入执行队列。")
+            return True
 
     def get_job(self, job_id: str) -> BatchJob | None:
-        return self._jobs.get(job_id)
+        with self._lock:
+            return self._jobs.get(job_id)
 
     def list_jobs(self, status: str | None = None) -> list[BatchJob]:
-        jobs = list(self._jobs.values())
+        with self._lock:
+            jobs = list(self._jobs.values())
         if status:
-            jobs = [j for j in jobs if j.status == status]
-        return sorted(jobs, key=lambda j: j.created_at, reverse=True)
+            jobs = [job for job in jobs if job.status == status]
+        return sorted(jobs, key=lambda job: job.created_at, reverse=True)
 
     def cancel_job(self, job_id: str) -> bool:
-        job = self._jobs.get(job_id)
-        if not job or job.status in ("已完成", "已取消"):
-            return False
-        job.status = "已取消"
-        job.finished_at = datetime.now().isoformat(timespec="seconds")
-        job.logs.append(JobLogEntry(
-            timestamp=datetime.now().isoformat(timespec="seconds"),
-            level="WARNING", message="作业已被取消。",
-        ))
-        if job_id in self._queue:
-            self._queue.remove(job_id)
-        return True
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if not job or job.status in ("已完成", "已取消"):
+                return False
+            job.status = "已取消"
+            job.finished_at = _ts()
+            self._append_job_log(job, "WARNING", "作业已被取消。")
+            while job_id in self._queue:
+                self._queue.remove(job_id)
+            return True
 
     def delete_job(self, job_id: str) -> bool:
-        if job_id in self._queue:
-            self._queue.remove(job_id)
-        return self._jobs.pop(job_id, None) is not None
-
-    # ---- 模拟执行 ----
+        with self._lock:
+            while job_id in self._queue:
+                self._queue.remove(job_id)
+            return self._jobs.pop(job_id, None) is not None
 
     def run_job(self, job_id: str) -> BatchJob | None:
-        """模拟执行一个批量转换作业（纯 Python 环境下的占位实现）。"""
-        job = self._jobs.get(job_id)
-        if not job:
-            return None
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if not job or job.status in ("运行中", "已取消"):
+                return job
+            while job_id in self._queue:
+                self._queue.remove(job_id)
+            job.status = "运行中"
+            job.started_at = _ts()
+            job.finished_at = ""
+            job.processed = job.success = job.failed = job.skipped = job.retried = 0
+            job.progress_pct = 0.0
+            job.errors.clear()
+            job.outputs.clear()
+            job.artifacts.clear()
+            self._append_job_log(job, "INFO", f"开始执行批量转换，共 {job.total} 个文件。")
 
-        job.status = "运行中"
-        job.started_at = datetime.now().isoformat(timespec="seconds")
-        job.logs.append(JobLogEntry(
-            timestamp=job.started_at, level="INFO",
-            message=f"开始执行批量转换，共 {job.total} 个文件。",
-        ))
+        results = _execute_batch_run(job)
 
-        results = _simulate_batch_run(job)
-        job.status = results["status"]
-        job.processed = results["processed"]
-        job.success = results["success"]
-        job.failed = results["failed"]
-        job.skipped = results["skipped"]
-        job.retried = results["retried"]
-        job.progress_pct = 1.0 if job.processed >= job.total else job.processed / max(job.total, 1)
-        job.finished_at = datetime.now().isoformat(timespec="seconds")
-        job.outputs = results["outputs"]
-        job.errors = results["errors"]
-
-        for log_entry in results["logs"]:
-            job.logs.append(JobLogEntry(**log_entry))
-
-        job.logs.append(JobLogEntry(
-            timestamp=job.finished_at, level="INFO",
-            message=f"作业完成：成功 {job.success} / 失败 {job.failed} / 跳过 {job.skipped}。",
-        ))
-        return job
+        with self._lock:
+            job.status = str(results["status"])
+            job.processed = int(results["processed"])
+            job.success = int(results["success"])
+            job.failed = int(results["failed"])
+            job.skipped = int(results["skipped"])
+            job.retried = int(results["retried"])
+            completed_count = job.success + job.failed + job.skipped
+            job.progress_pct = completed_count / max(job.total, 1)
+            job.finished_at = _ts()
+            job.outputs = list(results["outputs"])
+            job.errors = list(results["errors"])
+            job.artifacts = list(results["artifacts"])
+            job.workflow = list(results["workflow"])
+            for item in results["logs"]:
+                self._append_job_log(
+                    job,
+                    str(item.get("level", "INFO")),
+                    str(item.get("message", "")),
+                    str(item.get("file_name", "")),
+                    timestamp=str(item.get("timestamp", "")) or None,
+                )
+            self._append_job_log(
+                job,
+                "INFO",
+                f"作业结束：成功 {job.success} / 失败 {job.failed} / 跳过 {job.skipped} / 重试 {job.retried}。",
+            )
+            return job
 
     def run_all_queued(self) -> list[BatchJob]:
-        """按 FIFO 顺序执行队列中所有作业。"""
         results: list[BatchJob] = []
-        while self._queue:
-            job_id = self._queue.pop(0)
+        while True:
+            with self._lock:
+                if not self._queue:
+                    break
+                job_id = self._queue[0]
             job = self.run_job(job_id)
             if job:
                 results.append(job)
@@ -246,22 +306,34 @@ class BatchJobManager:
 
     @property
     def queue_length(self) -> int:
-        return len(self._queue)
+        with self._lock:
+            return len(self._queue)
 
     @property
     def stats(self) -> dict[str, int]:
-        all_jobs = list(self._jobs.values())
+        with self._lock:
+            jobs = list(self._jobs.values())
         return {
-            "total": len(all_jobs),
-            "queued": sum(1 for j in all_jobs if j.status == "排队中"),
-            "running": sum(1 for j in all_jobs if j.status == "运行中"),
-            "completed": sum(1 for j in all_jobs if j.status == "已完成"),
-            "failed": sum(1 for j in all_jobs if j.status in ("已失败", "部分失败")),
-            "cancelled": sum(1 for j in all_jobs if j.status == "已取消"),
+            "total": len(jobs),
+            "queued": sum(job.status == "排队中" for job in jobs),
+            "running": sum(job.status == "运行中" for job in jobs),
+            "completed": sum(job.status == "已完成" for job in jobs),
+            "failed": sum(job.status in ("已失败", "部分失败") for job in jobs),
+            "cancelled": sum(job.status == "已取消" for job in jobs),
         }
 
+    @staticmethod
+    def _append_job_log(
+        job: BatchJob,
+        level: str,
+        message: str,
+        file_name: str = "",
+        timestamp: str | None = None,
+    ) -> None:
+        if _should_log(level, job.config.log_level):
+            job.logs.append(JobLogEntry(timestamp or _ts(), level, file_name, message))
 
-# 全局单例
+
 _manager = BatchJobManager()
 
 
@@ -270,123 +342,177 @@ def get_manager() -> BatchJobManager:
 
 
 # ============================================================================
-# 目录扫描
+# 文件扫描
 # ============================================================================
 
 def scan_directories(config: BatchConfig) -> list[FileEntry]:
-    """按配置扫描目录，返回符合条件的文件条目列表。"""
-    files: list[FileEntry] = []
-    extensions = SCAN_EXTENSIONS.get(config.format_category, SCAN_EXTENSIONS["全部"])
+    """扫描多个目录，自动去重并限制最大文件数。"""
+
+    extensions = set(SCAN_EXTENSIONS.get(config.format_category, SCAN_EXTENSIONS["全部"]))
+    found: dict[str, FileEntry] = {}
 
     for directory in config.directories:
         base = Path(directory).expanduser()
-        if not base.exists():
+        if not base.is_dir():
             continue
-
-        if config.recursive:
-            walker = base.rglob
-        else:
-            walker = base.glob
-
-        for pattern in config.file_patterns:
-            for path in walker(pattern):
-                if path.is_file() and path.suffix.lower() in extensions:
-                    files.append(FileEntry(
-                        path=str(path.resolve()),
-                        size_bytes=path.stat().st_size,
-                    ))
-                if len(files) >= config.max_files:
-                    break
-            if len(files) >= config.max_files:
+        walker: Callable[[str], Any] = base.rglob if config.recursive else base.glob
+        for pattern in config.file_patterns or ["*"]:
+            try:
+                candidates = walker(pattern)
+                for path in candidates:
+                    if not path.is_file() or path.suffix.lower() not in extensions:
+                        continue
+                    try:
+                        resolved = str(path.resolve())
+                    except OSError:
+                        resolved = str(path)
+                    found.setdefault(resolved, FileEntry(path=resolved))
+                    if len(found) >= config.max_files:
+                        break
+            except OSError:
+                continue
+            if len(found) >= config.max_files:
                 break
-        if len(files) >= config.max_files:
+        if len(found) >= config.max_files:
             break
 
-    return sorted(files, key=lambda f: (f.category, f.name))
+    return sorted(found.values(), key=lambda item: (item.category, item.name, item.path))
 
 
-def scan_directory_flat(directory: str | Path, recursive: bool = True, max_files: int = 500) -> list[FileEntry]:
-    """快速扫描单个目录。"""
-    config = BatchConfig(directories=[str(directory)], recursive=recursive, max_files=max_files)
+def scan_directory_flat(
+    directory: str | Path,
+    recursive: bool = True,
+    max_files: int = 500,
+    format_category: str = "全部",
+) -> list[FileEntry]:
+    config = BatchConfig(
+        directories=[str(directory)],
+        recursive=recursive,
+        max_files=max_files,
+        format_category=format_category,
+    )
     return scan_directories(config)
 
 
 # ============================================================================
-# 模拟批量执行
+# 执行器
 # ============================================================================
 
-def _simulate_batch_run(job: BatchJob) -> dict[str, Any]:
-    """模拟执行批量转换，生成接近真实的结果报告。"""
-    processed = 0
-    success = 0
-    failed = 0
-    skipped = 0
-    retried = 0
+def _execute_batch_run(job: BatchJob) -> dict[str, Any]:
     logs: list[dict[str, str]] = []
     errors: list[dict[str, str]] = []
     outputs: list[str] = []
-    t0 = datetime.now().isoformat(timespec="seconds")
+    artifacts: list[dict[str, Any]] = []
+    workflow = build_workflow(job.config)
+    started = time.perf_counter()
 
-    for idx, file_entry in enumerate(job.files):
-        if not file_entry.selected:
-            skipped += 1
-            logs.append({"timestamp": _ts(), "level": "INFO", "file_name": file_entry.name, "message": "已跳过（未选中）。"})
-            continue
+    selected = [(index, item) for index, item in enumerate(job.files, start=1) if item.selected]
+    skipped_unselected = sum(not item.selected for item in job.files)
+    for item in job.files:
+        if not item.selected:
+            _append_log(logs, job, "INFO", "已跳过（未选中）。", item.name)
 
-        processed += 1
-        suffix = file_entry.suffix
+    if not selected:
+        status = "已完成" if job.total else "已失败"
+        if not job.total:
+            errors.append({"file": "", "message": "批次中没有可执行文件。", "retries": "0"})
+            _append_log(logs, job, "ERROR", "批次中没有可执行文件。")
+        return {
+            "status": status,
+            "processed": 0,
+            "success": 0,
+            "failed": 0 if job.total else 1,
+            "skipped": skipped_unselected,
+            "retried": 0,
+            "outputs": outputs,
+            "errors": errors,
+            "logs": logs,
+            "artifacts": artifacts,
+            "workflow": _finish_workflow(workflow, status),
+        }
 
-        # 模拟不同格式的转换成功率
-        success_rate = {
-            ".obj": 0.92, ".stl": 0.90, ".ply": 0.88, ".vtk": 0.85,
-            ".geojson": 0.95, ".json": 0.93, ".csv": 0.96, ".txt": 0.94,
-            ".las": 0.80, ".laz": 0.78, ".ifc": 0.75,
-        }.get(suffix, 0.85)
+    if _convert_model_files is None:
+        message = "未找到 function/model_format_conversion.py，无法执行真实格式转换。"
+        for _, item in selected:
+            errors.append({"file": item.name, "message": message, "retries": "0"})
+            _append_log(logs, job, "ERROR", message, item.name)
+        return {
+            "status": "已失败",
+            "processed": len(selected),
+            "success": 0,
+            "failed": len(selected),
+            "skipped": skipped_unselected,
+            "retried": 0,
+            "outputs": outputs,
+            "errors": errors,
+            "logs": logs,
+            "artifacts": artifacts,
+            "workflow": _finish_workflow(workflow, "已失败"),
+        }
 
-        # 模拟偶尔的失败和重试
-        file_failed = False
-        retry_count = 0
-        while retry_count <= job.retry_policy.max_retries:
-            if _random_ok(success_rate):
-                # 成功
-                out_name = Path(file_entry.name).stem + "_converted." + job.config.target_format.lower()
-                out_path = str(Path(job.config.output_dir or "output") / out_name)
-                outputs.append(out_path)
-                logs.append({"timestamp": _ts(), "level": "INFO", "file_name": file_entry.name, "message": f"转换成功 → {out_name}"})
+    stop_event = threading.Event()
+    max_workers = job.config.concurrency
+    if job.retry_policy.strategy == "中止":
+        # “中止”要求首个失败后立刻停下，使用单线程才能保证语义准确。
+        max_workers = 1
+        _append_log(logs, job, "DEBUG", "重试策略为“中止”，并发数量自动调整为 1。")
+
+    success = failed = skipped_policy = retried = processed = 0
+    futures: dict[Future[dict[str, Any]], FileEntry] = {}
+
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="batch-convert") as executor:
+        for index, item in selected:
+            future = executor.submit(_convert_one_file, job, item, index, stop_event)
+            futures[future] = item
+
+        for future in as_completed(futures):
+            item = futures[future]
+            try:
+                result = future.result()
+            except Exception as exc:  # 后端异常不能让整个批次崩溃
+                result = {
+                    "state": "failed",
+                    "retries": 0,
+                    "outputs": [],
+                    "artifacts": [],
+                    "logs": [{"timestamp": _ts(), "level": "ERROR", "file_name": item.name, "message": f"执行器异常：{exc}"}],
+                    "error": str(exc),
+                }
+
+            state = str(result["state"])
+            if state != "cancelled":
+                processed += 1
+            if state == "success":
                 success += 1
-                break
-            else:
-                retry_count += 1
-                if retry_count <= job.retry_policy.max_retries:
-                    if job.retry_policy.strategy not in ("跳过", "中止"):
-                        retried += 1
-                        logs.append({"timestamp": _ts(), "level": "WARNING", "file_name": file_entry.name,
-                                     "message": f"转换失败，{job.retry_policy.strategy}（第 {retry_count} 次）。"})
-                    else:
-                        break
-                else:
-                    file_failed = True
-                    break
+            elif state == "skipped":
+                skipped_policy += 1
+            elif state == "failed":
+                failed += 1
+                errors.append({
+                    "file": item.name,
+                    "message": str(result.get("error", "转换失败。")),
+                    "retries": str(result.get("retries", 0)),
+                })
+            elif state == "cancelled":
+                skipped_policy += 1
 
-        if file_failed or (retry_count > 0 and job.retry_policy.strategy == "跳过"):
-            failed += 1
-            err_msg = f"转换失败，已重试 {retry_count} 次。" if retry_count > 0 else "转换失败。"
-            logs.append({"timestamp": _ts(), "level": "ERROR", "file_name": file_entry.name, "message": err_msg})
-            errors.append({"file": file_entry.name, "message": err_msg, "retries": str(retry_count)})
-            if job.retry_policy.strategy == "中止":
-                logs.append({"timestamp": _ts(), "level": "ERROR", "message": "策略为“中止”，停止后续处理。"})
-                break
+            retried += int(result.get("retries", 0))
+            outputs.extend(str(path) for path in result.get("outputs", []))
+            artifacts.extend(item for item in result.get("artifacts", []) if isinstance(item, dict))
+            logs.extend(item for item in result.get("logs", []) if isinstance(item, dict))
 
-    t1 = datetime.now().isoformat(timespec="seconds")
-    logs.insert(0, {"timestamp": t0, "level": "INFO", "message": f"批次执行开始。"})
-    logs.append({"timestamp": t1, "level": "INFO", "message": f"批次执行结束，耗时约 {len(job.files) * 0.05:.1f}s（模拟）。"})
-
-    if failed == 0:
+    skipped = skipped_unselected + skipped_policy
+    if stop_event.is_set() and failed > 0:
+        status = "已失败"
+    elif failed == 0 and skipped_policy == 0:
         status = "已完成"
     elif success > 0:
         status = "部分失败"
     else:
         status = "已失败"
+
+    elapsed = time.perf_counter() - started
+    _append_log(logs, job, "INFO", f"批次执行结束，耗时 {elapsed:.2f} 秒。")
 
     return {
         "status": status,
@@ -395,103 +521,242 @@ def _simulate_batch_run(job: BatchJob) -> dict[str, Any]:
         "failed": failed,
         "skipped": skipped,
         "retried": retried,
-        "outputs": outputs,
+        "outputs": _deduplicate(outputs),
         "errors": errors,
-        "logs": logs,
+        "logs": sorted(logs, key=lambda item: item.get("timestamp", "")),
+        "artifacts": artifacts,
+        "workflow": _finish_workflow(workflow, status),
     }
 
 
-def _random_ok(rate: float) -> bool:
-    """伪随机判断（基于文件名哈希，使结果可复现）。"""
-    return rate > 0.5  # 简化：直接用成功率阈值
+def _convert_one_file(
+    job: BatchJob,
+    file_entry: FileEntry,
+    sequence: int,
+    stop_event: threading.Event,
+) -> dict[str, Any]:
+    local_logs: list[dict[str, str]] = []
+    source = Path(file_entry.path).expanduser()
+    if stop_event.is_set():
+        return {"state": "cancelled", "retries": 0, "outputs": [], "artifacts": [], "logs": local_logs}
+    if not source.is_file():
+        message = "源文件不存在或不可访问。"
+        _append_log(local_logs, job, "ERROR", message, file_entry.name)
+        return {"state": "failed", "retries": 0, "outputs": [], "artifacts": [], "logs": local_logs, "error": message}
+
+    output_root = Path(job.config.output_dir or "output").expanduser() / job.job_id
+    file_output_dir = output_root / f"{sequence:03d}_{_safe_stem(source.stem)}"
+    file_output_dir.mkdir(parents=True, exist_ok=True)
+
+    retries_done = 0
+    last_error = "转换失败。"
+    last_artifacts: list[dict[str, Any]] = []
+    last_outputs: list[str] = []
+
+    for attempt in range(job.retry_policy.max_retries + 1):
+        if stop_event.is_set():
+            return {
+                "state": "cancelled",
+                "retries": retries_done,
+                "outputs": [],
+                "artifacts": [],
+                "logs": local_logs,
+            }
+
+        _append_log(
+            local_logs,
+            job,
+            "DEBUG",
+            f"开始第 {attempt + 1} 次转换，目标格式={job.config.target_format}。",
+            file_entry.name,
+        )
+        try:
+            report = _convert_model_files(
+                [str(source)],
+                file_output_dir,
+                job.config.target_format,
+                coordinate_rule=job.config.coordinate_rule,
+                attribute_rule=job.config.attribute_rule,
+                overwrite=job.config.overwrite,
+            )
+        except Exception as exc:
+            report = {
+                "success_count": 0,
+                "failure_count": 1,
+                "errors": [f"转换器异常：{exc}"],
+                "artifacts": [],
+            }
+
+        last_artifacts = [item for item in report.get("artifacts", []) if isinstance(item, dict)]
+        last_outputs = _extract_outputs(report)
+        success_count = int(report.get("success_count", 0) or 0)
+        failure_count = int(report.get("failure_count", 0) or 0)
+
+        if success_count > 0 and failure_count == 0:
+            _append_log(
+                local_logs,
+                job,
+                "INFO",
+                f"转换成功，共生成 {len(last_outputs)} 个成果文件。",
+                file_entry.name,
+            )
+            return {
+                "state": "success",
+                "retries": retries_done,
+                "outputs": last_outputs,
+                "artifacts": last_artifacts,
+                "logs": local_logs,
+            }
+
+        last_error = _report_error_text(report)
+        if job.retry_policy.strategy == "跳过":
+            _append_log(local_logs, job, "WARNING", f"转换失败并按策略跳过：{last_error}", file_entry.name)
+            return {
+                "state": "skipped",
+                "retries": retries_done,
+                "outputs": [],
+                "artifacts": last_artifacts,
+                "logs": local_logs,
+                "error": last_error,
+            }
+        if job.retry_policy.strategy == "中止":
+            stop_event.set()
+            _append_log(local_logs, job, "ERROR", f"转换失败，批次中止：{last_error}", file_entry.name)
+            return {
+                "state": "failed",
+                "retries": retries_done,
+                "outputs": [],
+                "artifacts": last_artifacts,
+                "logs": local_logs,
+                "error": last_error,
+            }
+        if attempt >= job.retry_policy.max_retries or not _is_retryable(last_error):
+            break
+
+        retries_done += 1
+        _append_log(
+            local_logs,
+            job,
+            "WARNING",
+            f"转换失败，准备{job.retry_policy.strategy}（第 {retries_done} 次）：{last_error}",
+            file_entry.name,
+        )
+        if job.retry_policy.strategy == "延迟重试" and job.retry_policy.retry_delay_seconds > 0:
+            time.sleep(job.retry_policy.retry_delay_seconds)
+
+    _append_log(local_logs, job, "ERROR", f"转换最终失败：{last_error}", file_entry.name)
+    return {
+        "state": "failed",
+        "retries": retries_done,
+        "outputs": [],
+        "artifacts": last_artifacts,
+        "logs": local_logs,
+        "error": last_error,
+    }
 
 
-def _ts() -> str:
-    return datetime.now().isoformat(timespec="seconds")
+def _extract_outputs(report: dict[str, Any]) -> list[str]:
+    outputs: list[str] = []
+    for artifact in report.get("artifacts", []):
+        if isinstance(artifact, dict):
+            value = artifact.get("output") or artifact.get("output_file")
+            if value:
+                outputs.append(str(value))
+    manifest = report.get("manifest_path")
+    if manifest:
+        outputs.append(str(manifest))
+    return _deduplicate(outputs)
+
+
+def _report_error_text(report: dict[str, Any]) -> str:
+    errors = report.get("errors", [])
+    if isinstance(errors, list) and errors:
+        return "；".join(str(item) for item in errors[:4])
+    artifacts = report.get("artifacts", [])
+    messages = [
+        str(item.get("message", ""))
+        for item in artifacts
+        if isinstance(item, dict) and item.get("status") not in ("成功", "已完成") and item.get("message")
+    ]
+    return "；".join(messages[:4]) or str(report.get("status", "转换失败。"))
+
+
+def _is_retryable(message: str) -> bool:
+    text = message.lower()
+    non_retryable = ("不支持的目标格式", "当前未内置该源格式", "源文件不存在", "未选择待转换文件")
+    return not any(token.lower() in text for token in non_retryable)
 
 
 # ============================================================================
-# 流程编排
+# 流程与报告
 # ============================================================================
-
-WORKFLOW_STEPS = (
-    "目录扫描与文件发现",
-    "格式识别与分类",
-    "规则模板匹配",
-    "批量格式转换",
-    "质量检查与校验",
-    "成果汇总与归档",
-)
-
 
 def build_workflow(config: BatchConfig) -> list[dict[str, Any]]:
-    """根据配置编排批处理工作流步骤。"""
-    steps: list[dict[str, Any]] = []
-    steps.append({"order": 1, "name": "目录扫描与文件发现", "status": "pending",
-                  "detail": f"扫描 {len(config.directories)} 个目录，递归={config.recursive}。"})
-    steps.append({"order": 2, "name": "格式识别与分类", "status": "pending",
-                  "detail": f"按 {config.format_category} 类别过滤文件。"})
-    steps.append({"order": 3, "name": "规则模板匹配", "status": "pending",
-                  "detail": f"应用模板“{config.template_name or '未指定'}”中的映射规则。"})
-    steps.append({"order": 4, "name": "批量格式转换", "status": "pending",
-                  "detail": f"转换为 {config.target_format}，坐标规则={config.coordinate_rule}。"})
-    steps.append({"order": 5, "name": "质量检查与校验", "status": "pending",
-                  "detail": "几何闭合性、拓扑关系、属性完整性、坐标精度。"})
-    steps.append({"order": 6, "name": "成果汇总与归档", "status": "pending",
-                  "detail": f"输出至 {config.output_dir or 'output/'}，生成操作日志。"})
-    return steps
+    return [
+        {"order": 1, "name": WORKFLOW_STEPS[0], "status": "pending", "detail": f"扫描 {len(config.directories)} 个目录，递归={config.recursive}。"},
+        {"order": 2, "name": WORKFLOW_STEPS[1], "status": "pending", "detail": f"按 {config.format_category} 类别识别文件。"},
+        {"order": 3, "name": WORKFLOW_STEPS[2], "status": "pending", "detail": f"应用模板“{config.template_name or '未指定'}”。"},
+        {"order": 4, "name": WORKFLOW_STEPS[3], "status": "pending", "detail": f"并发数={config.concurrency}，目标格式={config.target_format}。"},
+        {"order": 5, "name": WORKFLOW_STEPS[4], "status": "pending", "detail": "读取转换器返回的质量结果、警告与错误。"},
+        {"order": 6, "name": WORKFLOW_STEPS[5], "status": "pending", "detail": f"输出至 {config.output_dir or 'output/'}。"},
+    ]
 
-
-# ============================================================================
-# 批量报告
-# ============================================================================
 
 def build_batch_report(job_ids: list[str] | None = None) -> dict[str, Any]:
-    """汇总批量转换作业报告。"""
-    mgr = get_manager()
-    jobs = [mgr.get_job(jid) for jid in (job_ids or []) if mgr.get_job(jid)]
-    if not job_ids:
-        jobs = mgr.list_jobs()
+    manager = get_manager()
+    if job_ids:
+        jobs = [job for job_id in job_ids if (job := manager.get_job(job_id)) is not None]
+    else:
+        jobs = manager.list_jobs()
 
-    report: dict[str, Any] = {
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "stats": mgr.stats,
-        "jobs": [],
-        "summary": {},
-    }
-
-    total_files = 0
-    total_success = 0
-    total_failed = 0
-    total_retried = 0
-
+    report_jobs: list[dict[str, Any]] = []
     for job in jobs:
-        total_files += job.total
-        total_success += job.success
-        total_failed += job.failed
-        total_retried += job.retried
-        report["jobs"].append({
-            "job_id": job.job_id, "name": job.name, "status": job.status,
-            "total": job.total, "processed": job.processed,
-            "success": job.success, "failed": job.failed, "skipped": job.skipped,
-            "retried": job.retried, "progress_pct": job.progress_pct,
-            "created_at": job.created_at, "finished_at": job.finished_at,
-            "error_count": len(job.errors),
+        report_jobs.append({
+            "job_id": job.job_id,
+            "name": job.name,
+            "status": job.status,
+            "total": job.total,
+            "processed": job.processed,
+            "success": job.success,
+            "failed": job.failed,
+            "skipped": job.skipped,
+            "retried": job.retried,
+            "progress_pct": round(job.progress_pct, 4),
+            "created_at": job.created_at,
+            "started_at": job.started_at,
+            "finished_at": job.finished_at,
+            "config": asdict(job.config),
+            "retry_policy": asdict(job.retry_policy),
+            "outputs": list(job.outputs),
+            "errors": list(job.errors),
+            "workflow": list(job.workflow),
         })
 
-    report["summary"] = {
-        "total_jobs": len(jobs),
-        "total_files": total_files,
-        "total_success": total_success,
-        "total_failed": total_failed,
-        "total_retried": total_retried,
-        "success_rate": round(total_success / max(total_files, 1), 4),
+    total_files = sum(job.total for job in jobs)
+    total_success = sum(job.success for job in jobs)
+    total_failed = sum(job.failed for job in jobs)
+    total_skipped = sum(job.skipped for job in jobs)
+    total_retried = sum(job.retried for job in jobs)
+    attempted = total_success + total_failed
+
+    return {
+        "generated_at": _ts(),
+        "stats": manager.stats,
+        "jobs": report_jobs,
+        "summary": {
+            "total_jobs": len(jobs),
+            "total_files": total_files,
+            "total_success": total_success,
+            "total_failed": total_failed,
+            "total_skipped": total_skipped,
+            "total_retried": total_retried,
+            "success_rate": round(total_success / max(attempted, 1), 4),
+        },
     }
-    return report
 
 
 # ============================================================================
-# 入口：导入数据并创建批处理作业
+# 创建作业入口
 # ============================================================================
 
 def create_batch_from_paths(
@@ -500,20 +765,37 @@ def create_batch_from_paths(
     target_format: str = "OBJ",
     output_dir: str = "",
     template_name: str = "",
+    coordinate_rule: str = "保留源坐标",
+    attribute_rule: str = "全部保留",
+    concurrency: int = 4,
+    log_level: str = "INFO",
+    retry_policy: RetryPolicy | None = None,
 ) -> BatchJob:
-    """从用户选择的文件列表创建批处理作业。"""
-    mgr = get_manager()
     config = BatchConfig(
         name=job_name or f"手动导入批次 {_ts()}",
         target_format=target_format,
         output_dir=output_dir or "output",
         template_name=template_name,
+        coordinate_rule=coordinate_rule,
+        attribute_rule=attribute_rule,
+        concurrency=concurrency,
+        log_level=log_level,
     )
-    files = [FileEntry(path=fp) for fp in file_paths if Path(fp).exists()]
-    job = mgr.create_job(name=config.name, config=config)
-    job.files = files
-    job.total = len(files)
-    return job
+    unique_files: dict[str, FileEntry] = {}
+    for raw_path in file_paths:
+        path = Path(raw_path).expanduser()
+        try:
+            key = str(path.resolve())
+        except OSError:
+            key = str(path)
+        if key not in unique_files:
+            unique_files[key] = FileEntry(path=key)
+    return get_manager().create_job(
+        name=config.name,
+        config=config,
+        retry_policy=retry_policy,
+        files=list(unique_files.values()),
+    )
 
 
 def create_batch_from_directories(
@@ -526,44 +808,85 @@ def create_batch_from_directories(
     template_name: str = "",
     max_files: int = 500,
     retry_policy: RetryPolicy | None = None,
+    coordinate_rule: str = "保留源坐标",
+    attribute_rule: str = "全部保留",
+    concurrency: int = 4,
+    log_level: str = "INFO",
 ) -> BatchJob:
-    """从目录扫描创建批处理作业。"""
-    mgr = get_manager()
     config = BatchConfig(
         name=job_name or f"目录扫描批次 {_ts()}",
-        directories=directories,
+        directories=list(directories),
         format_category=format_category,
         recursive=recursive,
         max_files=max_files,
         target_format=target_format,
         output_dir=output_dir or "output",
         template_name=template_name,
+        coordinate_rule=coordinate_rule,
+        attribute_rule=attribute_rule,
+        concurrency=concurrency,
+        log_level=log_level,
     )
-    job = mgr.create_job(name=config.name, config=config, retry_policy=retry_policy)
-    return job
+    return get_manager().create_job(name=config.name, config=config, retry_policy=retry_policy)
 
 
 # ============================================================================
-# 统计工具
+# 工具函数
 # ============================================================================
 
 def format_summary(files: list[FileEntry]) -> dict[str, dict[str, int]]:
-    """按格式类别统计文件分布。"""
-    dist: dict[str, dict[str, int]] = defaultdict(lambda: {"count": 0, "size_bytes": 0})
-    for f in files:
-        dist[f.category]["count"] += 1
-        dist[f.category]["size_bytes"] += f.size_bytes
-    return dict(dist)
+    distribution: dict[str, dict[str, int]] = defaultdict(lambda: {"count": 0, "size_bytes": 0})
+    for item in files:
+        distribution[item.category]["count"] += 1
+        distribution[item.category]["size_bytes"] += item.size_bytes
+    return dict(distribution)
 
 
 def size_fmt(size_bytes: int) -> str:
     if size_bytes < 1024:
         return f"{size_bytes} B"
-    if size_bytes < 1024 * 1024:
+    if size_bytes < 1024**2:
         return f"{size_bytes / 1024:.1f} KB"
-    if size_bytes < 1024 * 1024 * 1024:
-        return f"{size_bytes / (1024 * 1024):.1f} MB"
-    return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+    if size_bytes < 1024**3:
+        return f"{size_bytes / 1024**2:.1f} MB"
+    return f"{size_bytes / 1024**3:.2f} GB"
+
+
+def _finish_workflow(workflow: list[dict[str, Any]], status: str) -> list[dict[str, Any]]:
+    final = []
+    for step in workflow:
+        item = dict(step)
+        item["status"] = "completed" if status in ("已完成", "部分失败") else "failed"
+        final.append(item)
+    return final
+
+
+def _append_log(
+    logs: list[dict[str, str]],
+    job: BatchJob,
+    level: str,
+    message: str,
+    file_name: str = "",
+) -> None:
+    if _should_log(level, job.config.log_level):
+        logs.append({"timestamp": _ts(), "level": level, "file_name": file_name, "message": message})
+
+
+def _should_log(level: str, configured_level: str) -> bool:
+    return _LOG_RANK.get(level, 1) >= _LOG_RANK.get(configured_level, 1)
+
+
+def _safe_stem(value: str) -> str:
+    allowed = "".join(char if char.isalnum() or char in "-_" else "_" for char in value)
+    return allowed.strip("_") or "file"
+
+
+def _deduplicate(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(values))
+
+
+def _ts() -> str:
+    return datetime.now().isoformat(timespec="milliseconds")
 
 
 __all__ = [

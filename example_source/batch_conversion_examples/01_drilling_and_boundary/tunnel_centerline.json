@@ -1,0 +1,13 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"name": "隧道中心线", "start_mileage": "DK12+000", "end_mileage": "DK12+120"},
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[500000,3400000,95],[500040,3400035,96],[500080,3400070,97],[500120,3400105,98]]
+      }
+    }
+  ]
+}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
 import tkinter as tk
 from dataclasses import dataclass
 from datetime import datetime
@@ -12,8 +13,9 @@ from tkinter import ttk
 
 from function.data_preprocessing import build_preprocessing_report
 from function.batch_conversion import (
-    BatchJob, FileEntry, build_batch_report, create_batch_from_paths,
-    format_summary, get_manager, size_fmt, WORKFLOW_STEPS,
+    BatchJob, FileEntry, RetryPolicy, SCAN_EXTENSIONS,
+    build_batch_report, create_batch_from_paths, format_summary,
+    get_manager, scan_directory_flat, size_fmt, WORKFLOW_STEPS,
 )
 from function.rule_template_library import (
     DATA_SOURCES,
@@ -502,6 +504,7 @@ class GeoConversionApp(tk.Tk):
         )
         self.logs: list[str] = []
         self.selected_template_name = ""
+        self._batch_running = False
         self.quality_report: dict[str, object] | None = None
         self.conversion_report: dict[str, object] | None = None
         self.conversion_target_var = tk.StringVar(value="OBJ")
@@ -1847,6 +1850,12 @@ class GeoConversionApp(tk.Tk):
         stats = mgr.stats
         jobs = mgr.list_jobs()
 
+        # 按文件统计成功率；没有已处理文件时显示 0.0%，避免未定义变量和除零。
+        total_success = sum(job.success for job in jobs)
+        total_failed = sum(job.failed for job in jobs)
+        processed_result_count = total_success + total_failed
+        file_success_rate = total_success / processed_result_count if processed_result_count else 0.0
+
         # 顶部指标
         summary = tk.Frame(root, bg=self.BG)
         summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
@@ -1855,8 +1864,8 @@ class GeoConversionApp(tk.Tk):
         summary_items = (
             ("待处理文件", f"{len(self.selected_files)} 个", "已加载待批量转换的数据", self.TEAL),
             ("作业总数", f"{stats['total']} 个", f"排队 {stats['queued']} · 已完成 {stats['completed']}", self.BLUE),
-            ("成功率", f"{stats['completed']}/{max(stats['total'], 1)}",
-             "批量任务完成统计", self.GREEN if stats['failed'] == 0 else self.AMBER),
+            ("文件成功率", f"{file_success_rate:.1%}",
+             f"成功 {total_success} · 失败 {total_failed}", self.GREEN if total_failed == 0 else self.AMBER),
             ("队列状态", f"{mgr.queue_length} 个待执行", "FIFO 先进先出队列", self.PURPLE),
         )
         for idx, item in enumerate(summary_items):
@@ -1875,41 +1884,66 @@ class GeoConversionApp(tk.Tk):
         left_card = self._card(work)
         left_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         left_card.columnconfigure(0, weight=1)
-        left_card.rowconfigure(3, weight=1)
-        self._card_header(left_card, "数据导入与流程")
-        tk.Label(
-            left_card,
-            text="选择多批次、多格式源文件，系统将按流程编排自动执行扫描、转换、质检与归档。",
-            bg=self.PANEL, fg=self.MUTED, font=self.small_font,
-            justify="left", wraplength=330,
-        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 9))
+        left_card.rowconfigure(5, weight=1)
+        self._card_header(left_card, "数据导入与流程编排")
 
+        # 操作按钮栏
         btn_row = tk.Frame(left_card, bg=self.PANEL)
-        btn_row.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 8))
+        btn_row.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
         ttk.Button(btn_row, text="添加文件", style="Primary.TButton", command=self._choose_files).pack(side="left")
-        ttk.Button(btn_row, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=7)
+        ttk.Button(btn_row, text="添加目录", style="Tool.TButton", command=self._choose_batch_directory).pack(side="left", padx=(5, 0))
+        ttk.Button(btn_row, text="加载示例", style="Tool.TButton", command=self._load_batch_sample_data).pack(side="left", padx=(5, 0))
+        ttk.Button(btn_row, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(5, 0))
 
-        # 流程编排步骤
-        flow_label = tk.Frame(left_card, bg=self.PANEL)
-        flow_label.grid(row=3, column=0, sticky="ew", padx=12)
-        tk.Label(flow_label, text="流程编排", bg=self.PANEL, fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").pack(anchor="w")
-        for si, step_name in enumerate(WORKFLOW_STEPS):
-            step_frame = tk.Frame(left_card, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1)
-            step_frame.grid(row=4 + si, column=0, sticky="ew", padx=12, pady=(0, 4))
-            step_frame.columnconfigure(1, weight=1)
-            done = self.run_completed
-            color = self.GREEN if done else self.TEAL if si == 0 else "#c8d5d1"
-            tk.Frame(step_frame, bg=color, width=4).grid(row=0, column=0, rowspan=1, sticky="ns")
-            badge_text = "✓" if done else str(si + 1)
-            badge = tk.Label(step_frame, text=badge_text, bg=color, fg="#ffffff",
-                            font=(self.font_family, 7, "bold"), width=2, padx=3, pady=3)
-            badge.grid(row=0, column=1, sticky="w", padx=(8, 6), pady=8)
-            tk.Label(step_frame, text=step_name, bg="#f7faf9", fg=self.TEXT if done or si == 0 else self.MUTED,
-                    font=(self.font_family, 9, "bold" if si == 0 else "normal"), anchor="w").grid(
-                row=0, column=2, sticky="w", pady=8)
-            tk.Label(step_frame, text="完成" if done else "待执行", bg="#f7faf9",
-                    fg=self.GREEN if done else self.MUTED, font=self.tiny_font).grid(
-                row=0, column=3, sticky="e", padx=(0, 10), pady=8)
+        # 已加载文件概览
+        file_header = tk.Frame(left_card, bg="#f0f5f3", highlightbackground=self.BORDER, highlightthickness=1)
+        file_header.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 2))
+        file_header.columnconfigure(0, weight=1)
+        fcount = len(self.selected_files)
+        tk.Label(file_header, text=f"已加载 {fcount} 个文件", bg="#f0f5f3", fg=self.TEXT,
+                 font=(self.font_family, 9, "bold"), anchor="w").grid(row=0, column=0, sticky="w", padx=10, pady=(7, 2))
+        # 格式分布微型条
+        if self.selected_files:
+            dist = format_summary([FileEntry(path=fp) for fp in self.selected_files])
+            tag_row = tk.Frame(file_header, bg="#f0f5f3")
+            tag_row.grid(row=1, column=0, sticky="ew", padx=10, pady=(2, 7))
+            tag_colors: dict[str, str] = {"三维模型": self.TEAL, "表格": self.BLUE, "地理空间": self.ORANGE, "点云": self.AMBER, "BIM/IFC": self.PURPLE, "未知": self.MUTED}
+            for cat_name, info in sorted(dist.items()):
+                tag = tk.Frame(tag_row, bg=tag_colors.get(cat_name, self.MUTED))
+                tag.pack(side="left", padx=(0, 5))
+                tk.Label(tag, text=f" {cat_name} {info['count']} ", bg=tag["bg"], fg="#ffffff",
+                         font=(self.font_family, 7, "bold"), padx=3, pady=1).pack()
+        else:
+            tk.Label(file_header, text="请添加待批量转换的文件或目录", bg="#f0f5f3", fg=self.MUTED,
+                     font=self.tiny_font, anchor="w").grid(row=1, column=0, sticky="w", padx=10, pady=(2, 7))
+
+        # 文件列表（紧凑滚动）
+        file_list_frame = tk.Frame(left_card, bg=self.PANEL)
+        file_list_frame.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 10))
+        file_list_frame.columnconfigure(0, weight=1)
+        if self.selected_files:
+            file_tree = ttk.Treeview(
+                file_list_frame, columns=("name", "cat", "size"), show="headings",
+                style="Dashboard.Treeview", height=5,
+            )
+            for key, title, width in (("name", "文件", 200), ("cat", "类别", 70), ("size", "大小", 65)):
+                file_tree.heading(key, text=title)
+                file_tree.column(key, width=width, anchor="w")
+            file_tree.grid(row=0, column=0, sticky="nsew")
+            for fp in self.selected_files[:20]:
+                entry = FileEntry(path=fp)
+                file_tree.insert("", "end", values=(entry.name, entry.category, size_fmt(entry.size_bytes)))
+        else:
+            tk.Label(file_list_frame, text="暂无文件", bg=self.PANEL, fg=self.MUTED, font=self.tiny_font).pack()
+
+        # 分隔线
+        sep = tk.Frame(left_card, bg=self.BORDER, height=1)
+        sep.grid(row=4, column=0, sticky="ew", padx=12, pady=(0, 8))
+
+        # 流程编排步骤（带连接线）
+        flow_canvas = tk.Canvas(left_card, bg=self.PANEL, highlightthickness=0, height=210)
+        flow_canvas.grid(row=5, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        flow_canvas.bind("<Configure>", lambda _e, c=flow_canvas: _draw_workflow_steps(c, self.run_completed))
 
         # 中：作业队列
         mid_card = self._card(work)
@@ -1937,7 +1971,7 @@ class GeoConversionApp(tk.Tk):
             for j in jobs[:10]:
                 job_tree.insert("", "end", values=(
                     j.job_id, j.name, j.status,
-                    f"{j.success + j.failed}/{j.total} ({j.progress_pct:.0%})",
+                    f"{j.success + j.failed + j.skipped}/{j.total} ({j.progress_pct:.0%})",
                     f"{j.success} / {j.failed}",
                 ))
         else:
@@ -1970,12 +2004,17 @@ class GeoConversionApp(tk.Tk):
         param_form.columnconfigure(1, weight=1)
 
         batch_params = (
-            ("批次名称", "手动批次"),
+            ("批次名称", "自动化批量转换示例"),
             ("输出格式", "OBJ"),
+            ("坐标输出规则", "保留源坐标"),
+            ("属性保留规则", "全部保留"),
+            ("规则模板", "默认转换模板"),
             ("失败重试次数", "3"),
-            ("重试间隔(秒)", "2.0"),
+            ("重试间隔(秒)", "0.5"),
+            ("重试策略", "延迟重试"),
             ("并发数量", "4"),
             ("日志级别", "INFO"),
+            ("成果目录", str(Path(__file__).resolve().parent / "output" / "batch_conversion")),
         )
         for ri, (label, default) in enumerate(batch_params):
             tk.Label(param_form, text=label, bg=self.PANEL, fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
@@ -3345,6 +3384,50 @@ class GeoConversionApp(tk.Tk):
         self.run_status_var.set("数据已加载")
         self._render_current_page()
 
+    def _load_batch_sample_data(self) -> None:
+        """加载 source/batch_conversion_examples 中的多目录、多格式示例。"""
+        source_dir = Path(__file__).resolve().parent / "source" / "batch_conversion_examples"
+        extensions = set(SCAN_EXTENSIONS["全部"])
+        sample_files = sorted(
+            str(path.resolve())
+            for path in source_dir.rglob("*")
+            if path.is_file() and path.suffix.lower() in extensions
+        ) if source_dir.exists() else []
+        self.selected_files = sample_files
+        self.run_completed = False
+        self.quality_report = None
+        self.conversion_report = None
+        self.run_status_var.set("示例数据已加载" if sample_files else "未找到示例数据")
+        self.status_var.set(f"已加载 {len(sample_files)} 个批量转换示例文件")
+        if sample_files:
+            self._append_log(
+                "已加载 source/batch_conversion_examples 下的表格、GeoJSON、OBJ、STL、PLY、VTK及失败重试示例。"
+            )
+        else:
+            self._append_log("未找到批量转换示例，请检查 source/batch_conversion_examples 目录。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _choose_batch_directory(self) -> None:
+        """递归添加一个目录；可重复点击以组成多目录批次。"""
+        directory = filedialog.askdirectory(title="选择待批量导入的目录")
+        if not directory:
+            return
+        entries = scan_directory_flat(directory, recursive=True, max_files=500, format_category="全部")
+        existing = set(self.selected_files)
+        added = 0
+        for entry in entries:
+            if entry.path not in existing:
+                self.selected_files.append(entry.path)
+                existing.add(entry.path)
+                added += 1
+        self.run_completed = False
+        self.run_status_var.set("目录数据已加载")
+        self.status_var.set(f"目录扫描完成：新增 {added} 个文件")
+        self._append_log(f"已扫描目录 {directory}，识别 {len(entries)} 个文件，新增 {added} 个。")
+        self._render_progress_strip()
+        self._render_current_page()
+
     def _load_semantic_sample_data(self) -> None:
         source_dir = Path(__file__).resolve().parent / "source"
         sample_files = [
@@ -3719,26 +3802,102 @@ class GeoConversionApp(tk.Tk):
         self._render_current_page()
 
     def _run_batch(self) -> None:
+        if self._batch_running:
+            self.status_var.set("已有批量任务正在执行，请稍候")
+            return
+        if not self.selected_files:
+            self.status_var.set("请先加载示例数据、添加目录或添加文件")
+            self.run_status_var.set("缺少输入数据")
+            return
+
         self._apply_params()
-        self._append_log("开始执行批量转换。")
-        mgr = get_manager()
+        try:
+            max_retries = max(0, int(self.param_values.get("失败重试次数", "3") or "3"))
+            retry_delay = max(0.0, float(self.param_values.get("重试间隔(秒)", "0.5") or "0.5"))
+            concurrency = max(1, min(32, int(self.param_values.get("并发数量", "4") or "4")))
+        except ValueError:
+            self.status_var.set("重试次数、重试间隔和并发数量必须填写有效数字")
+            self.run_status_var.set("参数错误")
+            return
+
+        retry_policy = RetryPolicy(
+            max_retries=max_retries,
+            retry_delay_seconds=retry_delay,
+            strategy=self.param_values.get("重试策略", "延迟重试"),
+        )
+        output_dir = self.param_values.get(
+            "成果目录", str(Path(__file__).resolve().parent / "output" / "batch_conversion")
+        )
         job = create_batch_from_paths(
             self.selected_files,
-            job_name=self.param_values.get("批次名称", "手动批次"),
+            job_name=self.param_values.get("批次名称", "自动化批量转换"),
             target_format=self.param_values.get("输出格式", "OBJ"),
-            output_dir=self.param_values.get("成果目录", str(Path(__file__).resolve().parent / "output")),
+            output_dir=output_dir,
+            template_name=self.param_values.get("规则模板", ""),
+            coordinate_rule=self.param_values.get("坐标输出规则", "保留源坐标"),
+            attribute_rule=self.param_values.get("属性保留规则", "全部保留"),
+            concurrency=concurrency,
+            log_level=self.param_values.get("日志级别", "INFO"),
+            retry_policy=retry_policy,
         )
-        mgr.submit(job.job_id)
-        mgr.run_job(job.job_id)
-        self.run_completed = True
+        manager = get_manager()
+        manager.submit(job.job_id)
+        self._batch_running = True
+        self.run_completed = False
+        self.run_status_var.set("运行中")
+        self.status_var.set(f"批量任务 {job.job_id} 已进入执行队列")
+        self._append_log(
+            f"开始执行批量转换：文件 {job.total} 个，并发 {concurrency}，重试策略={retry_policy.strategy}。"
+        )
+        self._render_progress_strip()
+        self._render_current_page()
+
+        threading.Thread(
+            target=self._run_batch_worker,
+            args=(job.job_id,),
+            daemon=True,
+            name=f"batch-worker-{job.job_id}",
+        ).start()
+
+    def _run_batch_worker(self, job_id: str) -> None:
+        """后台执行耗时任务，避免 Tkinter 主线程卡死。"""
+        try:
+            job = get_manager().run_job(job_id)
+            error: Exception | None = None
+        except Exception as exc:  # 防止后台线程静默退出
+            job = None
+            error = exc
+        self.after(0, lambda: self._finish_batch_run(job, error))
+
+    def _finish_batch_run(self, job: BatchJob | None, error: Exception | None = None) -> None:
+        self._batch_running = False
+        if error is not None or job is None:
+            message = f"批量转换执行异常：{error}" if error else "批量任务不存在或已取消。"
+            self.run_completed = False
+            self.run_status_var.set("执行失败")
+            self.status_var.set(message)
+            self._append_log(message)
+            self._render_progress_strip()
+            self._render_current_page()
+            return
+
+        self.run_completed = job.status in ("已完成", "部分失败")
         self.run_status_var.set(job.status)
-        self.status_var.set(f"批量转换{job.status}：成功 {job.success} / 失败 {job.failed}")
+        self.status_var.set(
+            f"批量转换{job.status}：成功 {job.success} / 失败 {job.failed} / 跳过 {job.skipped} / 重试 {job.retried}"
+        )
         self.task_payload_text = json.dumps(
             build_batch_report([job.job_id]),
-            ensure_ascii=False, indent=2,
+            ensure_ascii=False,
+            indent=2,
         )
         for entry in job.logs:
-            self._append_log(f"[{entry.level}] {entry.file_name}: {entry.message}" if entry.file_name else f"[{entry.level}] {entry.message}")
+            if entry.file_name:
+                self._append_log(f"[{entry.level}] {entry.file_name}: {entry.message}")
+            else:
+                self._append_log(f"[{entry.level}] {entry.message}")
+        for output_file in job.outputs[:20]:
+            self._append_log(f"成果文件：{output_file}")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -4126,6 +4285,56 @@ li {{ margin: 6px 0; }}
         tk.Label(bar, text="地质模型转换工作台 · MySQL 与算法服务接口已预留", bg="#dde9e6", fg=self.TEAL, padx=12, font=self.small_font).grid(
             row=0, column=1, sticky="e"
         )
+
+
+def _draw_workflow_steps(canvas: tk.Canvas, completed: bool) -> None:
+    """在批量转换页左侧绘制带连接线的流程步骤图。"""
+    from function.batch_conversion import WORKFLOW_STEPS
+    canvas.delete("all")
+    w = max(canvas.winfo_width(), 260)
+    h = 210
+    steps = list(WORKFLOW_STEPS)
+    n = len(steps)
+    right = w - 14
+    mid_x = 100
+    gap = (h - 40) / max(n - 1, 1)
+
+    STEP_COLORS = (
+        "#0b8d80", "#2f6ed0", "#654bd5", "#d88213", "#16934f", "#c9770e",
+    )
+
+    for si in range(n):
+        y = 24 + si * gap
+        done = completed
+        active = si == 0 and not completed
+        accent = "#16934f" if done else STEP_COLORS[si] if active else "#b6c3c0"
+        bg = "#e6f4ea" if done else "#ffffff" if active else "#f5f7f6"
+
+        # 连接线
+        if si > 0:
+            prev_y = 24 + (si - 1) * gap
+            canvas.create_line(mid_x, prev_y + 10, mid_x, y - 10, fill="#16934f" if done else "#d6dfdc", width=2)
+
+        # 圆形徽章
+        r = 11
+        canvas.create_oval(mid_x - r, y - r, mid_x + r, y + r, fill=accent, outline="")
+        canvas.create_text(mid_x, y, text="✓" if done else str(si + 1), fill="#ffffff",
+                          font=("Arial", 8, "bold"))
+
+        # 步骤卡片
+        card_x = mid_x + 26
+        card_w = right - card_x
+        card_h = gap * 0.72
+        card_y = y - card_h / 2
+        canvas.create_rectangle(card_x, card_y, card_x + card_w, card_y + card_h,
+                               fill=bg, outline="#d6dfdc", width=1)
+        canvas.create_text(card_x + 10, card_y + card_h / 2 - 7, text=steps[si],
+                          fill="#10231f" if done or active else "#8fa5a0",
+                          font=("Arial", 9, "bold"), anchor="w")
+        canvas.create_text(card_x + 10, card_y + card_h / 2 + 9,
+                          text="已完成" if done else "执行中" if active else "等待中",
+                          fill="#16934f" if done else accent if active else "#aebfba",
+                          font=("Arial", 7), anchor="w")
 
 
 def validate_modules() -> None:

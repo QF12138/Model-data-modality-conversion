@@ -1,0 +1,22 @@
+{
+  "type": "FeatureCollection",
+  "name": "geology_boundary",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"layer": "砂岩层", "code": "J2s", "grade": "IV"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[500000,3400000,100],[500080,3400000,102],[500080,3400080,104],[500000,3400080,101],[500000,3400000,100]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"layer": "断层", "code": "F1", "dip": 68},
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[500015,3400010,98],[500045,3400040,99],[500075,3400075,101]]
+      }
+    }
+  ]
+}
