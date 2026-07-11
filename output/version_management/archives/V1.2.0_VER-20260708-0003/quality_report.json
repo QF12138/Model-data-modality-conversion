@@ -1,0 +1,13 @@
+{
+  "score": 96,
+  "grade": "优秀",
+  "issue_count": 0,
+  "issues": [],
+  "checks": {
+    "geometry_closure": "通过",
+    "topology": "通过",
+    "attribute_completeness": "通过",
+    "consistency": "通过",
+    "coordinate_accuracy": "通过"
+  }
+}

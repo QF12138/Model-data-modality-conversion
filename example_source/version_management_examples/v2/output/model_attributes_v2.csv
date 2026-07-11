@@ -1,0 +1,4 @@
+object_id,object_type,lithology,water_state,source
+L01,stratum,中风化砂岩,弱富水,borehole_layers_v2.csv
+L02,stratum,泥质粉砂岩,中等富水,borehole_layers_v2.csv
+F01,fault,断层角砾岩,中等富水,fault_boundary_v2.geojson

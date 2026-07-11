@@ -1,0 +1,1 @@
+{"score":84,"grade":"合格","issue_count":4,"issues":[{"severity":"警告","category":"属性完整性","message":"2个地质体缺少地下水属性"},{"severity":"提示","category":"边界精度","message":"F1断层局部控制点较少"}]}

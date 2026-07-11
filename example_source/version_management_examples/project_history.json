@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "project_name": "典型地质模型版本追溯项目",
+  "module_name": "模型版本管理与成果追溯模块",
+  "versions": [
+    {
+      "version_number": "V1.0.0",
+      "description": "初始地质块体模型，完成钻孔与主断层数据接入",
+      "created_at": "2026-06-18T09:20:00",
+      "created_by": "示例用户",
+      "data_sources": [
+        {"path": "v1/source/borehole_layers_v1.csv", "role": "钻孔分层数据"},
+        {"path": "v1/source/fault_boundary_v1.geojson", "role": "断层边界"}
+      ],
+      "conversion_params": {
+        "目标格式": "OBJ",
+        "坐标输出规则": "保留工程坐标",
+        "属性保留规则": "保留岩性字段",
+        "网格精度": "5.0 m"
+      },
+      "quality_results": {"path": "v1/quality/quality_report_v1.json"},
+      "workflow_steps": [
+        {"step": "数据接入", "status": "完成", "timestamp": "2026-06-18T09:20:00"},
+        {"step": "参数配置", "status": "完成", "timestamp": "2026-06-18T09:28:00"},
+        {"step": "转换执行", "status": "完成", "timestamp": "2026-06-18T09:46:00"},
+        {"step": "质量检查", "status": "完成", "timestamp": "2026-06-18T09:53:00"},
+        {"step": "成果登记", "status": "完成", "timestamp": "2026-06-18T10:02:00"}
+      ],
+      "output_files": [
+        {"path": "v1/output/geological_model_v1.obj", "role": "三维模型"},
+        {"path": "v1/output/conversion_manifest_v1.json", "role": "转换清单"}
+      ],
+      "tags": ["初始版本", "内部评审"]
+    },
+    {
+      "version_number": "V1.1.0",
+      "description": "增加地下水字段与次级断层，细化地层分层和属性映射",
+      "created_at": "2026-06-25T14:10:00",
+      "created_by": "示例用户",
+      "data_sources": [
+        {"path": "v2/source/borehole_layers_v2.csv", "role": "钻孔分层与水位数据"},
+        {"path": "v2/source/fault_boundary_v2.geojson", "role": "断层边界"}
+      ],
+      "conversion_params": {
+        "目标格式": "OBJ",
+        "坐标输出规则": "统一为CGCS2000工程坐标",
+        "属性保留规则": "保留岩性与地下水字段",
+        "网格精度": "2.0 m"
+      },
+      "quality_results": {"path": "v2/quality/quality_report_v2.json"},
+      "workflow_steps": [
+        {"step": "数据接入", "status": "完成", "timestamp": "2026-06-25T14:10:00"},
+        {"step": "参数配置", "status": "完成", "timestamp": "2026-06-25T14:18:00"},
+        {"step": "转换执行", "status": "完成", "timestamp": "2026-06-25T14:42:00"},
+        {"step": "质量检查", "status": "完成", "timestamp": "2026-06-25T14:55:00"},
+        {"step": "成果登记", "status": "完成", "timestamp": "2026-06-25T15:06:00"}
+      ],
+      "output_files": [
+        {"path": "v2/output/geological_model_v2.obj", "role": "精细三维模型"},
+        {"path": "v2/output/model_attributes_v2.csv", "role": "模型属性表"},
+        {"path": "v2/output/conversion_manifest_v2.json", "role": "转换清单"}
+      ],
+      "tags": ["属性增强", "质量复核"]
+    },
+    {
+      "version_number": "V1.2.0",
+      "description": "交付版本：补充断层带水样、局部精细模型和完整交付清单",
+      "created_at": "2026-07-08T16:35:00",
+      "created_by": "示例用户",
+      "data_sources": [
+        {"path": "v3/source/borehole_layers_v3.csv", "role": "钻孔分层、RQD与水位数据"},
+        {"path": "v3/source/fault_boundary_v3.geojson", "role": "复核断层边界"},
+        {"path": "v3/source/groundwater_samples.csv", "role": "地下水样点"}
+      ],
+      "conversion_params": {
+        "目标格式": "OBJ",
+        "坐标输出规则": "CGCS2000 / EPSG:4547",
+        "属性保留规则": "全部保留并写入属性表",
+        "网格精度": "1.0 m",
+        "局部加密": "F1断层两侧20 m"
+      },
+      "quality_results": {"path": "v3/quality/quality_report_v3.json"},
+      "workflow_steps": [
+        {"step": "数据接入", "status": "完成", "timestamp": "2026-07-08T16:35:00"},
+        {"step": "参数配置", "status": "完成", "timestamp": "2026-07-08T16:44:00"},
+        {"step": "转换执行", "status": "完成", "timestamp": "2026-07-08T17:12:00"},
+        {"step": "质量检查", "status": "完成", "timestamp": "2026-07-08T17:28:00"},
+        {"step": "成果登记", "status": "完成", "timestamp": "2026-07-08T17:41:00"}
+      ],
+      "output_files": [
+        {"path": "v3/output/geological_model_v3.obj", "role": "交付三维模型"},
+        {"path": "v3/output/model_attributes_v3.csv", "role": "交付属性表"},
+        {"path": "v3/output/model_summary_v3.json", "role": "模型摘要"},
+        {"path": "v3/output/delivery_note.txt", "role": "交付说明"}
+      ],
+      "tags": ["交付版本", "已质检", "可归档"]
+    }
+  ]
+}

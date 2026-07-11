@@ -1,0 +1,26 @@
+[
+  {
+    "name": "geological_model_v3.obj",
+    "source_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\version_management_examples\\v3\\output\\geological_model_v3.obj",
+    "archive_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\version_management\\archives\\V1.2.0_VER-20260708-0003\\artifacts\\geological_model_v3.obj",
+    "copied": true
+  },
+  {
+    "name": "model_attributes_v3.csv",
+    "source_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\version_management_examples\\v3\\output\\model_attributes_v3.csv",
+    "archive_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\version_management\\archives\\V1.2.0_VER-20260708-0003\\artifacts\\model_attributes_v3.csv",
+    "copied": true
+  },
+  {
+    "name": "model_summary_v3.json",
+    "source_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\version_management_examples\\v3\\output\\model_summary_v3.json",
+    "archive_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\version_management\\archives\\V1.2.0_VER-20260708-0003\\artifacts\\model_summary_v3.json",
+    "copied": true
+  },
+  {
+    "name": "delivery_note.txt",
+    "source_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\version_management_examples\\v3\\output\\delivery_note.txt",
+    "archive_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\version_management\\archives\\V1.2.0_VER-20260708-0003\\artifacts\\delivery_note.txt",
+    "copied": true
+  }
+]

@@ -17,6 +17,10 @@ from function.batch_conversion import (
     build_batch_report, create_batch_from_paths, format_summary,
     get_manager, scan_directory_flat, size_fmt, WORKFLOW_STEPS,
 )
+from function.version_management import (
+    build_version_report, create_version_from_task, get_manager as get_version_manager,
+    import_versions_from_manifest,
+)
 from function.visual_comparison import (
     COMPARISON_DIMENSIONS, VIEW_MODES, build_comparison_report, extract_snapshot,
 )
@@ -510,6 +514,9 @@ class GeoConversionApp(tk.Tk):
         self._batch_running = False
         self.quality_report: dict[str, object] | None = None
         self.conversion_report: dict[str, object] | None = None
+        self.version_report: dict[str, object] | None = None
+        self.version_source_files: list[str] = []
+        self.version_output_files: list[str] = []
         self.conversion_target_var = tk.StringVar(value="OBJ")
         self.conversion_coordinate_var = tk.StringVar(value="保留源坐标")
         self.conversion_attribute_var = tk.StringVar(value="全部保留")
@@ -943,7 +950,7 @@ class GeoConversionApp(tk.Tk):
         # 数据预处理 & 地质语义编码模块隐藏"预览检查"页签
         preview_btn = self.page_buttons.get("预览检查")
         if preview_btn:
-            if self._is_preprocessing_module() or self._is_semantic_module() or self._is_template_module() or self._is_batch_module() or self._is_comparison_module():
+            if self._is_preprocessing_module() or self._is_semantic_module() or self._is_template_module() or self._is_batch_module() or self._is_comparison_module() or self._is_version_module():
                 preview_btn.pack_forget()
             elif not preview_btn.winfo_ismapped():
                 preview_btn.pack(side="left", before=self.page_buttons["任务与追溯"])
@@ -996,6 +1003,10 @@ class GeoConversionApp(tk.Tk):
             return
         if self._is_comparison_module() and self.current_page == "工作台":
             self._render_comparison_page()
+            self._refresh_content_scrollregion()
+            return
+        if self._is_version_module() and self.current_page in ("工作台", "任务与追溯"):
+            self._render_version_page()
             self._refresh_content_scrollregion()
             return
         if self._is_quality_module() and self.current_page == "工作台":
@@ -2241,6 +2252,321 @@ class GeoConversionApp(tk.Tk):
 
         tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
 
+    def _render_version_page(self) -> None:
+        """模型版本管理与成果追溯模块专用工作台。"""
+        root = tk.Frame(self.content_host, bg=self.BG)
+        root.grid(row=0, column=0, sticky="ew")
+        root.columnconfigure(0, weight=1)
+
+        mgr = get_version_manager()
+        report = self.version_report or build_version_report(
+            self.selected_files,
+            self.project_var.get(),
+            self.active_module.name,
+        )
+        versions = report.get("versions", []) if isinstance(report.get("versions"), list) else []
+        mstats = report.get("manager_stats", {}) if isinstance(report.get("manager_stats"), dict) else {}
+
+        # 顶部指标
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for idx in range(4):
+            summary.columnconfigure(idx, weight=1)
+        summary_info = report.get("summary", {}) if isinstance(report.get("summary"), dict) else {}
+        summary_items = (
+            ("版本总数", f"{mstats.get('total', 0)} 个", f"已归档 {mstats.get('archived', 0)} 个", self.TEAL),
+            ("最新版本", summary_info.get("latest_version", "") or "--", "最近创建的版本快照", self.BLUE),
+            ("数据来源", f"{mstats.get('with_sources', 0)} 个版本", "包含来源数据记录", self.ORANGE),
+            ("质量记录", f"{mstats.get('with_quality', 0)} 个版本", "附带质量检查结果", self.PURPLE),
+        )
+        for idx, item in enumerate(summary_items):
+            self._metric_card(summary, *item).grid(
+                row=0,
+                column=idx,
+                sticky="nsew",
+                padx=(0 if idx == 0 else 4, 0 if idx == 3 else 4),
+            )
+
+        work = tk.Frame(root, bg=self.BG)
+        work.grid(row=1, column=0, sticky="nsew")
+        work.columnconfigure(0, weight=28)
+        work.columnconfigure(1, weight=44)
+        work.columnconfigure(2, weight=28)
+
+        # 左：版本创建
+        left_card = self._card(work)
+        left_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        left_card.columnconfigure(0, weight=1)
+        left_card.rowconfigure(3, weight=1)
+        self._card_header(left_card, "创建版本快照")
+        tk.Label(
+            left_card,
+            text="分别登记来源数据与输出成果，记录转换参数、质量结果和处理流程，形成完整追溯链路。",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+            justify="left",
+            wraplength=350,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 9))
+
+        btn_grid = tk.Frame(left_card, bg=self.PANEL)
+        btn_grid.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
+        btn_grid.columnconfigure(0, weight=1)
+        btn_grid.columnconfigure(1, weight=1)
+        ttk.Button(
+            btn_grid,
+            text="加载示例数据",
+            style="Primary.TButton",
+            command=self._load_version_sample_data,
+        ).grid(row=0, column=0, sticky="ew", padx=(0, 4), pady=(0, 6))
+        ttk.Button(
+            btn_grid,
+            text="清空当前文件",
+            style="Tool.TButton",
+            command=self._clear_version_files,
+        ).grid(row=0, column=1, sticky="ew", padx=(4, 0), pady=(0, 6))
+        ttk.Button(
+            btn_grid,
+            text="添加来源文件",
+            style="Tool.TButton",
+            command=self._choose_version_source_files,
+        ).grid(row=1, column=0, sticky="ew", padx=(0, 4))
+        ttk.Button(
+            btn_grid,
+            text="添加成果文件",
+            style="Tool.TButton",
+            command=self._choose_version_output_files,
+        ).grid(row=1, column=1, sticky="ew", padx=(4, 0))
+
+        info_frame = tk.Frame(left_card, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+        info_frame.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        info_frame.columnconfigure(1, weight=1)
+        info_items = (
+            ("项目", self.project_var.get()),
+            ("来源数据", f"{len(self.version_source_files)} 个"),
+            ("输出成果", f"{len(self.version_output_files)} 个"),
+            ("版本号", self.param_values.get("版本号", "V1.0.0")),
+            ("版本描述", self.param_values.get("版本描述", "手动创建的模型成果版本")),
+            ("归档策略", self.param_values.get("归档策略", "常规归档")),
+        )
+        for row_index, (label, value) in enumerate(info_items):
+            tk.Label(
+                info_frame,
+                text=label,
+                bg="#f8faf9",
+                fg=self.MUTED,
+                font=self.tiny_font,
+                anchor="w",
+            ).grid(row=row_index, column=0, sticky="w", padx=(10, 6), pady=5)
+            tk.Label(
+                info_frame,
+                text=str(value)[:55],
+                bg="#f8faf9",
+                fg=self.TEXT,
+                font=(self.font_family, 9, "bold"),
+                anchor="w",
+            ).grid(row=row_index, column=1, sticky="ew", padx=(0, 10), pady=5)
+
+        ttk.Button(left_card, text="创建版本", style="Blue.TButton", command=self._run_version).grid(
+            row=4, column=0, sticky="ew", padx=12, pady=(0, 12)
+        )
+
+        # 中：版本历史
+        mid_card = self._card(work)
+        mid_card.grid(row=0, column=1, sticky="nsew", padx=5)
+        mid_card.columnconfigure(0, weight=1)
+        mid_card.rowconfigure(2, weight=1)
+        self._card_header(mid_card, "版本历史与差异对比")
+        tk.Label(
+            mid_card,
+            text=f"共 {len(versions)} 个版本记录 · 单击查看追溯链，Ctrl 选择两个版本后可对比",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+            anchor="w",
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 8))
+
+        ver_tree = ttk.Treeview(
+            mid_card,
+            columns=("ver", "desc", "sources", "outputs", "quality", "time", "archived"),
+            show="headings",
+            style="Dashboard.Treeview",
+            height=12,
+            selectmode="extended",
+        )
+        for key, title, width in (
+            ("ver", "版本号", 78),
+            ("desc", "描述", 180),
+            ("sources", "来源", 48),
+            ("outputs", "成果", 48),
+            ("quality", "评分", 52),
+            ("time", "创建时间", 120),
+            ("archived", "归档", 46),
+        ):
+            ver_tree.heading(key, text=title)
+            ver_tree.column(key, width=width, anchor="w")
+        ver_tree.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 8))
+
+        if versions:
+            for item in versions:
+                version_id = str(item.get("version_id", ""))
+                ver_tree.insert(
+                    "",
+                    "end",
+                    iid=version_id or None,
+                    values=(
+                        item.get("version_number", ""),
+                        str(item.get("description", ""))[:38],
+                        item.get("source_count", 0),
+                        item.get("output_count", 0),
+                        item.get("quality_score", "-"),
+                        str(item.get("created_at", ""))[:16],
+                        "是" if item.get("archived") else "否",
+                    ),
+                )
+        else:
+            ver_tree.insert("", "end", values=("暂无", "加载示例或创建版本后显示", "-", "-", "-", "-", "-"))
+
+        action_row = tk.Frame(mid_card, bg=self.PANEL)
+        action_row.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
+        action_row.columnconfigure(0, weight=1)
+        action_row.columnconfigure(1, weight=1)
+        action_row.columnconfigure(2, weight=1)
+        ttk.Button(
+            action_row,
+            text="导出追溯报告",
+            style="Purple.TButton",
+            command=self._export_report,
+        ).grid(row=0, column=0, sticky="ew", padx=(0, 4))
+        ttk.Button(
+            action_row,
+            text="对比所选两版",
+            style="Tool.TButton",
+            command=lambda tree=ver_tree: self._compare_selected_versions(tree),
+        ).grid(row=0, column=1, sticky="ew", padx=4)
+        ttk.Button(
+            action_row,
+            text="归档所选版本",
+            style="Tool.TButton",
+            command=lambda tree=ver_tree: self._archive_selected_version(tree),
+        ).grid(row=0, column=2, sticky="ew", padx=(4, 0))
+
+        # 右：追溯链路
+        right_card = self._card(work)
+        right_card.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        right_card.columnconfigure(0, weight=1)
+        right_card.rowconfigure(2, weight=1)
+        self._card_header(right_card, "追溯链路可视化")
+        self.version_trace_caption = tk.StringVar(value="选择一个版本查看完整追溯信息")
+        tk.Label(
+            right_card,
+            textvariable=self.version_trace_caption,
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+            justify="left",
+            wraplength=360,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
+
+        chain_frame = tk.Frame(right_card, bg=self.PANEL)
+        chain_frame.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        chain_frame.columnconfigure(0, weight=1)
+
+        phase_colors = {
+            "数据接入": self.TEAL,
+            "参数配置": self.BLUE,
+            "流程执行": self.ORANGE,
+            "质量检查": self.PURPLE,
+            "成果输出": self.GREEN,
+        }
+        phases = ("数据接入", "参数配置", "流程执行", "质量检查", "成果输出")
+
+        def render_trace(version_id: str = "") -> None:
+            for child in chain_frame.winfo_children():
+                child.destroy()
+            record = mgr.get_version(version_id) if version_id else None
+            if record:
+                self.version_trace_caption.set(
+                    f"{record.version_number} · {record.description or '无版本描述'}"
+                )
+                details = {
+                    "数据接入": f"{len(record.data_sources)} 个来源：" + "、".join(
+                        str(item.get("name", "")) for item in record.data_sources[:3]
+                    ),
+                    "参数配置": f"{len(record.conversion_params)} 项参数：" + "、".join(
+                        f"{key}={value}" for key, value in list(record.conversion_params.items())[:2]
+                    ),
+                    "流程执行": " → ".join(
+                        str(item.get("step", "")) for item in record.workflow_steps[:5]
+                    ) or "未记录处理流程",
+                    "质量检查": (
+                        f"{record.quality_results.get('score', '-')} 分 / "
+                        f"{record.quality_results.get('grade', '-')}"
+                    ),
+                    "成果输出": f"{len(record.output_files)} 个成果：" + "、".join(
+                        str(item.get("name", "")) for item in record.output_files[:3]
+                    ),
+                }
+            else:
+                self.version_trace_caption.set("选择一个版本查看完整追溯信息")
+                details = {phase: "待记录" for phase in phases}
+
+            for phase_index, phase in enumerate(phases):
+                accent = phase_colors.get(phase, self.TEAL)
+                if phase_index > 0:
+                    tk.Frame(chain_frame, bg="#d6dfdc", height=18, width=2).grid(
+                        row=phase_index * 2 - 1, column=0
+                    )
+                phase_item = tk.Frame(
+                    chain_frame,
+                    bg="#ffffff",
+                    highlightbackground=accent,
+                    highlightthickness=2,
+                )
+                phase_item.grid(row=phase_index * 2, column=0, sticky="ew", pady=(0, 4))
+                phase_item.columnconfigure(0, weight=1)
+                tk.Label(
+                    phase_item,
+                    text=phase,
+                    bg=accent,
+                    fg="#ffffff",
+                    font=(self.font_family, 9, "bold"),
+                    anchor="w",
+                    padx=10,
+                    pady=5,
+                ).grid(row=0, column=0, sticky="ew")
+                tk.Label(
+                    phase_item,
+                    text=details.get(phase, "待记录"),
+                    bg="#ffffff",
+                    fg=self.TEXT if record else self.MUTED,
+                    font=self.small_font if record else self.tiny_font,
+                    anchor="w",
+                    justify="left",
+                    wraplength=330,
+                    padx=10,
+                    pady=6,
+                ).grid(row=1, column=0, sticky="ew")
+
+        def on_version_select(_event: tk.Event) -> None:
+            selected = ver_tree.selection()
+            if selected:
+                render_trace(selected[-1])
+
+        ver_tree.bind("<<TreeviewSelect>>", on_version_select)
+        if versions:
+            latest_id = str(versions[0].get("version_id", ""))
+            if latest_id and ver_tree.exists(latest_id):
+                ver_tree.selection_set(latest_id)
+                ver_tree.focus(latest_id)
+                render_trace(latest_id)
+            else:
+                render_trace()
+        else:
+            render_trace()
+
+        tk.Frame(root, bg=self.BG, height=18).grid(row=2, column=0, sticky="ew")
+
     def _render_model_quality_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
         root.grid(row=0, column=0, sticky="ew")
@@ -3158,6 +3484,10 @@ class GeoConversionApp(tk.Tk):
             "失败重试次数": "3",
             "并发数量": "4",
             "版本号": "V1.0.0",
+            "版本描述": "手动创建的模型成果版本",
+            "归档策略": "常规归档",
+            "追溯字段": "来源,参数,流程,质量,成果",
+            "对比版本": "最近两个版本",
             "预览模式": "二维 + 三维 + 剖切",
             "剖切方向": "XY",
             "差异阈值": "5%",
@@ -3747,6 +4077,265 @@ class GeoConversionApp(tk.Tk):
         self.run_status_var.set("数据已加载")
         self._render_current_page()
 
+    def _sync_version_selected_files(self) -> None:
+        """将版本模块的来源文件和成果文件同步到通用文件列表。"""
+        merged: list[str] = []
+        for file_path in self.version_source_files + self.version_output_files:
+            if file_path not in merged:
+                merged.append(file_path)
+        self.selected_files = merged
+
+    def _choose_version_source_files(self) -> None:
+        files = list(filedialog.askopenfilenames(title="选择版本来源数据文件"))
+        if not files:
+            return
+        added = 0
+        for file_path in files:
+            if file_path not in self.version_source_files:
+                self.version_source_files.append(file_path)
+                added += 1
+        self._sync_version_selected_files()
+        self.run_completed = False
+        self.version_report = build_version_report(
+            self.selected_files, self.project_var.get(), self.active_module.name
+        )
+        self.run_status_var.set("来源数据已加载")
+        self.status_var.set(f"新增 {added} 个来源数据文件")
+        self._append_log(f"版本管理：新增 {added} 个来源数据文件。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _choose_version_output_files(self) -> None:
+        files = list(filedialog.askopenfilenames(title="选择版本输出成果文件"))
+        if not files:
+            return
+        added = 0
+        for file_path in files:
+            if file_path not in self.version_output_files:
+                self.version_output_files.append(file_path)
+                added += 1
+        self._sync_version_selected_files()
+        self.run_completed = False
+        self.version_report = build_version_report(
+            self.selected_files, self.project_var.get(), self.active_module.name
+        )
+        self.run_status_var.set("成果文件已加载")
+        self.status_var.set(f"新增 {added} 个输出成果文件")
+        self._append_log(f"版本管理：新增 {added} 个输出成果文件。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _clear_version_files(self) -> None:
+        count = len(self.version_source_files) + len(self.version_output_files)
+        self.version_source_files.clear()
+        self.version_output_files.clear()
+        self.selected_files = []
+        self.run_completed = False
+        self.version_report = build_version_report(
+            [], self.project_var.get(), self.active_module.name
+        )
+        self.run_status_var.set("待创建版本")
+        self.status_var.set("已清空当前版本的来源与成果文件")
+        self._append_log(f"版本管理：已清空 {count} 个当前文件，历史版本保留不变。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _load_version_sample_data(self) -> None:
+        """加载 example_source/version_management_examples 中的三个历史版本。"""
+        source_dir = Path(__file__).resolve().parent / "example_source" / "version_management_examples"
+        manifest_path = source_dir / "project_history.json"
+        if not manifest_path.exists():
+            self.run_status_var.set("未找到示例数据")
+            self.status_var.set("未找到 example_source/version_management_examples/project_history.json")
+            self._append_log("版本管理示例加载失败：缺少 project_history.json。")
+            return
+
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            imported = import_versions_from_manifest(manifest_path, skip_duplicates=True)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            self.run_status_var.set("示例导入失败")
+            self.status_var.set(f"版本示例导入失败：{exc}")
+            self._append_log(f"版本管理示例导入失败：{exc}")
+            return
+
+        project_name = str(manifest.get("project_name", "典型地质模型版本追溯项目"))
+        if project_name:
+            self.project_var.set(project_name)
+        manager = get_version_manager()
+        records = manager.list_versions(
+            project_name=self.project_var.get(),
+            module_name=self.active_module.name,
+        )
+        if records:
+            latest = records[0]
+            self.version_source_files = [
+                str(item.get("path", ""))
+                for item in latest.data_sources
+                if item.get("path")
+            ]
+            self.version_output_files = [
+                str(item.get("path", ""))
+                for item in latest.output_files
+                if item.get("path")
+            ]
+            self.param_values.update(
+                {
+                    "版本号": latest.version_number,
+                    "版本描述": latest.description,
+                    "归档策略": "交付归档" if "交付版本" in latest.tags else "常规归档",
+                }
+            )
+        else:
+            self.version_source_files = []
+            self.version_output_files = []
+
+        self._sync_version_selected_files()
+        self.version_report = build_version_report(
+            self.selected_files,
+            self.project_var.get(),
+            self.active_module.name,
+        )
+        self.run_completed = bool(records)
+        self.run_status_var.set("示例版本已加载" if records else "示例中无版本")
+        if imported:
+            message = f"已导入 {len(imported)} 个历史版本，当前共 {len(records)} 个版本"
+        else:
+            message = f"示例版本已存在，当前共 {len(records)} 个版本"
+        self.status_var.set(message)
+        self._append_log(
+            "已加载版本追溯示例：V1.0.0、V1.1.0、V1.2.0，包含来源、参数、流程、质量与成果。"
+        )
+        self._render_progress_strip()
+        self._render_current_page()
+
+    @staticmethod
+    def _version_diff_value(value: object) -> str:
+        if isinstance(value, (dict, list, tuple)):
+            text = json.dumps(value, ensure_ascii=False)
+        else:
+            text = str(value)
+        return text if len(text) <= 100 else text[:97] + "..."
+
+    def _compare_selected_versions(self, tree: ttk.Treeview) -> None:
+        selected = [item_id for item_id in tree.selection() if get_version_manager().get_version(item_id)]
+        if len(selected) != 2:
+            self.status_var.set("请按住 Ctrl 在版本历史中选择两个版本")
+            return
+
+        manager = get_version_manager()
+        first = manager.get_version(selected[0])
+        second = manager.get_version(selected[1])
+        if not first or not second:
+            self.status_var.set("所选版本不存在")
+            return
+
+        differences = manager.diff_versions(first.version_id, second.version_id)
+        dialog = tk.Toplevel(self)
+        dialog.title(f"版本差异对比：{first.version_number} ↔ {second.version_number}")
+        dialog.geometry("980x560")
+        dialog.minsize(760, 420)
+        dialog.configure(bg=self.BG)
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(1, weight=1)
+
+        tk.Label(
+            dialog,
+            text=f"{first.version_number}  与  {second.version_number}  差异明细",
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=self.hero_font,
+            anchor="w",
+            padx=16,
+            pady=13,
+        ).grid(row=0, column=0, sticky="ew")
+
+        diff_tree = ttk.Treeview(
+            dialog,
+            columns=("field", "before", "after", "changed", "summary"),
+            show="headings",
+            style="Dashboard.Treeview",
+        )
+        for key, title, width in (
+            ("field", "对比字段", 140),
+            ("before", first.version_number, 220),
+            ("after", second.version_number, 220),
+            ("changed", "是否变化", 75),
+            ("summary", "差异摘要", 290),
+        ):
+            diff_tree.heading(key, text=title)
+            diff_tree.column(key, width=width, anchor="w")
+        diff_tree.grid(row=1, column=0, sticky="nsew", padx=12, pady=12)
+        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=diff_tree.yview)
+        scrollbar.grid(row=1, column=1, sticky="ns", pady=12)
+        diff_tree.configure(yscrollcommand=scrollbar.set)
+
+        changed_count = 0
+        for diff in differences:
+            if diff.changed:
+                changed_count += 1
+            diff_tree.insert(
+                "",
+                "end",
+                values=(
+                    diff.field,
+                    self._version_diff_value(diff.before),
+                    self._version_diff_value(diff.after),
+                    "是" if diff.changed else "否",
+                    diff.summary,
+                ),
+            )
+        self.status_var.set(f"版本对比完成：共 {changed_count} 项发生变化")
+        self._append_log(
+            f"完成版本对比：{first.version_number} ↔ {second.version_number}，变化 {changed_count} 项。"
+        )
+
+    def _archive_selected_version(self, tree: ttk.Treeview) -> None:
+        selected = [item_id for item_id in tree.selection() if get_version_manager().get_version(item_id)]
+        if not selected:
+            self.status_var.set("请先在版本历史中选择一个版本")
+            return
+        version_id = selected[-1]
+        manager = get_version_manager()
+        record = manager.get_version(version_id)
+        archive_dir = Path(__file__).resolve().parent / "output" / "version_management" / "archives"
+        try:
+            archive_path = manager.archive_version(version_id, archive_dir)
+        except OSError as exc:
+            self.status_var.set(f"版本归档失败：{exc}")
+            self._append_log(f"版本归档失败：{exc}")
+            return
+        if not archive_path or not record:
+            self.status_var.set("版本归档失败：版本不存在")
+            return
+
+        self.version_report = build_version_report(
+            self.selected_files,
+            self.project_var.get(),
+            self.active_module.name,
+            record.version_number,
+        )
+        self.run_completed = True
+        self.run_status_var.set("版本已归档")
+        self.status_var.set(f"{record.version_number} 已归档到 {archive_path}")
+        self._append_log(f"版本 {record.version_number} 已归档：{archive_path}")
+        self._render_current_page()
+
+    def _read_version_quality_report(self) -> dict[str, object]:
+        """从当前文件中识别质量报告 JSON；找不到时返回空字典。"""
+        candidates = self.version_source_files + self.version_output_files
+        for file_path in candidates:
+            path = Path(file_path)
+            if path.suffix.lower() != ".json" or "quality" not in path.name.lower():
+                continue
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if isinstance(payload, dict) and ("score" in payload or "grade" in payload):
+                return payload
+        return {}
+
     def _load_batch_sample_data(self) -> None:
         """加载 source/batch_conversion_examples 中的多目录、多格式示例。"""
         source_dir = Path(__file__).resolve().parent / "source" / "batch_conversion_examples"
@@ -3947,6 +4536,9 @@ class GeoConversionApp(tk.Tk):
         self._render_current_page()
 
     def _clear_files(self) -> None:
+        if self._is_version_module():
+            self._clear_version_files()
+            return
         if not self.selected_files:
             self.status_var.set("当前没有已加载的数据")
             return
@@ -3993,6 +4585,9 @@ class GeoConversionApp(tk.Tk):
         if self._is_comparison_module():
             self._run_comparison()
             return
+        if self._is_version_module():
+            self._run_version()
+            return
         if self._is_quality_module():
             self._run_model_quality_check()
             return
@@ -4028,6 +4623,9 @@ class GeoConversionApp(tk.Tk):
 
     def _is_comparison_module(self) -> bool:
         return self.active_module.name == "可视化预览与对比检查模块"
+
+    def _is_version_module(self) -> bool:
+        return self.active_module.name == "模型版本管理与成果追溯模块"
 
     def _is_format_conversion_module(self) -> bool:
         return self.active_module.name == "模型格式转换与输出模块"
@@ -4408,6 +5006,85 @@ class GeoConversionApp(tk.Tk):
         self._render_progress_strip()
         self._render_current_page()
 
+    def _run_version(self) -> None:
+        self._apply_params()
+        self._sync_version_selected_files()
+        self._append_log("创建模型版本快照并构建追溯链路。")
+
+        if not self.version_source_files and not self.version_output_files:
+            self.run_completed = False
+            self.run_status_var.set("缺少版本文件")
+            self.status_var.set("请至少添加一个来源文件或成果文件")
+            self._append_log("版本创建已停止：未添加来源文件或成果文件。")
+            self._render_progress_strip()
+            self._render_current_page()
+            return
+
+        quality_report = self._read_version_quality_report()
+        version_number = self.param_values.get("版本号", "").strip()
+        description = self.param_values.get("版本描述", "手动创建的模型成果版本").strip()
+        archive_strategy = self.param_values.get("归档策略", "常规归档").strip() or "常规归档"
+        trace_fields = self.param_values.get("追溯字段", "来源,参数,流程,质量,成果").strip()
+
+        conversion_params = {
+            key: value
+            for key, value in self.param_values.items()
+            if value and key not in {"版本号", "版本描述", "归档策略", "追溯字段", "对比版本"}
+        }
+        conversion_params["追溯字段"] = trace_fields
+
+        record = create_version_from_task(
+            project_name=self.project_var.get(),
+            module_name=self.active_module.name,
+            description=description,
+            version_number=version_number,
+            created_by="当前用户",
+            data_files=list(self.version_source_files),
+            conversion_params=conversion_params,
+            quality_report=quality_report,
+            output_files=list(self.version_output_files),
+            tags=[archive_strategy, "手动创建"],
+        )
+        report = build_version_report(
+            self.selected_files,
+            self.project_var.get(),
+            self.active_module.name,
+            record.version_number,
+        )
+        self.version_report = report
+        self.run_completed = True
+        self.run_status_var.set("版本已创建")
+        self.status_var.set(
+            f"版本 {record.version_number} 已创建 · 当前项目共 {report['manager_stats']['total']} 个版本"
+        )
+        self.task_payload_text = json.dumps(
+            {
+                "task": "version_management",
+                "project": self.project_var.get(),
+                "version": record.to_dict(),
+                "report": report,
+                "mysql_tables": list(self.active_module.mysql_tables),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        self._append_log(
+            f"版本 {record.version_number} ({record.version_id}) 已创建，"
+            f"来源 {len(record.data_sources)} 个，成果 {len(record.output_files)} 个。"
+        )
+        if quality_report:
+            self._append_log(
+                f"质量记录：{quality_report.get('score', '-')} 分 / {quality_report.get('grade', '-')}。"
+            )
+        else:
+            self._append_log("本次版本未识别到质量报告 JSON，可后续补充。")
+        for source in record.data_sources:
+            self._append_log(f"  来源：{source.get('name', '')}")
+        for output in record.output_files:
+            self._append_log(f"  成果：{output.get('name', '')}")
+        self._render_progress_strip()
+        self._render_current_page()
+
     def _run_model_quality_check(self) -> None:
         self._append_log("开始执行模型质量校验。")
         report = build_model_quality_report(self.selected_files)
@@ -4507,6 +5184,8 @@ class GeoConversionApp(tk.Tk):
             return self._build_quality_html_report(exported_at)
         if self._is_format_conversion_module():
             return self._build_conversion_html_report(exported_at)
+        if self._is_version_module():
+            return self._build_version_html_report(exported_at)
         return self._build_generic_html_report(exported_at)
 
     def _html_shell(self, title: str, subtitle: str, body: str) -> str:
@@ -4684,6 +5363,89 @@ li {{ margin: 6px 0; }}
 """
         subtitle = f"{APP_TITLE} | V1.0 | 导出时间：{exported}"
         return self._html_shell(f"{self.active_module.name}分析报告", subtitle, body)
+
+    def _build_version_html_report(self, exported_at: datetime) -> str:
+        report = self.version_report or build_version_report(
+            self.selected_files, self.project_var.get(), self.active_module.name
+        )
+        versions = report.get("versions", []) if isinstance(report.get("versions"), list) else []
+        stats = report.get("manager_stats", {}) if isinstance(report.get("manager_stats"), dict) else {}
+        manager = get_version_manager()
+
+        history_rows: list[str] = []
+        detail_sections: list[str] = []
+        for item in versions:
+            version_id = str(item.get("version_id", ""))
+            record = manager.get_version(version_id)
+            history_rows.append(
+                "<tr>"
+                f"<td>{escape(str(item.get('version_number', '')))}</td>"
+                f"<td>{escape(str(item.get('description', '')))}</td>"
+                f"<td>{escape(str(item.get('source_count', 0)))}</td>"
+                f"<td>{escape(str(item.get('output_count', 0)))}</td>"
+                f"<td>{escape(str(item.get('quality_score', '-')))}</td>"
+                f"<td>{escape(str(item.get('created_at', '')))}</td>"
+                f"<td>{'已归档' if item.get('archived') else '未归档'}</td>"
+                "</tr>"
+            )
+            if not record:
+                continue
+            source_list = "".join(
+                f"<li>{escape(str(source.get('name', '')))} — {escape(str(source.get('path', '')))}</li>"
+                for source in record.data_sources
+            ) or "<li>未记录</li>"
+            param_rows = "".join(
+                f"<tr><td>{escape(str(key))}</td><td>{escape(str(value))}</td></tr>"
+                for key, value in record.conversion_params.items()
+            ) or "<tr><td colspan='2'>未记录</td></tr>"
+            workflow_list = "".join(
+                f"<li>{escape(str(step.get('step', '')))}：{escape(str(step.get('status', '')))}</li>"
+                for step in record.workflow_steps
+            ) or "<li>未记录</li>"
+            output_list = "".join(
+                f"<li>{escape(str(output.get('name', '')))} — {escape(str(output.get('path', '')))}</li>"
+                for output in record.output_files
+            ) or "<li>未记录</li>"
+            detail_sections.append(
+                f"""
+<div class="section">
+  <h2>{escape(record.version_number)} · {escape(record.description or '无版本描述')}</h2>
+  <table>
+    <tr><th>版本ID</th><td>{escape(record.version_id)}</td><th>创建人</th><td>{escape(record.created_by or '-')}</td></tr>
+    <tr><th>创建时间</th><td>{escape(record.created_at)}</td><th>质量结果</th><td>{escape(str(record.quality_results.get('score', '-')))} 分 / {escape(str(record.quality_results.get('grade', '-')))}</td></tr>
+    <tr><th>归档状态</th><td>{'已归档' if record.archived else '未归档'}</td><th>标签</th><td>{escape('、'.join(record.tags) or '-')}</td></tr>
+  </table>
+  <h3>数据来源</h3><ul>{source_list}</ul>
+  <h3>转换参数</h3><table><tbody>{param_rows}</tbody></table>
+  <h3>处理流程</h3><ol>{workflow_list}</ol>
+  <h3>输出成果</h3><ul>{output_list}</ul>
+  <p class="note">追溯链：{escape(str(item.get('trace_chain', '')))}</p>
+</div>
+"""
+            )
+
+        history_html = "".join(history_rows) or "<tr><td colspan='7'>暂无版本记录</td></tr>"
+        body = f"""
+<div class="section">
+  <h2>版本管理摘要</h2>
+  <div class="grid">
+    <div class="metric"><b>版本总数</b>{escape(str(stats.get('total', 0)))}</div>
+    <div class="metric"><b>已归档</b>{escape(str(stats.get('archived', 0)))}</div>
+    <div class="metric"><b>含来源记录</b>{escape(str(stats.get('with_sources', 0)))}</div>
+    <div class="metric"><b>含质量记录</b>{escape(str(stats.get('with_quality', 0)))}</div>
+  </div>
+</div>
+<div class="section">
+  <h2>版本历史</h2>
+  <table><thead><tr><th>版本号</th><th>描述</th><th>来源</th><th>成果</th><th>评分</th><th>创建时间</th><th>归档</th></tr></thead><tbody>{history_html}</tbody></table>
+</div>
+{''.join(detail_sections)}
+"""
+        return self._html_shell(
+            "模型版本管理与成果追溯报告",
+            f"项目：{self.project_var.get()} · 导出时间：{exported_at.strftime('%Y-%m-%d %H:%M:%S')}",
+            body,
+        )
 
     def _build_generic_html_report(self, exported_at: datetime) -> str:
         exported = exported_at.strftime("%Y-%m-%d %H:%M:%S")
