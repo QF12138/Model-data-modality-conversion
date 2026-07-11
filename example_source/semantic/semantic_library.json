@@ -1,0 +1,3274 @@
+{
+  "metadata": {
+    "name": "地质环境模型项目级语义库",
+    "version": "2.0.0",
+    "language": "zh-CN",
+    "code_notice": "PROJECT 为本工具内部稳定编码；SYMBOL 为常见地质符号。未填写官方标准编号时，不应将 PROJECT 编码解释为国家标准编码。",
+    "domains": [
+      "地层",
+      "岩性",
+      "构造",
+      "地下水",
+      "不良地质",
+      "围岩等级",
+      "工程地质指标"
+    ]
+  },
+  "domains": {
+    "地层": {
+      "太古宇": {
+        "aliases": [
+          "太古界",
+          "Archean"
+        ],
+        "codes": {
+          "PROJECT": "STR-ARCHEAN",
+          "SYMBOL": "Ar"
+        },
+        "description": "太古宇地层单元。",
+        "category": "前寒武纪",
+        "subcategory": "太古宙",
+        "era": "前寒武纪",
+        "period": "太古宙"
+      },
+      "古元古界": {
+        "aliases": [
+          "古元古代",
+          "Paleoproterozoic"
+        ],
+        "codes": {
+          "PROJECT": "STR-PALEOPROTEROZOIC",
+          "SYMBOL": "Pt1"
+        },
+        "description": "古元古界地层单元。",
+        "category": "元古宙",
+        "subcategory": "古元古代",
+        "era": "元古宙",
+        "period": "古元古代"
+      },
+      "中元古界": {
+        "aliases": [
+          "中元古代",
+          "Mesoproterozoic"
+        ],
+        "codes": {
+          "PROJECT": "STR-MESOPROTEROZOIC",
+          "SYMBOL": "Pt2"
+        },
+        "description": "中元古界地层单元。",
+        "category": "元古宙",
+        "subcategory": "中元古代",
+        "era": "元古宙",
+        "period": "中元古代"
+      },
+      "新元古界": {
+        "aliases": [
+          "新元古代",
+          "Neoproterozoic"
+        ],
+        "codes": {
+          "PROJECT": "STR-NEOPROTEROZOIC",
+          "SYMBOL": "Pt3"
+        },
+        "description": "新元古界地层单元。",
+        "category": "元古宙",
+        "subcategory": "新元古代",
+        "era": "元古宙",
+        "period": "新元古代"
+      },
+      "南华系": {
+        "aliases": [
+          "南华纪",
+          "Nanhua"
+        ],
+        "codes": {
+          "PROJECT": "STR-NANHUA",
+          "SYMBOL": "Nh"
+        },
+        "description": "南华系地层单元。",
+        "category": "新元古代",
+        "subcategory": "南华纪",
+        "era": "新元古代",
+        "period": "南华纪"
+      },
+      "震旦系": {
+        "aliases": [
+          "震旦纪",
+          "Sinian"
+        ],
+        "codes": {
+          "PROJECT": "STR-SINIAN",
+          "SYMBOL": "Z"
+        },
+        "description": "震旦系地层单元。",
+        "category": "新元古代",
+        "subcategory": "震旦纪",
+        "era": "新元古代",
+        "period": "震旦纪"
+      },
+      "埃迪卡拉系": {
+        "aliases": [
+          "埃迪卡拉纪",
+          "Ediacaran"
+        ],
+        "codes": {
+          "PROJECT": "STR-EDIACARAN",
+          "SYMBOL": "Edi"
+        },
+        "description": "埃迪卡拉系地层单元。",
+        "category": "新元古代",
+        "subcategory": "埃迪卡拉纪",
+        "era": "新元古代",
+        "period": "埃迪卡拉纪"
+      },
+      "寒武系": {
+        "aliases": [
+          "寒武纪",
+          "Cambrian",
+          "Є",
+          "∈"
+        ],
+        "codes": {
+          "PROJECT": "STR-CAMBRIAN",
+          "SYMBOL": "Є"
+        },
+        "description": "寒武系地层单元。",
+        "category": "古生代",
+        "subcategory": "寒武纪",
+        "era": "古生代",
+        "period": "寒武纪"
+      },
+      "奥陶系": {
+        "aliases": [
+          "奥陶纪",
+          "Ordovician"
+        ],
+        "codes": {
+          "PROJECT": "STR-ORDOVICIAN",
+          "SYMBOL": "O"
+        },
+        "description": "奥陶系地层单元。",
+        "category": "古生代",
+        "subcategory": "奥陶纪",
+        "era": "古生代",
+        "period": "奥陶纪"
+      },
+      "志留系": {
+        "aliases": [
+          "志留纪",
+          "Silurian"
+        ],
+        "codes": {
+          "PROJECT": "STR-SILURIAN",
+          "SYMBOL": "S"
+        },
+        "description": "志留系地层单元。",
+        "category": "古生代",
+        "subcategory": "志留纪",
+        "era": "古生代",
+        "period": "志留纪"
+      },
+      "泥盆系": {
+        "aliases": [
+          "泥盆纪",
+          "Devonian"
+        ],
+        "codes": {
+          "PROJECT": "STR-DEVONIAN",
+          "SYMBOL": "D"
+        },
+        "description": "泥盆系地层单元。",
+        "category": "古生代",
+        "subcategory": "泥盆纪",
+        "era": "古生代",
+        "period": "泥盆纪"
+      },
+      "石炭系": {
+        "aliases": [
+          "石炭纪",
+          "Carboniferous"
+        ],
+        "codes": {
+          "PROJECT": "STR-CARBONIFEROUS",
+          "SYMBOL": "C"
+        },
+        "description": "石炭系地层单元。",
+        "category": "古生代",
+        "subcategory": "石炭纪",
+        "era": "古生代",
+        "period": "石炭纪"
+      },
+      "二叠系": {
+        "aliases": [
+          "二叠纪",
+          "Permian"
+        ],
+        "codes": {
+          "PROJECT": "STR-PERMIAN",
+          "SYMBOL": "P"
+        },
+        "description": "二叠系地层单元。",
+        "category": "古生代",
+        "subcategory": "二叠纪",
+        "era": "古生代",
+        "period": "二叠纪"
+      },
+      "三叠系": {
+        "aliases": [
+          "三叠纪",
+          "Triassic"
+        ],
+        "codes": {
+          "PROJECT": "STR-TRIASSIC",
+          "SYMBOL": "T"
+        },
+        "description": "三叠系地层单元。",
+        "category": "中生代",
+        "subcategory": "三叠纪",
+        "era": "中生代",
+        "period": "三叠纪"
+      },
+      "侏罗系": {
+        "aliases": [
+          "侏罗纪",
+          "Jurassic"
+        ],
+        "codes": {
+          "PROJECT": "STR-JURASSIC",
+          "SYMBOL": "J"
+        },
+        "description": "侏罗系地层单元。",
+        "category": "中生代",
+        "subcategory": "侏罗纪",
+        "era": "中生代",
+        "period": "侏罗纪"
+      },
+      "白垩系": {
+        "aliases": [
+          "白垩纪",
+          "Cretaceous"
+        ],
+        "codes": {
+          "PROJECT": "STR-CRETACEOUS",
+          "SYMBOL": "K"
+        },
+        "description": "白垩系地层单元。",
+        "category": "中生代",
+        "subcategory": "白垩纪",
+        "era": "中生代",
+        "period": "白垩纪"
+      },
+      "古近系": {
+        "aliases": [
+          "古近纪",
+          "Paleogene",
+          "下第三系",
+          "老第三系"
+        ],
+        "codes": {
+          "PROJECT": "STR-PALEOGENE",
+          "SYMBOL": "E"
+        },
+        "description": "古近系地层单元。",
+        "category": "新生代",
+        "subcategory": "古近纪",
+        "era": "新生代",
+        "period": "古近纪"
+      },
+      "新近系": {
+        "aliases": [
+          "新近纪",
+          "Neogene",
+          "上第三系",
+          "新第三系"
+        ],
+        "codes": {
+          "PROJECT": "STR-NEOGENE",
+          "SYMBOL": "N"
+        },
+        "description": "新近系地层单元。",
+        "category": "新生代",
+        "subcategory": "新近纪",
+        "era": "新生代",
+        "period": "新近纪"
+      },
+      "第四系": {
+        "aliases": [
+          "第四纪",
+          "Quaternary",
+          "第四系沉积",
+          "第四纪地层"
+        ],
+        "codes": {
+          "PROJECT": "STR-QUATERNARY",
+          "SYMBOL": "Q"
+        },
+        "description": "第四系地层单元。",
+        "category": "新生代",
+        "subcategory": "第四纪",
+        "era": "新生代",
+        "period": "第四纪"
+      },
+      "更新统": {
+        "aliases": [
+          "更新世",
+          "Pleistocene"
+        ],
+        "codes": {
+          "PROJECT": "STR-PLEISTOCENE",
+          "SYMBOL": "Qp"
+        },
+        "description": "更新统地层单元。",
+        "category": "新生代",
+        "subcategory": "第四纪",
+        "era": "新生代",
+        "period": "第四纪"
+      },
+      "全新统": {
+        "aliases": [
+          "全新世",
+          "Holocene"
+        ],
+        "codes": {
+          "PROJECT": "STR-HOLOCENE",
+          "SYMBOL": "Qh"
+        },
+        "description": "全新统地层单元。",
+        "category": "新生代",
+        "subcategory": "第四纪",
+        "era": "新生代",
+        "period": "第四纪"
+      },
+      "下统": {
+        "aliases": [
+          "下部地层",
+          "Lower Series"
+        ],
+        "codes": {
+          "PROJECT": "STR-LOWER-SERIES"
+        },
+        "description": "下统地层单元。",
+        "category": "统级地层",
+        "subcategory": "下统",
+        "era": "统级地层",
+        "period": "下统"
+      },
+      "中统": {
+        "aliases": [
+          "中部地层",
+          "Middle Series"
+        ],
+        "codes": {
+          "PROJECT": "STR-MIDDLE-SERIES"
+        },
+        "description": "中统地层单元。",
+        "category": "统级地层",
+        "subcategory": "中统",
+        "era": "统级地层",
+        "period": "中统"
+      },
+      "上统": {
+        "aliases": [
+          "上部地层",
+          "Upper Series"
+        ],
+        "codes": {
+          "PROJECT": "STR-UPPER-SERIES"
+        },
+        "description": "上统地层单元。",
+        "category": "统级地层",
+        "subcategory": "上统",
+        "era": "统级地层",
+        "period": "上统"
+      },
+      "须家河组": {
+        "aliases": [
+          "须家河地层",
+          "Xujiahe Formation",
+          "T3x",
+          "T₃x"
+        ],
+        "codes": {
+          "PROJECT": "STR-T3X",
+          "SYMBOL": "T3x"
+        },
+        "description": "须家河组地层单元。",
+        "category": "三叠系",
+        "subcategory": "上三叠统",
+        "era": "三叠系",
+        "period": "上三叠统"
+      },
+      "飞仙关组": {
+        "aliases": [
+          "飞仙关地层",
+          "Feixianguan Formation",
+          "T1f",
+          "T₁f"
+        ],
+        "codes": {
+          "PROJECT": "STR-T1F",
+          "SYMBOL": "T1f"
+        },
+        "description": "飞仙关组地层单元。",
+        "category": "三叠系",
+        "subcategory": "下三叠统",
+        "era": "三叠系",
+        "period": "下三叠统"
+      },
+      "嘉陵江组": {
+        "aliases": [
+          "嘉陵江地层",
+          "Jialingjiang Formation",
+          "T1j",
+          "T₁j"
+        ],
+        "codes": {
+          "PROJECT": "STR-T1J",
+          "SYMBOL": "T1j"
+        },
+        "description": "嘉陵江组地层单元。",
+        "category": "三叠系",
+        "subcategory": "下三叠统",
+        "era": "三叠系",
+        "period": "下三叠统"
+      },
+      "雷口坡组": {
+        "aliases": [
+          "雷口坡地层",
+          "Leikoupo Formation",
+          "T2l",
+          "T₂l"
+        ],
+        "codes": {
+          "PROJECT": "STR-T2L",
+          "SYMBOL": "T2l"
+        },
+        "description": "雷口坡组地层单元。",
+        "category": "三叠系",
+        "subcategory": "中三叠统",
+        "era": "三叠系",
+        "period": "中三叠统"
+      },
+      "巴东组": {
+        "aliases": [
+          "巴东地层",
+          "Badong Formation",
+          "T2b",
+          "T₂b"
+        ],
+        "codes": {
+          "PROJECT": "STR-T2B",
+          "SYMBOL": "T2b"
+        },
+        "description": "巴东组地层单元。",
+        "category": "三叠系",
+        "subcategory": "中三叠统",
+        "era": "三叠系",
+        "period": "中三叠统"
+      },
+      "自流井组": {
+        "aliases": [
+          "自流井地层",
+          "Ziliujing Formation",
+          "J1z",
+          "J₁z"
+        ],
+        "codes": {
+          "PROJECT": "STR-J1Z",
+          "SYMBOL": "J1z"
+        },
+        "description": "自流井组地层单元。",
+        "category": "侏罗系",
+        "subcategory": "下侏罗统",
+        "era": "侏罗系",
+        "period": "下侏罗统"
+      },
+      "沙溪庙组": {
+        "aliases": [
+          "沙溪庙地层",
+          "Shaximiao Formation",
+          "J2s",
+          "J₂s"
+        ],
+        "codes": {
+          "PROJECT": "STR-J2S",
+          "SYMBOL": "J2s"
+        },
+        "description": "沙溪庙组地层单元。",
+        "category": "侏罗系",
+        "subcategory": "中侏罗统",
+        "era": "侏罗系",
+        "period": "中侏罗统"
+      },
+      "遂宁组": {
+        "aliases": [
+          "遂宁地层",
+          "Suining Formation",
+          "J3s",
+          "J₃s"
+        ],
+        "codes": {
+          "PROJECT": "STR-J3S",
+          "SYMBOL": "J3s"
+        },
+        "description": "遂宁组地层单元。",
+        "category": "侏罗系",
+        "subcategory": "上侏罗统",
+        "era": "侏罗系",
+        "period": "上侏罗统"
+      },
+      "蓬莱镇组": {
+        "aliases": [
+          "蓬莱镇地层",
+          "Penglaizhen Formation",
+          "J3p",
+          "J₃p"
+        ],
+        "codes": {
+          "PROJECT": "STR-J3P",
+          "SYMBOL": "J3p"
+        },
+        "description": "蓬莱镇组地层单元。",
+        "category": "侏罗系",
+        "subcategory": "上侏罗统",
+        "era": "侏罗系",
+        "period": "上侏罗统"
+      },
+      "栖霞组": {
+        "aliases": [
+          "栖霞地层",
+          "Qixia Formation",
+          "P2q",
+          "P₂q"
+        ],
+        "codes": {
+          "PROJECT": "STR-P2Q",
+          "SYMBOL": "P2q"
+        },
+        "description": "栖霞组地层单元。",
+        "category": "二叠系",
+        "subcategory": "中二叠统",
+        "era": "二叠系",
+        "period": "中二叠统"
+      },
+      "茅口组": {
+        "aliases": [
+          "茅口地层",
+          "Maokou Formation",
+          "P2m",
+          "P₂m"
+        ],
+        "codes": {
+          "PROJECT": "STR-P2M",
+          "SYMBOL": "P2m"
+        },
+        "description": "茅口组地层单元。",
+        "category": "二叠系",
+        "subcategory": "中二叠统",
+        "era": "二叠系",
+        "period": "中二叠统"
+      },
+      "龙潭组": {
+        "aliases": [
+          "龙潭地层",
+          "Longtan Formation",
+          "P3l",
+          "P₃l"
+        ],
+        "codes": {
+          "PROJECT": "STR-P3L",
+          "SYMBOL": "P3l"
+        },
+        "description": "龙潭组地层单元。",
+        "category": "二叠系",
+        "subcategory": "上二叠统",
+        "era": "二叠系",
+        "period": "上二叠统"
+      },
+      "长兴组": {
+        "aliases": [
+          "长兴地层",
+          "Changxing Formation",
+          "P3c",
+          "P₃c"
+        ],
+        "codes": {
+          "PROJECT": "STR-P3C",
+          "SYMBOL": "P3c"
+        },
+        "description": "长兴组地层单元。",
+        "category": "二叠系",
+        "subcategory": "上二叠统",
+        "era": "二叠系",
+        "period": "上二叠统"
+      },
+      "五峰组": {
+        "aliases": [
+          "五峰地层",
+          "Wufeng Formation",
+          "O3w",
+          "O₃w"
+        ],
+        "codes": {
+          "PROJECT": "STR-O3W",
+          "SYMBOL": "O3w"
+        },
+        "description": "五峰组地层单元。",
+        "category": "奥陶系",
+        "subcategory": "上奥陶统",
+        "era": "奥陶系",
+        "period": "上奥陶统"
+      },
+      "龙马溪组": {
+        "aliases": [
+          "龙马溪地层",
+          "Longmaxi Formation",
+          "S1l",
+          "S₁l"
+        ],
+        "codes": {
+          "PROJECT": "STR-S1L",
+          "SYMBOL": "S1l"
+        },
+        "description": "龙马溪组地层单元。",
+        "category": "志留系",
+        "subcategory": "下志留统",
+        "era": "志留系",
+        "period": "下志留统"
+      },
+      "筇竹寺组": {
+        "aliases": [
+          "筇竹寺地层",
+          "Qiongzhusi Formation",
+          "Є1q"
+        ],
+        "codes": {
+          "PROJECT": "STR-CAM-QIONGZHUSI",
+          "SYMBOL": "Є1q"
+        },
+        "description": "筇竹寺组地层单元。",
+        "category": "寒武系",
+        "subcategory": "下寒武统",
+        "era": "寒武系",
+        "period": "下寒武统"
+      },
+      "沧浪铺组": {
+        "aliases": [
+          "沧浪铺地层",
+          "Canglangpu Formation",
+          "Є1c"
+        ],
+        "codes": {
+          "PROJECT": "STR-CAM-CANGLANGPU",
+          "SYMBOL": "Є1c"
+        },
+        "description": "沧浪铺组地层单元。",
+        "category": "寒武系",
+        "subcategory": "下寒武统",
+        "era": "寒武系",
+        "period": "下寒武统"
+      },
+      "峨眉山玄武岩组": {
+        "aliases": [
+          "峨眉山玄武岩",
+          "Emeishan Basalt Formation",
+          "P3β"
+        ],
+        "codes": {
+          "PROJECT": "STR-P3-EMEISHAN",
+          "SYMBOL": "P3β"
+        },
+        "description": "峨眉山玄武岩组地层单元。",
+        "category": "二叠系",
+        "subcategory": "上二叠统",
+        "era": "二叠系",
+        "period": "上二叠统"
+      }
+    },
+    "岩性": {
+      "砾岩": {
+        "aliases": [
+          "Conglomerate",
+          "圆砾岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-CONGLOMERATE"
+        },
+        "description": "砾岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "角砾岩": {
+        "aliases": [
+          "Breccia",
+          "构造角砾岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-BRECCIA"
+        },
+        "description": "角砾岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "砂岩": {
+        "aliases": [
+          "Sandstone",
+          "砂质岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-SANDSTONE"
+        },
+        "description": "砂岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "石英砂岩": {
+        "aliases": [
+          "Quartz Sandstone",
+          "石英质砂岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-QUARTZ-SANDSTONE"
+        },
+        "description": "石英砂岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "长石砂岩": {
+        "aliases": [
+          "Arkose",
+          "长石质砂岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-ARKOSE"
+        },
+        "description": "长石砂岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "岩屑砂岩": {
+        "aliases": [
+          "Lithic Sandstone"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-LITHIC-SANDSTONE"
+        },
+        "description": "岩屑砂岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "粉砂岩": {
+        "aliases": [
+          "Siltstone"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-SILTSTONE"
+        },
+        "description": "粉砂岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "泥岩": {
+        "aliases": [
+          "Mudstone"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-MUDSTONE"
+        },
+        "description": "泥岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "页岩": {
+        "aliases": [
+          "Shale"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-SHALE"
+        },
+        "description": "页岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "黏土岩": {
+        "aliases": [
+          "Claystone",
+          "粘土岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-CLAYSTONE"
+        },
+        "description": "黏土岩，类别为沉积岩/碎屑岩。",
+        "category": "沉积岩",
+        "subcategory": "碎屑岩"
+      },
+      "石灰岩": {
+        "aliases": [
+          "Limestone",
+          "灰岩",
+          "石灰石"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-LIMESTONE"
+        },
+        "description": "石灰岩，类别为沉积岩/碳酸盐岩。",
+        "category": "沉积岩",
+        "subcategory": "碳酸盐岩",
+        "relations": [
+          {
+            "type": "易发地质作用",
+            "target_domain": "地下水",
+            "target": "岩溶水"
+          },
+          {
+            "type": "潜在不良地质",
+            "target_domain": "不良地质",
+            "target": "岩溶塌陷"
+          }
+        ]
+      },
+      "生物碎屑灰岩": {
+        "aliases": [
+          "Bioclastic Limestone"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-BIOCLASTIC-LIMESTONE"
+        },
+        "description": "生物碎屑灰岩，类别为沉积岩/碳酸盐岩。",
+        "category": "沉积岩",
+        "subcategory": "碳酸盐岩"
+      },
+      "白云质灰岩": {
+        "aliases": [
+          "Dolomitic Limestone"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-DOLOMITIC-LIMESTONE"
+        },
+        "description": "白云质灰岩，类别为沉积岩/碳酸盐岩。",
+        "category": "沉积岩",
+        "subcategory": "碳酸盐岩",
+        "relations": [
+          {
+            "type": "易发地质作用",
+            "target_domain": "地下水",
+            "target": "岩溶水"
+          },
+          {
+            "type": "潜在不良地质",
+            "target_domain": "不良地质",
+            "target": "岩溶塌陷"
+          }
+        ]
+      },
+      "泥灰岩": {
+        "aliases": [
+          "Marl",
+          "灰质泥岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-MARL"
+        },
+        "description": "泥灰岩，类别为沉积岩/碳酸盐岩。",
+        "category": "沉积岩",
+        "subcategory": "碳酸盐岩"
+      },
+      "白云岩": {
+        "aliases": [
+          "Dolostone",
+          "Dolomite Rock",
+          "白云石岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-DOLOSTONE"
+        },
+        "description": "白云岩，类别为沉积岩/碳酸盐岩。",
+        "category": "沉积岩",
+        "subcategory": "碳酸盐岩",
+        "relations": [
+          {
+            "type": "易发地质作用",
+            "target_domain": "地下水",
+            "target": "岩溶水"
+          },
+          {
+            "type": "潜在不良地质",
+            "target_domain": "不良地质",
+            "target": "岩溶塌陷"
+          }
+        ]
+      },
+      "硅质岩": {
+        "aliases": [
+          "Siliceous Rock",
+          "燧石岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-SILICEOUS"
+        },
+        "description": "硅质岩，类别为沉积岩/硅质岩。",
+        "category": "沉积岩",
+        "subcategory": "硅质岩"
+      },
+      "燧石": {
+        "aliases": [
+          "Chert"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-CHERT"
+        },
+        "description": "燧石，类别为沉积岩/硅质岩。",
+        "category": "沉积岩",
+        "subcategory": "硅质岩"
+      },
+      "磷块岩": {
+        "aliases": [
+          "Phosphorite",
+          "磷矿岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-PHOSPHORITE"
+        },
+        "description": "磷块岩，类别为沉积岩/化学沉积岩。",
+        "category": "沉积岩",
+        "subcategory": "化学沉积岩"
+      },
+      "煤": {
+        "aliases": [
+          "Coal",
+          "煤层"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-COAL"
+        },
+        "description": "煤，类别为沉积岩/有机岩。",
+        "category": "沉积岩",
+        "subcategory": "有机岩"
+      },
+      "石膏岩": {
+        "aliases": [
+          "Gypsum Rock",
+          "石膏"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-GYPSUM"
+        },
+        "description": "石膏岩，类别为沉积岩/蒸发岩。",
+        "category": "沉积岩",
+        "subcategory": "蒸发岩"
+      },
+      "岩盐": {
+        "aliases": [
+          "Rock Salt",
+          "盐岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SED-HALITE"
+        },
+        "description": "岩盐，类别为沉积岩/蒸发岩。",
+        "category": "沉积岩",
+        "subcategory": "蒸发岩"
+      },
+      "花岗岩": {
+        "aliases": [
+          "Granite",
+          "花岗石"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-GRANITE"
+        },
+        "description": "花岗岩，类别为岩浆岩/酸性侵入岩。",
+        "category": "岩浆岩",
+        "subcategory": "酸性侵入岩"
+      },
+      "二长花岗岩": {
+        "aliases": [
+          "Monzogranite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-MONZOGRANITE"
+        },
+        "description": "二长花岗岩，类别为岩浆岩/酸性侵入岩。",
+        "category": "岩浆岩",
+        "subcategory": "酸性侵入岩"
+      },
+      "花岗闪长岩": {
+        "aliases": [
+          "Granodiorite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-GRANODIORITE"
+        },
+        "description": "花岗闪长岩，类别为岩浆岩/酸性侵入岩。",
+        "category": "岩浆岩",
+        "subcategory": "酸性侵入岩"
+      },
+      "正长岩": {
+        "aliases": [
+          "Syenite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-SYENITE"
+        },
+        "description": "正长岩，类别为岩浆岩/中性侵入岩。",
+        "category": "岩浆岩",
+        "subcategory": "中性侵入岩"
+      },
+      "闪长岩": {
+        "aliases": [
+          "Diorite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-DIORITE"
+        },
+        "description": "闪长岩，类别为岩浆岩/中性侵入岩。",
+        "category": "岩浆岩",
+        "subcategory": "中性侵入岩"
+      },
+      "石英闪长岩": {
+        "aliases": [
+          "Quartz Diorite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-QUARTZ-DIORITE"
+        },
+        "description": "石英闪长岩，类别为岩浆岩/中性侵入岩。",
+        "category": "岩浆岩",
+        "subcategory": "中性侵入岩"
+      },
+      "辉长岩": {
+        "aliases": [
+          "Gabbro"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-GABBRO"
+        },
+        "description": "辉长岩，类别为岩浆岩/基性侵入岩。",
+        "category": "岩浆岩",
+        "subcategory": "基性侵入岩"
+      },
+      "辉绿岩": {
+        "aliases": [
+          "Diabase",
+          "Dolerite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-DIABASE"
+        },
+        "description": "辉绿岩，类别为岩浆岩/浅成基性岩。",
+        "category": "岩浆岩",
+        "subcategory": "浅成基性岩"
+      },
+      "橄榄岩": {
+        "aliases": [
+          "Peridotite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-PERIDOTITE"
+        },
+        "description": "橄榄岩，类别为岩浆岩/超基性侵入岩。",
+        "category": "岩浆岩",
+        "subcategory": "超基性侵入岩"
+      },
+      "伟晶岩": {
+        "aliases": [
+          "Pegmatite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-PEGMATITE"
+        },
+        "description": "伟晶岩，类别为岩浆岩/脉岩。",
+        "category": "岩浆岩",
+        "subcategory": "脉岩"
+      },
+      "细晶岩": {
+        "aliases": [
+          "Aplite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-IGN-APLITE"
+        },
+        "description": "细晶岩，类别为岩浆岩/脉岩。",
+        "category": "岩浆岩",
+        "subcategory": "脉岩"
+      },
+      "玄武岩": {
+        "aliases": [
+          "Basalt",
+          "拉斑玄武岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-VOL-BASALT"
+        },
+        "description": "玄武岩，类别为岩浆岩/基性喷出岩。",
+        "category": "岩浆岩",
+        "subcategory": "基性喷出岩"
+      },
+      "安山岩": {
+        "aliases": [
+          "Andesite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-VOL-ANDESITE"
+        },
+        "description": "安山岩，类别为岩浆岩/中性喷出岩。",
+        "category": "岩浆岩",
+        "subcategory": "中性喷出岩"
+      },
+      "英安岩": {
+        "aliases": [
+          "Dacite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-VOL-DACITE"
+        },
+        "description": "英安岩，类别为岩浆岩/中酸性喷出岩。",
+        "category": "岩浆岩",
+        "subcategory": "中酸性喷出岩"
+      },
+      "流纹岩": {
+        "aliases": [
+          "Rhyolite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-VOL-RHYOLITE"
+        },
+        "description": "流纹岩，类别为岩浆岩/酸性喷出岩。",
+        "category": "岩浆岩",
+        "subcategory": "酸性喷出岩"
+      },
+      "凝灰岩": {
+        "aliases": [
+          "Tuff",
+          "火山凝灰岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-PYRO-TUFF"
+        },
+        "description": "凝灰岩，类别为火山碎屑岩/凝灰质岩。",
+        "category": "火山碎屑岩",
+        "subcategory": "凝灰质岩"
+      },
+      "熔结凝灰岩": {
+        "aliases": [
+          "Ignimbrite",
+          "Welded Tuff"
+        ],
+        "codes": {
+          "PROJECT": "LIT-PYRO-IGNIMBRITE"
+        },
+        "description": "熔结凝灰岩，类别为火山碎屑岩/熔结凝灰岩。",
+        "category": "火山碎屑岩",
+        "subcategory": "熔结凝灰岩"
+      },
+      "火山角砾岩": {
+        "aliases": [
+          "Volcanic Breccia"
+        ],
+        "codes": {
+          "PROJECT": "LIT-PYRO-VOLCANIC-BRECCIA"
+        },
+        "description": "火山角砾岩，类别为火山碎屑岩/粗碎屑岩。",
+        "category": "火山碎屑岩",
+        "subcategory": "粗碎屑岩"
+      },
+      "集块岩": {
+        "aliases": [
+          "Agglomerate"
+        ],
+        "codes": {
+          "PROJECT": "LIT-PYRO-AGGLOMERATE"
+        },
+        "description": "集块岩，类别为火山碎屑岩/粗碎屑岩。",
+        "category": "火山碎屑岩",
+        "subcategory": "粗碎屑岩"
+      },
+      "片麻岩": {
+        "aliases": [
+          "Gneiss",
+          "花岗片麻岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-GNEISS"
+        },
+        "description": "片麻岩，类别为变质岩/区域变质岩。",
+        "category": "变质岩",
+        "subcategory": "区域变质岩"
+      },
+      "片岩": {
+        "aliases": [
+          "Schist",
+          "云母片岩",
+          "绿泥石片岩"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-SCHIST"
+        },
+        "description": "片岩，类别为变质岩/区域变质岩。",
+        "category": "变质岩",
+        "subcategory": "区域变质岩"
+      },
+      "板岩": {
+        "aliases": [
+          "Slate"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-SLATE"
+        },
+        "description": "板岩，类别为变质岩/低级变质岩。",
+        "category": "变质岩",
+        "subcategory": "低级变质岩"
+      },
+      "千枚岩": {
+        "aliases": [
+          "Phyllite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-PHYLLITE"
+        },
+        "description": "千枚岩，类别为变质岩/低级变质岩。",
+        "category": "变质岩",
+        "subcategory": "低级变质岩"
+      },
+      "石英岩": {
+        "aliases": [
+          "Quartzite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-QUARTZITE"
+        },
+        "description": "石英岩，类别为变质岩/区域变质岩。",
+        "category": "变质岩",
+        "subcategory": "区域变质岩"
+      },
+      "大理岩": {
+        "aliases": [
+          "Marble",
+          "大理石"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-MARBLE"
+        },
+        "description": "大理岩，类别为变质岩/碳酸盐变质岩。",
+        "category": "变质岩",
+        "subcategory": "碳酸盐变质岩"
+      },
+      "角闪岩": {
+        "aliases": [
+          "Amphibolite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-AMPHIBOLITE"
+        },
+        "description": "角闪岩，类别为变质岩/区域变质岩。",
+        "category": "变质岩",
+        "subcategory": "区域变质岩"
+      },
+      "麻粒岩": {
+        "aliases": [
+          "Granulite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-GRANULITE"
+        },
+        "description": "麻粒岩，类别为变质岩/高级变质岩。",
+        "category": "变质岩",
+        "subcategory": "高级变质岩"
+      },
+      "混合岩": {
+        "aliases": [
+          "Migmatite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-MIGMATITE"
+        },
+        "description": "混合岩，类别为变质岩/混合岩。",
+        "category": "变质岩",
+        "subcategory": "混合岩"
+      },
+      "蛇纹岩": {
+        "aliases": [
+          "Serpentinite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-SERPENTINITE"
+        },
+        "description": "蛇纹岩，类别为变质岩/交代变质岩。",
+        "category": "变质岩",
+        "subcategory": "交代变质岩"
+      },
+      "角岩": {
+        "aliases": [
+          "Hornfels"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-HORNFELS"
+        },
+        "description": "角岩，类别为变质岩/接触变质岩。",
+        "category": "变质岩",
+        "subcategory": "接触变质岩"
+      },
+      "糜棱岩": {
+        "aliases": [
+          "Mylonite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-MYLONITE"
+        },
+        "description": "糜棱岩，类别为变质岩/动力变质岩。",
+        "category": "变质岩",
+        "subcategory": "动力变质岩"
+      },
+      "碎裂岩": {
+        "aliases": [
+          "Cataclasite"
+        ],
+        "codes": {
+          "PROJECT": "LIT-MET-CATACLASITE"
+        },
+        "description": "碎裂岩，类别为变质岩/动力变质岩。",
+        "category": "变质岩",
+        "subcategory": "动力变质岩"
+      },
+      "断层泥": {
+        "aliases": [
+          "Fault Gouge",
+          "断层黏土"
+        ],
+        "codes": {
+          "PROJECT": "LIT-FAULT-GOUGE"
+        },
+        "description": "断层泥，类别为构造岩/断层岩。",
+        "category": "构造岩",
+        "subcategory": "断层岩"
+      },
+      "黏土": {
+        "aliases": [
+          "Clay",
+          "粘土"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-CLAY"
+        },
+        "description": "黏土，类别为松散堆积物/黏性土。",
+        "category": "松散堆积物",
+        "subcategory": "黏性土"
+      },
+      "粉质黏土": {
+        "aliases": [
+          "Silty Clay",
+          "粉质粘土"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-SILTY-CLAY"
+        },
+        "description": "粉质黏土，类别为松散堆积物/黏性土。",
+        "category": "松散堆积物",
+        "subcategory": "黏性土"
+      },
+      "粉土": {
+        "aliases": [
+          "Silt"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-SILT"
+        },
+        "description": "粉土，类别为松散堆积物/粉土。",
+        "category": "松散堆积物",
+        "subcategory": "粉土"
+      },
+      "砂土": {
+        "aliases": [
+          "Sand",
+          "细砂",
+          "中砂",
+          "粗砂"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-SAND"
+        },
+        "description": "砂土，类别为松散堆积物/砂类土。",
+        "category": "松散堆积物",
+        "subcategory": "砂类土"
+      },
+      "砾石土": {
+        "aliases": [
+          "Gravel",
+          "砾石"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-GRAVEL"
+        },
+        "description": "砾石土，类别为松散堆积物/砾类土。",
+        "category": "松散堆积物",
+        "subcategory": "砾类土"
+      },
+      "卵石土": {
+        "aliases": [
+          "Pebble Soil",
+          "卵石层"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-PEBBLE"
+        },
+        "description": "卵石土，类别为松散堆积物/粗粒土。",
+        "category": "松散堆积物",
+        "subcategory": "粗粒土"
+      },
+      "块石土": {
+        "aliases": [
+          "Boulder Soil",
+          "块石层"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-BOULDER"
+        },
+        "description": "块石土，类别为松散堆积物/粗粒土。",
+        "category": "松散堆积物",
+        "subcategory": "粗粒土"
+      },
+      "填土": {
+        "aliases": [
+          "Fill",
+          "人工填土",
+          "杂填土",
+          "素填土"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-FILL"
+        },
+        "description": "填土，类别为松散堆积物/人工堆积。",
+        "category": "松散堆积物",
+        "subcategory": "人工堆积"
+      },
+      "残积土": {
+        "aliases": [
+          "Residual Soil",
+          "残坡积土"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-RESIDUAL"
+        },
+        "description": "残积土，类别为松散堆积物/残积物。",
+        "category": "松散堆积物",
+        "subcategory": "残积物"
+      },
+      "坡积土": {
+        "aliases": [
+          "Colluvium",
+          "崩坡积土"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-COLLUVIUM"
+        },
+        "description": "坡积土，类别为松散堆积物/坡积物。",
+        "category": "松散堆积物",
+        "subcategory": "坡积物"
+      },
+      "冲积土": {
+        "aliases": [
+          "Alluvium",
+          "冲洪积层"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-ALLUVIUM"
+        },
+        "description": "冲积土，类别为松散堆积物/冲积物。",
+        "category": "松散堆积物",
+        "subcategory": "冲积物"
+      },
+      "黄土": {
+        "aliases": [
+          "Loess"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-LOESS"
+        },
+        "description": "黄土，类别为松散堆积物/风成沉积。",
+        "category": "松散堆积物",
+        "subcategory": "风成沉积"
+      },
+      "泥炭": {
+        "aliases": [
+          "Peat",
+          "泥炭土"
+        ],
+        "codes": {
+          "PROJECT": "LIT-SOIL-PEAT"
+        },
+        "description": "泥炭，类别为松散堆积物/有机土。",
+        "category": "松散堆积物",
+        "subcategory": "有机土"
+      }
+    },
+    "构造": {
+      "断层": {
+        "aliases": [
+          "Fault",
+          "断裂"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-FAULT"
+        },
+        "description": "断层，属于断裂构造/断层。",
+        "category": "断裂构造",
+        "subcategory": "断层"
+      },
+      "正断层": {
+        "aliases": [
+          "Normal Fault",
+          "张性断层"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-NORMAL-FAULT"
+        },
+        "description": "正断层，属于断裂构造/断层。",
+        "category": "断裂构造",
+        "subcategory": "断层"
+      },
+      "逆断层": {
+        "aliases": [
+          "Reverse Fault",
+          "压性断层"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-REVERSE-FAULT"
+        },
+        "description": "逆断层，属于断裂构造/断层。",
+        "category": "断裂构造",
+        "subcategory": "断层"
+      },
+      "逆冲断层": {
+        "aliases": [
+          "Thrust Fault",
+          "冲断层"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-THRUST-FAULT"
+        },
+        "description": "逆冲断层，属于断裂构造/断层。",
+        "category": "断裂构造",
+        "subcategory": "断层"
+      },
+      "走滑断层": {
+        "aliases": [
+          "Strike-slip Fault",
+          "平移断层",
+          "扭性断层"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-STRIKE-SLIP"
+        },
+        "description": "走滑断层，属于断裂构造/断层。",
+        "category": "断裂构造",
+        "subcategory": "断层"
+      },
+      "活动断层": {
+        "aliases": [
+          "Active Fault",
+          "活动断裂"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-ACTIVE-FAULT"
+        },
+        "description": "活动断层，属于断裂构造/活动构造。",
+        "category": "断裂构造",
+        "subcategory": "活动构造"
+      },
+      "隐伏断层": {
+        "aliases": [
+          "Blind Fault",
+          "Buried Fault"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-BURIED-FAULT"
+        },
+        "description": "隐伏断层，属于断裂构造/隐伏构造。",
+        "category": "断裂构造",
+        "subcategory": "隐伏构造"
+      },
+      "断层破碎带": {
+        "aliases": [
+          "Fault Fracture Zone",
+          "断裂破碎带",
+          "构造破碎带",
+          "碎裂带"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-FAULT-ZONE"
+        },
+        "description": "断层破碎带，属于断裂构造/破碎带。",
+        "category": "断裂构造",
+        "subcategory": "破碎带",
+        "relations": [
+          {
+            "type": "可能赋水",
+            "target_domain": "地下水",
+            "target": "构造裂隙水"
+          },
+          {
+            "type": "潜在风险",
+            "target_domain": "不良地质",
+            "target": "突水突泥"
+          }
+        ]
+      },
+      "节理": {
+        "aliases": [
+          "Joint",
+          "裂隙",
+          "节理裂隙"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-JOINT"
+        },
+        "description": "节理，属于断裂构造/节理。",
+        "category": "断裂构造",
+        "subcategory": "节理"
+      },
+      "张节理": {
+        "aliases": [
+          "Tension Joint",
+          "张性节理"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-TENSION-JOINT"
+        },
+        "description": "张节理，属于断裂构造/节理。",
+        "category": "断裂构造",
+        "subcategory": "节理"
+      },
+      "剪节理": {
+        "aliases": [
+          "Shear Joint",
+          "剪切节理"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-SHEAR-JOINT"
+        },
+        "description": "剪节理，属于断裂构造/节理。",
+        "category": "断裂构造",
+        "subcategory": "节理"
+      },
+      "层理": {
+        "aliases": [
+          "Bedding",
+          "层面",
+          "层理面"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-BEDDING"
+        },
+        "description": "层理，属于原生构造/层状构造。",
+        "category": "原生构造",
+        "subcategory": "层状构造"
+      },
+      "片理": {
+        "aliases": [
+          "Foliation",
+          "片理面"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-FOLIATION"
+        },
+        "description": "片理，属于变质构造/面理。",
+        "category": "变质构造",
+        "subcategory": "面理"
+      },
+      "劈理": {
+        "aliases": [
+          "Cleavage",
+          "劈理面"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-CLEAVAGE"
+        },
+        "description": "劈理，属于变质构造/面理。",
+        "category": "变质构造",
+        "subcategory": "面理"
+      },
+      "片麻理": {
+        "aliases": [
+          "Gneissosity"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-GNEISSOSITY"
+        },
+        "description": "片麻理，属于变质构造/面理。",
+        "category": "变质构造",
+        "subcategory": "面理"
+      },
+      "褶皱": {
+        "aliases": [
+          "Fold",
+          "褶曲"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-FOLD"
+        },
+        "description": "褶皱，属于褶皱构造/褶皱。",
+        "category": "褶皱构造",
+        "subcategory": "褶皱"
+      },
+      "背斜": {
+        "aliases": [
+          "Anticline"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-ANTICLINE"
+        },
+        "description": "背斜，属于褶皱构造/背斜。",
+        "category": "褶皱构造",
+        "subcategory": "背斜"
+      },
+      "向斜": {
+        "aliases": [
+          "Syncline"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-SYNCLINE"
+        },
+        "description": "向斜，属于褶皱构造/向斜。",
+        "category": "褶皱构造",
+        "subcategory": "向斜"
+      },
+      "单斜构造": {
+        "aliases": [
+          "Monocline",
+          "单斜"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-MONOCLINE"
+        },
+        "description": "单斜构造，属于褶皱构造/单斜。",
+        "category": "褶皱构造",
+        "subcategory": "单斜"
+      },
+      "穹隆构造": {
+        "aliases": [
+          "Dome",
+          "穹隆"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-DOME"
+        },
+        "description": "穹隆构造，属于褶皱构造/穹隆。",
+        "category": "褶皱构造",
+        "subcategory": "穹隆"
+      },
+      "构造盆地": {
+        "aliases": [
+          "Structural Basin",
+          "盆状构造"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-BASIN"
+        },
+        "description": "构造盆地，属于褶皱构造/盆地。",
+        "category": "褶皱构造",
+        "subcategory": "盆地"
+      },
+      "整合接触": {
+        "aliases": [
+          "Conformable Contact",
+          "整合"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-CONFORMABLE"
+        },
+        "description": "整合接触，属于接触关系/整合。",
+        "category": "接触关系",
+        "subcategory": "整合"
+      },
+      "不整合面": {
+        "aliases": [
+          "Unconformity",
+          "不整合"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-UNCONFORMITY"
+        },
+        "description": "不整合面，属于接触关系/不整合。",
+        "category": "接触关系",
+        "subcategory": "不整合"
+      },
+      "角度不整合": {
+        "aliases": [
+          "Angular Unconformity"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-ANGULAR-UNCONFORMITY"
+        },
+        "description": "角度不整合，属于接触关系/不整合。",
+        "category": "接触关系",
+        "subcategory": "不整合"
+      },
+      "平行不整合": {
+        "aliases": [
+          "Disconformity",
+          "假整合"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-DISCONFORMITY"
+        },
+        "description": "平行不整合，属于接触关系/不整合。",
+        "category": "接触关系",
+        "subcategory": "不整合"
+      },
+      "侵入接触": {
+        "aliases": [
+          "Intrusive Contact"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-INTRUSIVE-CONTACT"
+        },
+        "description": "侵入接触，属于接触关系/侵入接触。",
+        "category": "接触关系",
+        "subcategory": "侵入接触"
+      },
+      "断层接触": {
+        "aliases": [
+          "Fault Contact"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-FAULT-CONTACT"
+        },
+        "description": "断层接触，属于接触关系/断层接触。",
+        "category": "接触关系",
+        "subcategory": "断层接触"
+      },
+      "构造面": {
+        "aliases": [
+          "Structural Plane",
+          "结构面"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-STRUCTURAL-PLANE"
+        },
+        "description": "构造面，属于结构面/通用。",
+        "category": "结构面",
+        "subcategory": "通用"
+      },
+      "软弱夹层": {
+        "aliases": [
+          "Weak Interlayer",
+          "软弱层",
+          "夹泥层"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-WEAK-INTERLAYER"
+        },
+        "description": "软弱夹层，属于结构面/软弱结构面。",
+        "category": "结构面",
+        "subcategory": "软弱结构面"
+      },
+      "岩脉": {
+        "aliases": [
+          "Dike",
+          "Dyke",
+          "脉岩"
+        ],
+        "codes": {
+          "PROJECT": "GEO-STR-DIKE"
+        },
+        "description": "岩脉，属于侵入构造/岩脉。",
+        "category": "侵入构造",
+        "subcategory": "岩脉"
+      }
+    },
+    "地下水": {
+      "潜水": {
+        "aliases": [
+          "Phreatic Water",
+          "非承压水",
+          "浅层地下水"
+        ],
+        "codes": {
+          "PROJECT": "GW-PHREATIC"
+        },
+        "description": "潜水，地下水语义类型为埋藏条件。",
+        "category": "埋藏条件"
+      },
+      "承压水": {
+        "aliases": [
+          "Confined Water",
+          "压力水",
+          "承压含水层水"
+        ],
+        "codes": {
+          "PROJECT": "GW-CONFINED"
+        },
+        "description": "承压水，地下水语义类型为埋藏条件。",
+        "category": "埋藏条件"
+      },
+      "上层滞水": {
+        "aliases": [
+          "Perched Water",
+          "悬挂水",
+          "滞水"
+        ],
+        "codes": {
+          "PROJECT": "GW-PERCHED"
+        },
+        "description": "上层滞水，地下水语义类型为埋藏条件。",
+        "category": "埋藏条件"
+      },
+      "孔隙水": {
+        "aliases": [
+          "Pore Water",
+          "松散层地下水",
+          "孔隙地下水"
+        ],
+        "codes": {
+          "PROJECT": "GW-PORE"
+        },
+        "description": "孔隙水，地下水语义类型为含水介质。",
+        "category": "含水介质"
+      },
+      "基岩裂隙水": {
+        "aliases": [
+          "Bedrock Fissure Water",
+          "裂隙水",
+          "基岩地下水",
+          "Fissure Water"
+        ],
+        "codes": {
+          "PROJECT": "GW-BEDROCK-FISSURE"
+        },
+        "description": "基岩裂隙水，地下水语义类型为含水介质。",
+        "category": "含水介质"
+      },
+      "风化裂隙水": {
+        "aliases": [
+          "Weathered Fissure Water",
+          "风化带裂隙水"
+        ],
+        "codes": {
+          "PROJECT": "GW-WEATHERED-FISSURE"
+        },
+        "description": "风化裂隙水，地下水语义类型为含水介质。",
+        "category": "含水介质"
+      },
+      "构造裂隙水": {
+        "aliases": [
+          "Tectonic Fissure Water",
+          "断层裂隙水"
+        ],
+        "codes": {
+          "PROJECT": "GW-TECTONIC-FISSURE"
+        },
+        "description": "构造裂隙水，地下水语义类型为含水介质。",
+        "category": "含水介质"
+      },
+      "岩溶水": {
+        "aliases": [
+          "Karst Water",
+          "喀斯特水",
+          "溶洞水"
+        ],
+        "codes": {
+          "PROJECT": "GW-KARST"
+        },
+        "description": "岩溶水，地下水语义类型为含水介质。",
+        "category": "含水介质"
+      },
+      "地下河": {
+        "aliases": [
+          "Underground River",
+          "暗河"
+        ],
+        "codes": {
+          "PROJECT": "GW-UNDERGROUND-RIVER"
+        },
+        "description": "地下河，地下水语义类型为地下水形态。",
+        "category": "地下水形态"
+      },
+      "泉水": {
+        "aliases": [
+          "Spring Water",
+          "泉"
+        ],
+        "codes": {
+          "PROJECT": "GW-SPRING"
+        },
+        "description": "泉水，地下水语义类型为地下水形态。",
+        "category": "地下水形态"
+      },
+      "含水层": {
+        "aliases": [
+          "Aquifer"
+        ],
+        "codes": {
+          "PROJECT": "GW-AQUIFER"
+        },
+        "description": "含水层，地下水语义类型为水文地质单元。",
+        "category": "水文地质单元"
+      },
+      "弱透水层": {
+        "aliases": [
+          "Aquitard",
+          "相对隔水层"
+        ],
+        "codes": {
+          "PROJECT": "GW-AQUITARD"
+        },
+        "description": "弱透水层，地下水语义类型为水文地质单元。",
+        "category": "水文地质单元"
+      },
+      "隔水层": {
+        "aliases": [
+          "Aquiclude",
+          "不透水层"
+        ],
+        "codes": {
+          "PROJECT": "GW-AQUICLUDE"
+        },
+        "description": "隔水层，地下水语义类型为水文地质单元。",
+        "category": "水文地质单元"
+      },
+      "地下水位": {
+        "aliases": [
+          "Water Table",
+          "水位",
+          "潜水面"
+        ],
+        "codes": {
+          "PROJECT": "GW-WATER-TABLE"
+        },
+        "description": "地下水位，地下水语义类型为水文参数。",
+        "category": "水文参数"
+      },
+      "承压水头": {
+        "aliases": [
+          "Piezometric Head",
+          "测压水位",
+          "承压水位"
+        ],
+        "codes": {
+          "PROJECT": "GW-PIEZOMETRIC-HEAD"
+        },
+        "description": "承压水头，地下水语义类型为水文参数。",
+        "category": "水文参数"
+      },
+      "水压力": {
+        "aliases": [
+          "Water Pressure",
+          "孔隙水压力",
+          "水头压力"
+        ],
+        "codes": {
+          "PROJECT": "GW-WATER-PRESSURE"
+        },
+        "description": "水压力，地下水语义类型为水文参数。",
+        "category": "水文参数"
+      },
+      "水力坡度": {
+        "aliases": [
+          "Hydraulic Gradient",
+          "水力梯度"
+        ],
+        "codes": {
+          "PROJECT": "GW-HYDRAULIC-GRADIENT"
+        },
+        "description": "水力坡度，地下水语义类型为水文参数。",
+        "category": "水文参数"
+      },
+      "渗透系数": {
+        "aliases": [
+          "Hydraulic Conductivity",
+          "K值",
+          "透水系数"
+        ],
+        "codes": {
+          "PROJECT": "GW-HYDRAULIC-CONDUCTIVITY"
+        },
+        "description": "渗透系数，地下水语义类型为水文参数。",
+        "category": "水文参数"
+      },
+      "富水性": {
+        "aliases": [
+          "Water Yield",
+          "出水能力",
+          "含水性"
+        ],
+        "codes": {
+          "PROJECT": "GW-WATER-YIELD"
+        },
+        "description": "富水性，地下水语义类型为水文参数。",
+        "category": "水文参数"
+      },
+      "补给": {
+        "aliases": [
+          "Recharge",
+          "地下水补给"
+        ],
+        "codes": {
+          "PROJECT": "GW-RECHARGE"
+        },
+        "description": "补给，地下水语义类型为地下水循环。",
+        "category": "地下水循环"
+      },
+      "径流": {
+        "aliases": [
+          "Groundwater Runoff",
+          "地下水径流"
+        ],
+        "codes": {
+          "PROJECT": "GW-RUNOFF"
+        },
+        "description": "径流，地下水语义类型为地下水循环。",
+        "category": "地下水循环"
+      },
+      "排泄": {
+        "aliases": [
+          "Discharge",
+          "地下水排泄"
+        ],
+        "codes": {
+          "PROJECT": "GW-DISCHARGE"
+        },
+        "description": "排泄，地下水语义类型为地下水循环。",
+        "category": "地下水循环"
+      },
+      "季节性变化": {
+        "aliases": [
+          "Seasonal Variation",
+          "水位季节变化"
+        ],
+        "codes": {
+          "PROJECT": "GW-SEASONAL"
+        },
+        "description": "季节性变化，地下水语义类型为动态特征。",
+        "category": "动态特征"
+      },
+      "干燥": {
+        "aliases": [
+          "Dry",
+          "无水"
+        ],
+        "codes": {
+          "PROJECT": "GW-STATE-DRY"
+        },
+        "description": "干燥，地下水语义类型为隧道出水状态。",
+        "category": "隧道出水状态"
+      },
+      "潮湿": {
+        "aliases": [
+          "Damp",
+          "湿润"
+        ],
+        "codes": {
+          "PROJECT": "GW-STATE-DAMP"
+        },
+        "description": "潮湿，地下水语义类型为隧道出水状态。",
+        "category": "隧道出水状态"
+      },
+      "点滴状出水": {
+        "aliases": [
+          "Dripping Water",
+          "滴水",
+          "点滴状"
+        ],
+        "codes": {
+          "PROJECT": "GW-STATE-DRIP"
+        },
+        "description": "点滴状出水，地下水语义类型为隧道出水状态。",
+        "category": "隧道出水状态"
+      },
+      "线状出水": {
+        "aliases": [
+          "Linear Flow",
+          "线流",
+          "线状滴水"
+        ],
+        "codes": {
+          "PROJECT": "GW-STATE-LINEAR"
+        },
+        "description": "线状出水，地下水语义类型为隧道出水状态。",
+        "category": "隧道出水状态"
+      },
+      "股状出水": {
+        "aliases": [
+          "Jet Flow",
+          "股流",
+          "股状涌水"
+        ],
+        "codes": {
+          "PROJECT": "GW-STATE-JET"
+        },
+        "description": "股状出水，地下水语义类型为隧道出水状态。",
+        "category": "隧道出水状态"
+      },
+      "涌水": {
+        "aliases": [
+          "Water Inflow",
+          "地下水涌出",
+          "隧道涌水"
+        ],
+        "codes": {
+          "PROJECT": "GW-INFLOW"
+        },
+        "description": "涌水，地下水语义类型为工程水文现象。",
+        "category": "工程水文现象"
+      }
+    },
+    "不良地质": {
+      "滑坡": {
+        "aliases": [
+          "Landslide",
+          "滑坡体",
+          "山体滑坡"
+        ],
+        "codes": {
+          "PROJECT": "AG-LANDSLIDE"
+        },
+        "description": "滑坡，不良地质类型为斜坡灾害。",
+        "category": "斜坡灾害"
+      },
+      "崩塌": {
+        "aliases": [
+          "Collapse",
+          "崩塌体",
+          "岩质崩塌"
+        ],
+        "codes": {
+          "PROJECT": "AG-COLLAPSE"
+        },
+        "description": "崩塌，不良地质类型为斜坡灾害。",
+        "category": "斜坡灾害"
+      },
+      "危岩": {
+        "aliases": [
+          "Dangerous Rock",
+          "危岩体"
+        ],
+        "codes": {
+          "PROJECT": "AG-DANGEROUS-ROCK"
+        },
+        "description": "危岩，不良地质类型为斜坡灾害。",
+        "category": "斜坡灾害"
+      },
+      "落石": {
+        "aliases": [
+          "Rockfall",
+          "滚石"
+        ],
+        "codes": {
+          "PROJECT": "AG-ROCKFALL"
+        },
+        "description": "落石，不良地质类型为斜坡灾害。",
+        "category": "斜坡灾害"
+      },
+      "泥石流": {
+        "aliases": [
+          "Debris Flow",
+          "泥石流沟"
+        ],
+        "codes": {
+          "PROJECT": "AG-DEBRIS-FLOW"
+        },
+        "description": "泥石流，不良地质类型为山洪灾害。",
+        "category": "山洪灾害"
+      },
+      "不稳定斜坡": {
+        "aliases": [
+          "Unstable Slope",
+          "潜在滑坡"
+        ],
+        "codes": {
+          "PROJECT": "AG-UNSTABLE-SLOPE"
+        },
+        "description": "不稳定斜坡，不良地质类型为斜坡灾害。",
+        "category": "斜坡灾害"
+      },
+      "岩溶塌陷": {
+        "aliases": [
+          "Karst Collapse",
+          "溶洞塌陷",
+          "喀斯特塌陷"
+        ],
+        "codes": {
+          "PROJECT": "AG-KARST-COLLAPSE"
+        },
+        "description": "岩溶塌陷，不良地质类型为地面变形。",
+        "category": "地面变形"
+      },
+      "地面沉降": {
+        "aliases": [
+          "Land Subsidence",
+          "地面下沉"
+        ],
+        "codes": {
+          "PROJECT": "AG-LAND-SUBSIDENCE"
+        },
+        "description": "地面沉降，不良地质类型为地面变形。",
+        "category": "地面变形"
+      },
+      "地裂缝": {
+        "aliases": [
+          "Ground Fissure",
+          "地面裂缝",
+          "地表裂缝"
+        ],
+        "codes": {
+          "PROJECT": "AG-GROUND-FISSURE"
+        },
+        "description": "地裂缝，不良地质类型为地面变形。",
+        "category": "地面变形"
+      },
+      "采空区": {
+        "aliases": [
+          "Goaf",
+          "老采空区",
+          "矿山采空区"
+        ],
+        "codes": {
+          "PROJECT": "AG-GOAF"
+        },
+        "description": "采空区，不良地质类型为人类工程活动。",
+        "category": "人类工程活动"
+      },
+      "突水突泥": {
+        "aliases": [
+          "Water and Mud Inrush",
+          "突水",
+          "突泥",
+          "突涌水"
+        ],
+        "codes": {
+          "PROJECT": "AG-WATER-MUD-INRUSH"
+        },
+        "description": "突水突泥，不良地质类型为隧道灾害。",
+        "category": "隧道灾害"
+      },
+      "流砂": {
+        "aliases": [
+          "Quicksand",
+          "流沙"
+        ],
+        "codes": {
+          "PROJECT": "AG-QUICKSAND"
+        },
+        "description": "流砂，不良地质类型为地下工程灾害。",
+        "category": "地下工程灾害"
+      },
+      "管涌": {
+        "aliases": [
+          "Piping",
+          "潜蚀管涌"
+        ],
+        "codes": {
+          "PROJECT": "AG-PIPING"
+        },
+        "description": "管涌，不良地质类型为渗透破坏。",
+        "category": "渗透破坏"
+      },
+      "涌砂": {
+        "aliases": [
+          "Sand Inrush",
+          "突砂"
+        ],
+        "codes": {
+          "PROJECT": "AG-SAND-INRUSH"
+        },
+        "description": "涌砂，不良地质类型为地下工程灾害。",
+        "category": "地下工程灾害"
+      },
+      "岩爆": {
+        "aliases": [
+          "Rockburst",
+          "冲击地压"
+        ],
+        "codes": {
+          "PROJECT": "AG-ROCKBURST"
+        },
+        "description": "岩爆，不良地质类型为高地应力灾害。",
+        "category": "高地应力灾害"
+      },
+      "大变形": {
+        "aliases": [
+          "Large Deformation",
+          "软岩大变形"
+        ],
+        "codes": {
+          "PROJECT": "AG-LARGE-DEFORMATION"
+        },
+        "description": "大变形，不良地质类型为地下工程灾害。",
+        "category": "地下工程灾害"
+      },
+      "高地应力": {
+        "aliases": [
+          "High Geostress",
+          "高应力区"
+        ],
+        "codes": {
+          "PROJECT": "AG-HIGH-GEOSTRESS"
+        },
+        "description": "高地应力，不良地质类型为地应力异常。",
+        "category": "地应力异常"
+      },
+      "瓦斯": {
+        "aliases": [
+          "Gas",
+          "瓦斯突出",
+          "有害气体"
+        ],
+        "codes": {
+          "PROJECT": "AG-GAS"
+        },
+        "description": "瓦斯，不良地质类型为有害气体。",
+        "category": "有害气体"
+      },
+      "高地温": {
+        "aliases": [
+          "High Geotemperature",
+          "高温热害"
+        ],
+        "codes": {
+          "PROJECT": "AG-HIGH-GEOTEMPERATURE"
+        },
+        "description": "高地温，不良地质类型为地热异常。",
+        "category": "地热异常"
+      },
+      "活动断层": {
+        "aliases": [
+          "Active Fault Hazard",
+          "活动断裂带"
+        ],
+        "codes": {
+          "PROJECT": "AG-ACTIVE-FAULT"
+        },
+        "description": "活动断层，不良地质类型为构造灾害。",
+        "category": "构造灾害"
+      },
+      "砂土液化": {
+        "aliases": [
+          "Liquefaction",
+          "地震液化",
+          "粉土液化"
+        ],
+        "codes": {
+          "PROJECT": "AG-LIQUEFACTION"
+        },
+        "description": "砂土液化，不良地质类型为地震效应。",
+        "category": "地震效应"
+      },
+      "软土": {
+        "aliases": [
+          "Soft Soil",
+          "淤泥质土",
+          "软弱地基"
+        ],
+        "codes": {
+          "PROJECT": "AG-SOFT-SOIL"
+        },
+        "description": "软土，不良地质类型为特殊岩土。",
+        "category": "特殊岩土"
+      },
+      "膨胀土": {
+        "aliases": [
+          "Expansive Soil",
+          "胀缩土"
+        ],
+        "codes": {
+          "PROJECT": "AG-EXPANSIVE-SOIL"
+        },
+        "description": "膨胀土，不良地质类型为特殊岩土。",
+        "category": "特殊岩土"
+      },
+      "湿陷性黄土": {
+        "aliases": [
+          "Collapsible Loess",
+          "黄土湿陷"
+        ],
+        "codes": {
+          "PROJECT": "AG-COLLAPSIBLE-LOESS"
+        },
+        "description": "湿陷性黄土，不良地质类型为特殊岩土。",
+        "category": "特殊岩土"
+      },
+      "盐渍土": {
+        "aliases": [
+          "Saline Soil",
+          "盐碱土"
+        ],
+        "codes": {
+          "PROJECT": "AG-SALINE-SOIL"
+        },
+        "description": "盐渍土，不良地质类型为特殊岩土。",
+        "category": "特殊岩土"
+      },
+      "冻土": {
+        "aliases": [
+          "Frozen Soil",
+          "多年冻土",
+          "季节冻土"
+        ],
+        "codes": {
+          "PROJECT": "AG-FROZEN-SOIL"
+        },
+        "description": "冻土，不良地质类型为特殊岩土。",
+        "category": "特殊岩土"
+      },
+      "泥炭土": {
+        "aliases": [
+          "Peat Soil",
+          "有机质土"
+        ],
+        "codes": {
+          "PROJECT": "AG-PEAT-SOIL"
+        },
+        "description": "泥炭土，不良地质类型为特殊岩土。",
+        "category": "特殊岩土"
+      },
+      "沼泽地": {
+        "aliases": [
+          "Swamp",
+          "湿地软基"
+        ],
+        "codes": {
+          "PROJECT": "AG-SWAMP"
+        },
+        "description": "沼泽地，不良地质类型为特殊场地。",
+        "category": "特殊场地"
+      },
+      "断层破碎带": {
+        "aliases": [
+          "Fault Fracture Zone",
+          "构造破碎带"
+        ],
+        "codes": {
+          "PROJECT": "AG-FAULT-FRACTURE-ZONE"
+        },
+        "description": "断层破碎带，不良地质类型为构造不良地质。",
+        "category": "构造不良地质"
+      },
+      "岩溶洞穴": {
+        "aliases": [
+          "Karst Cave",
+          "溶洞",
+          "喀斯特洞穴"
+        ],
+        "codes": {
+          "PROJECT": "AG-KARST-CAVE"
+        },
+        "description": "岩溶洞穴，不良地质类型为岩溶不良地质。",
+        "category": "岩溶不良地质"
+      },
+      "岩溶管道": {
+        "aliases": [
+          "Karst Conduit",
+          "溶蚀通道",
+          "岩溶通道"
+        ],
+        "codes": {
+          "PROJECT": "AG-KARST-CONDUIT"
+        },
+        "description": "岩溶管道，不良地质类型为岩溶不良地质。",
+        "category": "岩溶不良地质"
+      },
+      "地下暗河": {
+        "aliases": [
+          "Underground River Hazard",
+          "暗河"
+        ],
+        "codes": {
+          "PROJECT": "AG-UNDERGROUND-RIVER"
+        },
+        "description": "地下暗河，不良地质类型为岩溶不良地质。",
+        "category": "岩溶不良地质"
+      },
+      "冲沟侵蚀": {
+        "aliases": [
+          "Gully Erosion",
+          "冲刷侵蚀"
+        ],
+        "codes": {
+          "PROJECT": "AG-GULLY-EROSION"
+        },
+        "description": "冲沟侵蚀，不良地质类型为侵蚀灾害。",
+        "category": "侵蚀灾害"
+      },
+      "库岸坍塌": {
+        "aliases": [
+          "Reservoir Bank Collapse",
+          "库岸崩塌"
+        ],
+        "codes": {
+          "PROJECT": "AG-RESERVOIR-BANK-COLLAPSE"
+        },
+        "description": "库岸坍塌，不良地质类型为库岸灾害。",
+        "category": "库岸灾害"
+      },
+      "边坡变形": {
+        "aliases": [
+          "Slope Deformation",
+          "边坡开裂"
+        ],
+        "codes": {
+          "PROJECT": "AG-SLOPE-DEFORMATION"
+        },
+        "description": "边坡变形，不良地质类型为工程变形。",
+        "category": "工程变形"
+      }
+    },
+    "围岩等级": {
+      "I级围岩": {
+        "aliases": [
+          "Ⅰ级围岩",
+          "I类围岩",
+          "Ⅰ类围岩",
+          "Class I"
+        ],
+        "codes": {
+          "PROJECT": "RC-I"
+        },
+        "description": "围岩整体稳定性好，通常仅需局部支护。",
+        "category": "隧道围岩分级",
+        "bq_range": ">550",
+        "classification_system": "项目采用的 BQ/工程围岩等级体系，具体边界以项目规范为准"
+      },
+      "II级围岩": {
+        "aliases": [
+          "Ⅱ级围岩",
+          "II类围岩",
+          "Ⅱ类围岩",
+          "Class II"
+        ],
+        "codes": {
+          "PROJECT": "RC-II"
+        },
+        "description": "围岩较稳定，可能局部掉块。",
+        "category": "隧道围岩分级",
+        "bq_range": "451-550",
+        "classification_system": "项目采用的 BQ/工程围岩等级体系，具体边界以项目规范为准"
+      },
+      "III级围岩": {
+        "aliases": [
+          "Ⅲ级围岩",
+          "III类围岩",
+          "Ⅲ类围岩",
+          "Class III"
+        ],
+        "codes": {
+          "PROJECT": "RC-III"
+        },
+        "description": "围岩稳定性一般，需及时支护。",
+        "category": "隧道围岩分级",
+        "bq_range": "351-450",
+        "classification_system": "项目采用的 BQ/工程围岩等级体系，具体边界以项目规范为准"
+      },
+      "IV级围岩": {
+        "aliases": [
+          "Ⅳ级围岩",
+          "IV类围岩",
+          "Ⅳ类围岩",
+          "Class IV"
+        ],
+        "codes": {
+          "PROJECT": "RC-IV"
+        },
+        "description": "围岩稳定性较差，开挖后易产生较大变形。",
+        "category": "隧道围岩分级",
+        "bq_range": "251-350",
+        "classification_system": "项目采用的 BQ/工程围岩等级体系，具体边界以项目规范为准"
+      },
+      "V级围岩": {
+        "aliases": [
+          "Ⅴ级围岩",
+          "V类围岩",
+          "Ⅴ类围岩",
+          "Class V"
+        ],
+        "codes": {
+          "PROJECT": "RC-V"
+        },
+        "description": "围岩稳定性差，需强支护和短进尺。",
+        "category": "隧道围岩分级",
+        "bq_range": "≤250",
+        "classification_system": "项目采用的 BQ/工程围岩等级体系，具体边界以项目规范为准"
+      },
+      "VI级围岩": {
+        "aliases": [
+          "Ⅵ级围岩",
+          "VI类围岩",
+          "Ⅵ类围岩",
+          "Class VI"
+        ],
+        "codes": {
+          "PROJECT": "RC-VI"
+        },
+        "description": "土状、散体或特殊不良围岩，需专项设计。",
+        "category": "隧道围岩分级",
+        "bq_range": "特殊",
+        "classification_system": "项目采用的 BQ/工程围岩等级体系，具体边界以项目规范为准"
+      }
+    },
+    "工程地质指标": {
+      "单轴抗压强度": {
+        "aliases": [
+          "UCS",
+          "抗压强度",
+          "Uniaxial Compressive Strength",
+          "σc",
+          "饱和抗压强度"
+        ],
+        "codes": {
+          "PROJECT": "EI-UCS"
+        },
+        "description": "单轴抗压强度，工程地质指标类别为强度指标。",
+        "category": "强度指标",
+        "unit": "MPa"
+      },
+      "抗拉强度": {
+        "aliases": [
+          "Tensile Strength",
+          "劈裂抗拉强度",
+          "σt"
+        ],
+        "codes": {
+          "PROJECT": "EI-TS"
+        },
+        "description": "抗拉强度，工程地质指标类别为强度指标。",
+        "category": "强度指标",
+        "unit": "MPa"
+      },
+      "抗剪强度": {
+        "aliases": [
+          "Shear Strength",
+          "剪切强度"
+        ],
+        "codes": {
+          "PROJECT": "EI-SS"
+        },
+        "description": "抗剪强度，工程地质指标类别为强度指标。",
+        "category": "强度指标",
+        "unit": "MPa"
+      },
+      "黏聚力": {
+        "aliases": [
+          "Cohesion",
+          "c值",
+          "内聚力"
+        ],
+        "codes": {
+          "PROJECT": "EI-COHESION"
+        },
+        "description": "黏聚力，工程地质指标类别为抗剪参数。",
+        "category": "抗剪参数",
+        "unit": "kPa / MPa"
+      },
+      "内摩擦角": {
+        "aliases": [
+          "Friction Angle",
+          "φ值",
+          "摩擦角",
+          "φ"
+        ],
+        "codes": {
+          "PROJECT": "EI-FRICTION-ANGLE"
+        },
+        "description": "内摩擦角，工程地质指标类别为抗剪参数。",
+        "category": "抗剪参数",
+        "unit": "°"
+      },
+      "弹性模量": {
+        "aliases": [
+          "Elastic Modulus",
+          "Young Modulus",
+          "杨氏模量",
+          "E",
+          "弹模"
+        ],
+        "codes": {
+          "PROJECT": "EI-ELASTIC-MODULUS"
+        },
+        "description": "弹性模量，工程地质指标类别为变形指标。",
+        "category": "变形指标",
+        "unit": "GPa / MPa"
+      },
+      "变形模量": {
+        "aliases": [
+          "Deformation Modulus",
+          "岩体变形模量"
+        ],
+        "codes": {
+          "PROJECT": "EI-DEFORMATION-MODULUS"
+        },
+        "description": "变形模量，工程地质指标类别为变形指标。",
+        "category": "变形指标",
+        "unit": "GPa / MPa"
+      },
+      "泊松比": {
+        "aliases": [
+          "Poisson Ratio",
+          "ν",
+          "μ",
+          "侧向应变比"
+        ],
+        "codes": {
+          "PROJECT": "EI-POISSON"
+        },
+        "description": "泊松比，工程地质指标类别为变形指标。",
+        "category": "变形指标",
+        "unit": "无量纲"
+      },
+      "天然密度": {
+        "aliases": [
+          "Natural Density",
+          "湿密度",
+          "ρ"
+        ],
+        "codes": {
+          "PROJECT": "EI-NATURAL-DENSITY"
+        },
+        "description": "天然密度，工程地质指标类别为物理指标。",
+        "category": "物理指标",
+        "unit": "g/cm³ / kg/m³"
+      },
+      "干密度": {
+        "aliases": [
+          "Dry Density",
+          "干容重"
+        ],
+        "codes": {
+          "PROJECT": "EI-DRY-DENSITY"
+        },
+        "description": "干密度，工程地质指标类别为物理指标。",
+        "category": "物理指标",
+        "unit": "g/cm³ / kg/m³"
+      },
+      "饱和密度": {
+        "aliases": [
+          "Saturated Density",
+          "饱和容重"
+        ],
+        "codes": {
+          "PROJECT": "EI-SATURATED-DENSITY"
+        },
+        "description": "饱和密度，工程地质指标类别为物理指标。",
+        "category": "物理指标",
+        "unit": "g/cm³ / kg/m³"
+      },
+      "重度": {
+        "aliases": [
+          "Unit Weight",
+          "容重",
+          "γ"
+        ],
+        "codes": {
+          "PROJECT": "EI-UNIT-WEIGHT"
+        },
+        "description": "重度，工程地质指标类别为物理指标。",
+        "category": "物理指标",
+        "unit": "kN/m³"
+      },
+      "土粒比重": {
+        "aliases": [
+          "Specific Gravity",
+          "比重",
+          "Gs"
+        ],
+        "codes": {
+          "PROJECT": "EI-SPECIFIC-GRAVITY"
+        },
+        "description": "土粒比重，工程地质指标类别为物理指标。",
+        "category": "物理指标",
+        "unit": "无量纲"
+      },
+      "孔隙率": {
+        "aliases": [
+          "Porosity",
+          "n"
+        ],
+        "codes": {
+          "PROJECT": "EI-POROSITY"
+        },
+        "description": "孔隙率，工程地质指标类别为物理指标。",
+        "category": "物理指标",
+        "unit": "%"
+      },
+      "孔隙比": {
+        "aliases": [
+          "Void Ratio",
+          "e"
+        ],
+        "codes": {
+          "PROJECT": "EI-VOID-RATIO"
+        },
+        "description": "孔隙比，工程地质指标类别为物理指标。",
+        "category": "物理指标",
+        "unit": "无量纲"
+      },
+      "含水率": {
+        "aliases": [
+          "Water Content",
+          "天然含水率",
+          "ω"
+        ],
+        "codes": {
+          "PROJECT": "EI-WATER-CONTENT"
+        },
+        "description": "含水率，工程地质指标类别为物理指标。",
+        "category": "物理指标",
+        "unit": "%"
+      },
+      "饱和度": {
+        "aliases": [
+          "Degree of Saturation",
+          "Sr"
+        ],
+        "codes": {
+          "PROJECT": "EI-SATURATION"
+        },
+        "description": "饱和度，工程地质指标类别为物理指标。",
+        "category": "物理指标",
+        "unit": "%"
+      },
+      "渗透系数": {
+        "aliases": [
+          "Hydraulic Conductivity",
+          "透水系数",
+          "K值"
+        ],
+        "codes": {
+          "PROJECT": "EI-HYDRAULIC-CONDUCTIVITY"
+        },
+        "description": "渗透系数，工程地质指标类别为水文参数。",
+        "category": "水文参数",
+        "unit": "m/s / m/d"
+      },
+      "涌水量": {
+        "aliases": [
+          "Water Inflow",
+          "出水量",
+          "Qw"
+        ],
+        "codes": {
+          "PROJECT": "EI-WATER-INFLOW"
+        },
+        "description": "涌水量，工程地质指标类别为水文参数。",
+        "category": "水文参数",
+        "unit": "L/min / m³/h"
+      },
+      "水压力": {
+        "aliases": [
+          "Water Pressure",
+          "孔隙水压力",
+          "Pw"
+        ],
+        "codes": {
+          "PROJECT": "EI-WATER-PRESSURE"
+        },
+        "description": "水压力，工程地质指标类别为水文参数。",
+        "category": "水文参数",
+        "unit": "kPa / MPa"
+      },
+      "RQD": {
+        "aliases": [
+          "Rock Quality Designation",
+          "岩芯质量指标",
+          "岩石质量指标"
+        ],
+        "codes": {
+          "PROJECT": "EI-RQD"
+        },
+        "description": "RQD，工程地质指标类别为岩体质量指标。",
+        "category": "岩体质量指标",
+        "unit": "%"
+      },
+      "RMR": {
+        "aliases": [
+          "Rock Mass Rating",
+          "Bieniawski分级",
+          "岩体质量评级"
+        ],
+        "codes": {
+          "PROJECT": "EI-RMR"
+        },
+        "description": "RMR，工程地质指标类别为岩体质量指标。",
+        "category": "岩体质量指标",
+        "unit": "0-100"
+      },
+      "Q值": {
+        "aliases": [
+          "Q-system",
+          "Q System",
+          "巴顿Q值",
+          "Barton Q"
+        ],
+        "codes": {
+          "PROJECT": "EI-Q-SYSTEM"
+        },
+        "description": "Q值，工程地质指标类别为岩体质量指标。",
+        "category": "岩体质量指标",
+        "unit": "无量纲"
+      },
+      "BQ值": {
+        "aliases": [
+          "Basic Quality",
+          "岩体基本质量指标",
+          "BQ"
+        ],
+        "codes": {
+          "PROJECT": "EI-BQ"
+        },
+        "description": "BQ值，工程地质指标类别为岩体质量指标。",
+        "category": "岩体质量指标",
+        "unit": "分值"
+      },
+      "岩体完整性系数": {
+        "aliases": [
+          "Integrity Coefficient",
+          "完整性系数",
+          "Kv"
+        ],
+        "codes": {
+          "PROJECT": "EI-KV"
+        },
+        "description": "岩体完整性系数，工程地质指标类别为岩体质量指标。",
+        "category": "岩体质量指标",
+        "unit": "无量纲"
+      },
+      "纵波波速": {
+        "aliases": [
+          "P-wave Velocity",
+          "Vp",
+          "纵波速度",
+          "声波速度"
+        ],
+        "codes": {
+          "PROJECT": "EI-P-WAVE"
+        },
+        "description": "纵波波速，工程地质指标类别为动力指标。",
+        "category": "动力指标",
+        "unit": "m/s"
+      },
+      "横波波速": {
+        "aliases": [
+          "S-wave Velocity",
+          "Vs",
+          "横波速度"
+        ],
+        "codes": {
+          "PROJECT": "EI-S-WAVE"
+        },
+        "description": "横波波速，工程地质指标类别为动力指标。",
+        "category": "动力指标",
+        "unit": "m/s"
+      },
+      "动弹性模量": {
+        "aliases": [
+          "Dynamic Elastic Modulus",
+          "Ed"
+        ],
+        "codes": {
+          "PROJECT": "EI-DYNAMIC-MODULUS"
+        },
+        "description": "动弹性模量，工程地质指标类别为动力指标。",
+        "category": "动力指标",
+        "unit": "GPa"
+      },
+      "节理间距": {
+        "aliases": [
+          "Joint Spacing",
+          "裂隙间距"
+        ],
+        "codes": {
+          "PROJECT": "EI-JOINT-SPACING"
+        },
+        "description": "节理间距，工程地质指标类别为结构面指标。",
+        "category": "结构面指标",
+        "unit": "mm / cm / m"
+      },
+      "节理张开度": {
+        "aliases": [
+          "Joint Aperture",
+          "裂隙宽度",
+          "张开度"
+        ],
+        "codes": {
+          "PROJECT": "EI-JOINT-APERTURE"
+        },
+        "description": "节理张开度，工程地质指标类别为结构面指标。",
+        "category": "结构面指标",
+        "unit": "mm"
+      },
+      "节理粗糙度系数": {
+        "aliases": [
+          "JRC",
+          "Joint Roughness Coefficient"
+        ],
+        "codes": {
+          "PROJECT": "EI-JRC"
+        },
+        "description": "节理粗糙度系数，工程地质指标类别为结构面指标。",
+        "category": "结构面指标",
+        "unit": "0-20"
+      },
+      "结构面倾向": {
+        "aliases": [
+          "Dip Direction",
+          "倾向"
+        ],
+        "codes": {
+          "PROJECT": "EI-DIP-DIRECTION"
+        },
+        "description": "结构面倾向，工程地质指标类别为产状指标。",
+        "category": "产状指标",
+        "unit": "°"
+      },
+      "结构面倾角": {
+        "aliases": [
+          "Dip Angle",
+          "倾角"
+        ],
+        "codes": {
+          "PROJECT": "EI-DIP-ANGLE"
+        },
+        "description": "结构面倾角，工程地质指标类别为产状指标。",
+        "category": "产状指标",
+        "unit": "°"
+      },
+      "液限": {
+        "aliases": [
+          "Liquid Limit",
+          "WL",
+          "液性限度"
+        ],
+        "codes": {
+          "PROJECT": "EI-LIQUID-LIMIT"
+        },
+        "description": "液限，工程地质指标类别为土工指标。",
+        "category": "土工指标",
+        "unit": "%"
+      },
+      "塑限": {
+        "aliases": [
+          "Plastic Limit",
+          "WP",
+          "塑性限度"
+        ],
+        "codes": {
+          "PROJECT": "EI-PLASTIC-LIMIT"
+        },
+        "description": "塑限，工程地质指标类别为土工指标。",
+        "category": "土工指标",
+        "unit": "%"
+      },
+      "塑性指数": {
+        "aliases": [
+          "Plasticity Index",
+          "IP"
+        ],
+        "codes": {
+          "PROJECT": "EI-PLASTICITY-INDEX"
+        },
+        "description": "塑性指数，工程地质指标类别为土工指标。",
+        "category": "土工指标",
+        "unit": "无量纲"
+      },
+      "压缩系数": {
+        "aliases": [
+          "Coefficient of Compressibility",
+          "a1-2"
+        ],
+        "codes": {
+          "PROJECT": "EI-COMPRESSIBILITY"
+        },
+        "description": "压缩系数，工程地质指标类别为土工指标。",
+        "category": "土工指标",
+        "unit": "MPa⁻¹"
+      },
+      "压缩模量": {
+        "aliases": [
+          "Constrained Modulus",
+          "Es"
+        ],
+        "codes": {
+          "PROJECT": "EI-CONSTRAINED-MODULUS"
+        },
+        "description": "压缩模量，工程地质指标类别为土工指标。",
+        "category": "土工指标",
+        "unit": "MPa"
+      },
+      "地基承载力": {
+        "aliases": [
+          "Bearing Capacity",
+          "承载力特征值",
+          "fak"
+        ],
+        "codes": {
+          "PROJECT": "EI-BEARING-CAPACITY"
+        },
+        "description": "地基承载力，工程地质指标类别为工程指标。",
+        "category": "工程指标",
+        "unit": "kPa"
+      },
+      "标准贯入击数": {
+        "aliases": [
+          "SPT N",
+          "N值",
+          "标准贯入试验击数"
+        ],
+        "codes": {
+          "PROJECT": "EI-SPT-N"
+        },
+        "description": "标准贯入击数，工程地质指标类别为原位测试。",
+        "category": "原位测试",
+        "unit": "击"
+      },
+      "锥尖阻力": {
+        "aliases": [
+          "Cone Resistance",
+          "qc",
+          "静力触探锥尖阻力"
+        ],
+        "codes": {
+          "PROJECT": "EI-CPT-QC"
+        },
+        "description": "锥尖阻力，工程地质指标类别为原位测试。",
+        "category": "原位测试",
+        "unit": "MPa"
+      },
+      "侧壁摩阻力": {
+        "aliases": [
+          "Sleeve Friction",
+          "fs",
+          "静力触探侧摩阻力"
+        ],
+        "codes": {
+          "PROJECT": "EI-CPT-FS"
+        },
+        "description": "侧壁摩阻力，工程地质指标类别为原位测试。",
+        "category": "原位测试",
+        "unit": "kPa"
+      },
+      "坚固性系数": {
+        "aliases": [
+          "Protodyakonov Coefficient",
+          "普氏系数",
+          "f值"
+        ],
+        "codes": {
+          "PROJECT": "EI-PROTODYAKONOV"
+        },
+        "description": "坚固性系数，工程地质指标类别为岩石工程指标。",
+        "category": "岩石工程指标",
+        "unit": "无量纲"
+      },
+      "风化程度": {
+        "aliases": [
+          "Weathering Degree",
+          "风化等级"
+        ],
+        "codes": {
+          "PROJECT": "EI-WEATHERING-DEGREE"
+        },
+        "description": "风化程度，工程地质指标类别为岩体状态指标。",
+        "category": "岩体状态指标",
+        "unit": "等级"
+      }
+    }
+  }
+}

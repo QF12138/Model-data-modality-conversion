@@ -1,0 +1,34 @@
+{
+  "type": "FeatureCollection",
+  "name": "semantic_sample_features",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "点号": "P-01",
+        "地层": "P₂m",
+        "主要岩性": "白云质灰岩",
+        "构造": "断裂破碎带",
+        "出水状态": "股流",
+        "地质灾害": "岩溶塌陷",
+        "围岩级别": "Ⅴ类围岩",
+        "试验指标": "弹模"
+      },
+      "geometry": {"type": "Point", "coordinates": [103.8, 30.7, 520.0]}
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "点号": "P-02",
+        "地层": "J2s",
+        "主要岩性": "泥灰岩",
+        "构造": "向斜",
+        "出水状态": "潮湿",
+        "地质灾害": "软岩大变形",
+        "围岩级别": "IV级围岩",
+        "试验指标": "泊松比"
+      },
+      "geometry": {"type": "Point", "coordinates": [103.81, 30.71, 515.0]}
+    }
+  ]
+}

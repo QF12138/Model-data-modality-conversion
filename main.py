@@ -11,6 +11,7 @@ from tkinter import filedialog, font as tkfont
 from tkinter import ttk
 
 from function.data_preprocessing import build_preprocessing_report
+from function.semantic_encoding import ALL_DICTIONARIES, LIBRARY_METADATA, build_semantic_report, semantic_library_stats
 from function.model_quality_check import build_model_quality_report
 from function.model_format_conversion import (
     ATTRIBUTE_RULES,
@@ -917,10 +918,10 @@ class GeoConversionApp(tk.Tk):
         for child in self.content_host.winfo_children():
             child.destroy()
 
-        # 数据预处理模块隐藏"预览检查"页签
+        # 数据预处理 & 地质语义编码模块隐藏"预览检查"页签
         preview_btn = self.page_buttons.get("预览检查")
         if preview_btn:
-            if self._is_preprocessing_module():
+            if self._is_preprocessing_module() or self._is_semantic_module():
                 preview_btn.pack_forget()
             elif not preview_btn.winfo_ismapped():
                 preview_btn.pack(side="left", before=self.page_buttons["任务与追溯"])
@@ -942,6 +943,15 @@ class GeoConversionApp(tk.Tk):
         if self._is_preprocessing_module() and self.current_page == "预览检查":
             self.current_page = "工作台"
             self._render_preprocessing_page()
+            self._refresh_content_scrollregion()
+            return
+        if self._is_semantic_module() and self.current_page == "工作台":
+            self._render_semantic_page()
+            self._refresh_content_scrollregion()
+            return
+        if self._is_semantic_module() and self.current_page == "预览检查":
+            self.current_page = "工作台"
+            self._render_semantic_page()
             self._refresh_content_scrollregion()
             return
         if self._is_quality_module() and self.current_page == "工作台":
@@ -1144,7 +1154,8 @@ class GeoConversionApp(tk.Tk):
 
         input_actions = tk.Frame(input_card, bg=self.PANEL)
         input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
-        ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(input_actions, text="加载示例数据", style="Primary.TButton", command=self._load_semantic_sample_data).pack(side="left")
+        ttk.Button(input_actions, text="添加数据", style="Tool.TButton", command=self._choose_files).pack(side="left", padx=(7, 0))
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
@@ -1277,6 +1288,309 @@ class GeoConversionApp(tk.Tk):
             f"需重点复核：{'、'.join(failed)}。\n\n"
             "下方问题清单给出了来源文件、问题类别和处理优先级。"
         )
+
+    def _render_semantic_page(self) -> None:
+        """地质语义编码转换模块专用工作台。"""
+        root = tk.Frame(self.content_host, bg=self.BG)
+        root.grid(row=0, column=0, sticky="ew")
+        root.columnconfigure(0, weight=1)
+
+        report = self.quality_report or {}
+        score = int(report.get("score", 0) or 0)
+        file_count = int(report.get("file_count", len(self.selected_files)) or 0)
+
+        # 顶部指标卡
+        summary = tk.Frame(root, bg=self.BG)
+        summary.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for idx in range(4):
+            summary.columnconfigure(idx, weight=1)
+        unmapped_count = len(report.get("unmapped_terms", [])) if self.run_completed else None
+        summary_items = (
+            ("语义评分", f"{score if self.run_completed else '--'}", "编码映射 · 名称归一 · 语义关联综合结果", self.TEAL),
+            ("未匹配术语", f"{unmapped_count} 个" if unmapped_count is not None else "待转换", "需补充字典或人工复核", self.RED if unmapped_count else self.GREEN),
+            ("检查文件", f"{file_count} 个", "属性表 / 编码表 / JSON", self.BLUE),
+            ("语义域", f"{len(ALL_DICTIONARIES)} 类", "地层·岩性·构造·地下水·不良地质·围岩·指标", self.PURPLE),
+        )
+        for idx, item in enumerate(summary_items):
+            self._metric_card(summary, *item).grid(
+                row=0, column=idx, sticky="nsew",
+                padx=(0 if idx == 0 else 4, 0 if idx == 3 else 4),
+            )
+
+        work = tk.Frame(root, bg=self.BG)
+        work.grid(row=1, column=0, sticky="nsew")
+        work.columnconfigure(0, weight=28)
+        work.columnconfigure(1, weight=38)
+        work.columnconfigure(2, weight=34)
+
+        # 左：数据输入 + 编码体系
+        input_card = self._card(work)
+        input_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        input_card.columnconfigure(0, weight=1)
+        input_card.rowconfigure(3, weight=1)
+        self._card_header(input_card, "数据与编码体系")
+        tk.Label(
+            input_card,
+            text="导入地质属性表、项目编码表或行业标准字典文件。系统自动识别语义字段并执行编码映射与名称归一。",
+            bg=self.PANEL, fg=self.MUTED, font=self.small_font,
+            justify="left", wraplength=340,
+        ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
+
+        input_actions = tk.Frame(input_card, bg=self.PANEL)
+        input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
+        ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
+
+        file_tree = ttk.Treeview(
+            input_card, columns=("name", "type", "state"), show="headings",
+            style="Dashboard.Treeview", height=8,
+        )
+        for key, title, width in (("name", "文件", 200), ("type", "类型", 70), ("state", "状态", 80)):
+            file_tree.heading(key, text=title)
+            file_tree.column(key, width=width, anchor="w")
+        file_tree.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        files = report.get("files", []) if isinstance(report.get("files"), list) else []
+        if files:
+            for f in files:
+                file_tree.insert("", "end", values=(f.get("name", ""), f.get("type", ""), f.get("status", "")))
+        elif self.selected_files:
+            for fp in self.selected_files:
+                suffix = Path(fp).suffix.lower() or "unknown"
+                file_tree.insert("", "end", values=(Path(fp).name, suffix, "待分析"))
+        else:
+            file_tree.insert("", "end", values=("未加载数据", "-", "待接入"))
+
+        # 语义域覆盖矩阵
+        matrix = tk.Frame(input_card, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+        matrix.grid(row=4, column=0, sticky="ew", padx=12, pady=(0, 12))
+        matrix.columnconfigure(1, weight=1)
+        tk.Label(matrix, text="语义域", bg="#f8faf9", fg=self.MUTED, font=self.tiny_font).grid(row=0, column=0, sticky="w", padx=10, pady=(8, 4))
+        tk.Label(matrix, text="覆盖率", bg="#f8faf9", fg=self.MUTED, font=self.tiny_font).grid(row=0, column=1, sticky="w", padx=10, pady=(8, 4))
+        domain_stats = report.get("domain_stats", {}) if isinstance(report.get("domain_stats"), dict) else {}
+        for ri, (dname, dlabel) in enumerate(
+            [("地层", "地层"), ("岩性", "岩性"), ("构造", "构造"), ("地下水", "地下水"),
+             ("不良地质", "不良地质"), ("围岩等级", "围岩等级"), ("工程地质指标", "工程指标")], start=1
+        ):
+            st = domain_stats.get(dlabel, {"total": 0, "mapped": 0, "coverage": 0})
+            bar_len = int(st.get("coverage", 0) * 120) if isinstance(st.get("coverage"), (int, float)) else 0
+            tk.Label(matrix, text=dname, bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=ri, column=0, sticky="w", padx=10, pady=4)
+            bar = tk.Frame(matrix, bg="#e0ebe8", height=12)
+            bar.grid(row=ri, column=1, sticky="ew", padx=10, pady=4)
+            if bar_len:
+                tk.Frame(bar, bg=self.TEAL if st.get("coverage", 0) > 0.5 else self.AMBER, width=bar_len).pack(side="left", fill="y")
+            tk.Label(bar, text=f"{st.get('mapped', 0)}/{st.get('total', 0)}", bg="#e0ebe8", fg=self.MUTED, font=self.tiny_font).pack(side="left", padx=6)
+
+        # 中：编码映射流程与映射表
+        map_card = self._card(work)
+        map_card.grid(row=0, column=1, sticky="nsew", padx=5)
+        map_card.columnconfigure(0, weight=1)
+        map_card.rowconfigure(3, weight=1)
+        self._card_header(map_card, "语义映射流程与结果")
+
+        flow = tk.Frame(map_card, bg=self.PANEL)
+        flow.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        for idx, (title, caption) in enumerate((
+            ("1 语义识别", "匹配字段名到\n语义域分类"),
+            ("2 名称归一", "别名→规范名称\n模糊匹配补充"),
+            ("3 编码映射", "原始值↔项目码\n地质符号互转"),
+            ("4 冲突复核", "同一术语多候选\n→人工判定"),
+        )):
+            flow.columnconfigure(idx, weight=1)
+            item = tk.Frame(flow, bg=self.TEAL_SOFT if idx == 0 or self.run_completed else "#f7faf9", highlightbackground=self.BORDER, highlightthickness=1)
+            item.grid(row=0, column=idx, sticky="ew", padx=(0 if idx == 0 else 5, 0))
+            tk.Label(item, text=title, bg=item["bg"], fg=self.TEXT, font=(self.font_family, 9, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+            tk.Label(item, text=caption, bg=item["bg"], fg=self.MUTED, font=self.tiny_font, justify="left").pack(anchor="w", padx=10, pady=(0, 8))
+
+        # 映射结果表
+        map_tree = ttk.Treeview(
+            map_card, columns=("domain", "original", "canonical", "match"),
+            show="headings", style="Dashboard.Treeview", height=10,
+        )
+        for key, title, width in (("domain", "语义域", 80), ("original", "原始值", 130), ("canonical", "规范名", 130), ("match", "匹配方式", 100)):
+            map_tree.heading(key, text=title)
+            map_tree.column(key, width=width, anchor="w")
+        map_tree.grid(row=2, column=0, sticky="nsew", padx=12)
+        mappings = report.get("mappings", []) if isinstance(report.get("mappings"), list) else []
+        if mappings:
+            for m in mappings[:50]:
+                map_tree.insert("", "end", values=(
+                    m.get("domain", ""), m.get("original", ""),
+                    m.get("canonical", ""), m.get("matched_by", ""),
+                ))
+        else:
+            map_tree.insert("", "end", values=("-", "待执行", "-", "尚未执行语义编码转换"))
+
+        ttk.Button(map_card, text="执行语义编码转换", style="Blue.TButton", command=self._run_semantic).grid(
+            row=3, column=0, sticky="ew", padx=12, pady=(10, 12))
+
+        # 右：字典管理 + 编码体系
+        dict_card = self._card(work)
+        dict_card.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        dict_card.columnconfigure(0, weight=1)
+        dict_card.rowconfigure(4, weight=1)
+        self._card_header(dict_card, "语义字典与编码体系")
+
+        # 字典来源标识
+        source_name = LIBRARY_METADATA.get("loaded_from", "") if isinstance(LIBRARY_METADATA, dict) else ""
+        is_fallback = bool(LIBRARY_METADATA.get("code_notice", "")) if isinstance(LIBRARY_METADATA, dict) else False
+        source_label = "内置兜底库" if is_fallback else (Path(source_name).stem if source_name else "内置字典")
+        source_color = self.AMBER if is_fallback else self.GREEN
+        src_badge = tk.Frame(dict_card, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+        src_badge.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
+        src_badge.columnconfigure(1, weight=1)
+        tk.Frame(src_badge, bg=source_color, width=8, height=8).grid(row=0, column=0, padx=(10, 8), pady=10)
+        tk.Label(src_badge, text=f"字典来源：{source_label}", bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+            row=0, column=1, sticky="w", pady=10)
+        if source_name:
+            tk.Label(src_badge, text=str(source_name)[:52], bg="#f8faf9", fg=self.MUTED, font=self.tiny_font, anchor="w").grid(
+                row=0, column=2, sticky="e", padx=(0, 10), pady=10)
+
+        # 总览统计条
+        library_stats = semantic_library_stats()
+        stat_bar = tk.Frame(dict_card, bg=self.PANEL)
+        stat_bar.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
+        stat_bar.columnconfigure((0, 1, 2), weight=1)
+        stat_items = (
+            (f"{len(ALL_DICTIONARIES)}", "语义域"),
+            (f"{library_stats.get('terms', 0)}", "规范术语"),
+            (f"{library_stats.get('aliases', 0)}", "别名条目"),
+        )
+        for ci, (value, label) in enumerate(stat_items):
+            cell = tk.Frame(stat_bar, bg="#f0f5f3")
+            cell.grid(row=0, column=ci, sticky="ew", padx=(0 if ci == 0 else 3, 0 if ci == 2 else 3))
+            cell.columnconfigure(0, weight=1)
+            tk.Label(cell, text=value, bg="#f0f5f3", fg=self.TEAL_DARK, font=(self.font_family, 15, "bold")).grid(row=0, column=0, pady=(8, 0))
+            tk.Label(cell, text=label, bg="#f0f5f3", fg=self.MUTED, font=self.tiny_font).grid(row=1, column=0, pady=(1, 8))
+
+        # 编码体系说明
+        code_bar = tk.Frame(dict_card, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+        code_bar.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 10))
+        # 编码体系采用两列等宽布局，右侧说明与下方语义域卡片统一边界。
+        code_bar.columnconfigure(0, weight=1, uniform="semantic_code_columns")
+        code_bar.columnconfigure(1, weight=1, uniform="semantic_code_columns")
+        tk.Label(code_bar, text="编码体系", bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 8, "bold"), anchor="w").grid(
+            row=0, column=0, sticky="w", padx=10, pady=(8, 3))
+        code_tags = (
+            ("PROJECT", "项目内部编码", self.TEAL),
+            ("SYMBOL", "地质符号", self.BLUE),
+            ("CANONICAL", "规范名称", self.ORANGE),
+            ("ORIGINAL", "原始值", self.PURPLE),
+        )
+        for ti, (tag, desc, accent) in enumerate(code_tags):
+            tag_frame = tk.Frame(code_bar, bg="#f8faf9")
+            tag_frame.grid(
+                row=1 + ti // 2,
+                column=ti % 2,
+                sticky="ew",
+                padx=10,
+                pady=(2, 2 if ti < 3 else 8),
+            )
+            tk.Frame(tag_frame, bg=accent, width=6, height=6).pack(side="left", padx=(0, 6))
+            tk.Label(tag_frame, text=f"{tag}  ", bg="#f8faf9", fg=accent, font=(self.font_family, 8, "bold")).pack(side="left")
+            tk.Label(tag_frame, text=desc, bg="#f8faf9", fg=self.MUTED, font=self.tiny_font).pack(side="left")
+
+        # 各语义域卡片（紧凑版）
+        dict_scroll = tk.Frame(dict_card, bg=self.PANEL)
+        dict_scroll.grid(row=4, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        # 让语义域卡片占满整个可用宽度，和上方“编码体系”面板左右对齐。
+        dict_scroll.columnconfigure(0, weight=1)
+        DOMAIN_COLORS: dict[str, str] = {
+            "地层": self.BLUE, "岩性": self.TEAL, "构造": self.ORANGE,
+            "地下水": self.PURPLE, "不良地质": self.RED,
+            "围岩等级": self.GREEN, "工程地质指标": self.AMBER,
+        }
+        for di, (domain_name, ddict) in enumerate(ALL_DICTIONARIES.items()):
+            accent = DOMAIN_COLORS.get(domain_name, self.TEAL)
+            stats = library_stats.get("per_domain", {}).get(domain_name, {}) if isinstance(library_stats.get("per_domain"), dict) else {}
+            n_terms = stats.get("terms", len(ddict)) if stats else len(ddict)
+            n_aliases = stats.get("aliases", 0) if stats else sum(len(e.get("aliases", [])) if isinstance(e.get("aliases"), list) else 0 for e in ddict.values())
+            n_codes = stats.get("codes", 0) if stats else 0
+
+            item = tk.Frame(dict_scroll, bg="#ffffff", highlightbackground=self.BORDER, highlightthickness=1)
+            item.grid(row=di, column=0, sticky="ew", pady=(0, 4))
+            item.columnconfigure(2, weight=1)
+
+            # 左侧色条
+            tk.Frame(item, bg=accent, width=3).grid(row=0, column=0, rowspan=3, sticky="ns", padx=(0, 0))
+            # 域名
+            tk.Label(item, text=domain_name, bg="#ffffff", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=0, column=1, columnspan=2, sticky="ew", padx=(9, 8), pady=(7, 0))
+            # 统计行
+            stats_text = f"{n_terms} 术语"
+            if n_aliases:
+                stats_text += f"  ·  {n_aliases} 别名"
+            if n_codes:
+                stats_text += f"  ·  {n_codes} 编码"
+            tk.Label(item, text=stats_text, bg="#ffffff", fg=self.MUTED, font=self.tiny_font, anchor="w").grid(
+                row=1, column=1, columnspan=2, sticky="ew", padx=(9, 8), pady=(1, 0))
+            # 覆盖率小条（如果有映射数据）
+            domain_label = domain_name
+            dr = (report.get("domain_stats", {}) if isinstance(report.get("domain_stats"), dict) else {}).get(domain_label, {})
+            cov = dr.get("coverage", 0) if isinstance(dr, dict) else 0
+            if self.run_completed and isinstance(cov, (int, float)):
+                bar_bg = tk.Frame(item, bg="#e8edeb", height=3)
+                bar_bg.grid(row=2, column=1, columnspan=2, sticky="ew", padx=9, pady=(4, 7))
+                bar_bg.columnconfigure(0, weight=1)
+                fill_color = self.GREEN if cov >= 0.8 else self.AMBER if cov >= 0.4 else self.RED
+                bar_w = int(cov * 240)
+                if bar_w:
+                    tk.Frame(bar_bg, bg=fill_color, width=bar_w, height=3).grid(row=0, column=0, sticky="w")
+                tk.Label(item, text=f"覆盖率 {cov:.0%}", bg="#ffffff", fg=fill_color, font=(self.font_family, 7, "bold")).grid(
+                    row=2, column=2, sticky="e", padx=(0, 9), pady=(4, 7))
+            else:
+                tk.Frame(item, bg="#ffffff", height=2).grid(row=2, column=1, columnspan=2, sticky="ew")
+
+        # 底部：冲突与未匹配清单
+        bottom = tk.Frame(root, bg=self.BG)
+        bottom.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        bottom.columnconfigure(0, weight=50)
+        bottom.columnconfigure(1, weight=50)
+
+        conflict_card = self._card(bottom)
+        conflict_card.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
+        conflict_card.columnconfigure(0, weight=1)
+        self._card_header(conflict_card, "语义冲突记录")
+        conflict_tree = ttk.Treeview(
+            conflict_card, columns=("original", "canonicals", "resolution"),
+            show="headings", style="Dashboard.Treeview", height=6,
+        )
+        for key, title, width in (("original", "原始术语", 140), ("canonicals", "候选规范名", 240), ("resolution", "处理方式", 100)):
+            conflict_tree.heading(key, text=title)
+            conflict_tree.column(key, width=width, anchor="w")
+        conflict_tree.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 12))
+        conflicts = report.get("conflicts", []) if isinstance(report.get("conflicts"), list) else []
+        if conflicts:
+            for c in conflicts:
+                conflict_tree.insert("", "end", values=(
+                    c.get("original", ""), ", ".join(c.get("canonicals", [])), c.get("resolution", ""),
+                ))
+        else:
+            conflict_tree.insert("", "end", values=("无冲突", "-", "通过"))
+
+        unmatched_card = self._card(bottom)
+        unmatched_card.grid(row=0, column=1, sticky="nsew", padx=(4, 0))
+        unmatched_card.columnconfigure(0, weight=1)
+        self._card_header(unmatched_card, "未匹配术语")
+        unmatched_tree = ttk.Treeview(
+            unmatched_card, columns=("original", "domain", "suggestion"),
+            show="headings", style="Dashboard.Treeview", height=6,
+        )
+        for key, title, width in (("original", "原始值", 140), ("domain", "语义域", 100), ("suggestion", "建议", 300)):
+            unmatched_tree.heading(key, text=title)
+            unmatched_tree.column(key, width=width, anchor="w")
+        unmatched_tree.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 12))
+        unmapped = report.get("unmapped_terms", []) if isinstance(report.get("unmapped_terms"), list) else []
+        if unmapped:
+            for u in unmapped[:20]:
+                unmatched_tree.insert("", "end", values=(
+                    u.get("original", ""), u.get("domain", ""), "建议添加至语义字典或人工复核",
+                ))
+        else:
+            msg = "全部术语均匹配成功" if self.run_completed else "执行转换后显示未匹配术语"
+            unmatched_tree.insert("", "end", values=(msg, "-", "-"))
+
+        tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
 
     def _render_model_quality_page(self) -> None:
         root = tk.Frame(self.content_host, bg=self.BG)
@@ -2196,6 +2510,10 @@ class GeoConversionApp(tk.Tk):
             "并发数量": "4",
             "版本号": "V1.0.0",
             "预览模式": "二维 + 三维 + 剖切",
+            "语义字典": "地层,岩性,构造,地下水,不良地质,围岩等级,工程地质指标",
+            "编码映射规则": "ORIGINAL→PROJECT",
+            "同义词归一策略": "规范优先",
+            "冲突处理方式": "人工复核",
         }
 
     def _quality_score(self) -> int:
@@ -2619,6 +2937,25 @@ class GeoConversionApp(tk.Tk):
         self.run_status_var.set("数据已加载")
         self._render_current_page()
 
+    def _load_semantic_sample_data(self) -> None:
+        source_dir = Path(__file__).resolve().parent / "source"
+        sample_files = [
+            source_dir / "semantic_sample_project_dictionary.csv",
+            source_dir / "semantic_sample_attributes.csv",
+            source_dir / "semantic_sample_features.geojson",
+        ]
+        self.selected_files = [str(path) for path in sample_files if path.exists()]
+        self.quality_report = None
+        self.run_completed = False
+        self.run_status_var.set("示例数据已加载")
+        self.status_var.set(f"已加载 {len(self.selected_files)} 个语义编码示例文件")
+        if self.selected_files:
+            self._append_log("已加载 source 目录中的项目字典、属性表和 GeoJSON 语义示例。")
+        else:
+            self._append_log("未找到语义示例文件，请检查 source 目录。")
+        self._render_progress_strip()
+        self._render_current_page()
+
     def _load_quality_sample_data(self) -> None:
         source_dir = Path(__file__).resolve().parent / "source"
         sample_files = [
@@ -2670,6 +3007,9 @@ class GeoConversionApp(tk.Tk):
         if self._is_preprocessing_module():
             self._run_preprocessing()
             return
+        if self._is_semantic_module():
+            self._run_semantic()
+            return
         if self._is_quality_module():
             self._run_model_quality_check()
             return
@@ -2693,6 +3033,9 @@ class GeoConversionApp(tk.Tk):
 
     def _is_quality_module(self) -> bool:
         return self.active_module.name == "模型质量校验模块"
+
+    def _is_semantic_module(self) -> bool:
+        return self.active_module.name == "地质语义编码转换模块"
 
     def _is_format_conversion_module(self) -> bool:
         return self.active_module.name == "模型格式转换与输出模块"
@@ -2779,6 +3122,58 @@ class GeoConversionApp(tk.Tk):
             self._append_log(f"{category['name']}：{category['status']}，问题 {category['issue_count']} 项。")
         for issue in report.get("issues", [])[:10]:
             self._append_log(f"[{issue.get('severity', '')}] {issue.get('file', '')}：{issue.get('message', '')}")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _run_semantic(self) -> None:
+        self._apply_params()
+        target_domains_str = self.param_values.get("语义字典", "")
+        valid_domains = set(ALL_DICTIONARIES.keys())
+        parsed_domains = [d.strip() for d in target_domains_str.replace("，", ",").split(",") if d.strip()]
+        target_domains = [d for d in parsed_domains if d in valid_domains]
+        if not target_domains:
+            target_domains = None
+        synonym_strategy = self.param_values.get("同义词归一策略", "规范优先") or "规范优先"
+        conflict_resolution = self.param_values.get("冲突处理方式", "人工复核") or "人工复核"
+        output_dir = Path(__file__).resolve().parent / "output" / "semantic"
+
+        self._append_log(f"开始地质语义编码转换（{synonym_strategy} / {conflict_resolution}）。")
+        report = build_semantic_report(
+            self.selected_files,
+            target_domains=target_domains,
+            synonym_strategy=synonym_strategy,
+            conflict_resolution=conflict_resolution,
+            output_dir=output_dir,
+        )
+        self.quality_report = report
+        self.run_completed = True
+        self.run_status_var.set("转换完成")
+        self.status_var.set(f"语义编码转换完成：{report['score']} 分 / {report['grade']}")
+        self.task_payload_text = json.dumps(
+            {
+                "task": "semantic_encoding",
+                "project": self.project_var.get(),
+                "module": self.active_module.name,
+                "input_files": self.selected_files,
+                "parameters": self.param_values,
+                "semantic_report": report,
+                "mysql_tables": list(self.active_module.mysql_tables),
+                "backend_endpoint": BACKEND_ENDPOINTS["run_task"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        for domain_label, stats in report.get("domain_stats", {}).items():
+            self._append_log(f"{domain_label}：覆盖率 {stats.get('coverage', 0):.1%}（{stats.get('mapped', 0)}/{stats.get('total', 0)}）")
+        for issue in report.get("issues", [])[:8]:
+            self._append_log(f"[{issue.get('severity', '')}] {issue.get('file', '')}：{issue.get('message', '')}")
+        if report.get("unmapped_terms"):
+            un = report["unmapped_terms"]
+            self._append_log(f"存在 {len(un)} 个未匹配术语，需补充语义字典。")
+        for output_file in report.get("normalized_files", []):
+            self._append_log(f"已输出规范化成果：{output_file}")
+        if report.get("relations"):
+            self._append_log(f"已生成 {len(report['relations'])} 条语义关联记录。")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -3135,6 +3530,7 @@ li {{ margin: 6px 0; }}
         self.quality_report = None
         self.conversion_report = None
         self.param_values = {}
+        self.param_vars.clear()
         if not keep_page:
             self.current_page = "工作台"
         self._append_log(f"已切换模块：{module.name}")
