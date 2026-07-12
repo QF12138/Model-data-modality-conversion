@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\01_drilling_and_boundary\\boreholes.csv",
+  "primary_artifact": "boreholes_converted.obj",
+  "source_summary": {
+    "vertex_count": 4,
+    "face_count": 0,
+    "triangle_count": 0,
+    "line_count": 0,
+    "vertex_property_count": 4,
+    "face_property_count": 0,
+    "attribute_fields": [
+      "depth_m",
+      "id",
+      "lithology",
+      "rock_grade",
+      "water_level_m"
+    ],
+    "bounds": {
+      "min": [
+        500000.0,
+        3400000.0,
+        105.2
+      ],
+      "max": [
+        500126.0,
+        3400098.0,
+        112.6
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "CSV"
+  },
+  "lines": [],
+  "faces": [],
+  "vertex_properties": [
+    {
+      "id": "BH-001",
+      "depth_m": 36.5,
+      "lithology": "中风化砂岩",
+      "water_level_m": 98.4,
+      "rock_grade": "IV"
+    },
+    {
+      "id": "BH-002",
+      "depth_m": 42.0,
+      "lithology": "泥质粉砂岩",
+      "water_level_m": 99.1,
+      "rock_grade": "V"
+    },
+    {
+      "id": "BH-003",
+      "depth_m": 31.8,
+      "lithology": "强风化花岗岩",
+      "water_level_m": 101.7,
+      "rock_grade": "IV"
+    },
+    {
+      "id": "BH-004",
+      "depth_m": 28.4,
+      "lithology": "中风化灰岩",
+      "water_level_m": 103.2,
+      "rock_grade": "III"
+    }
+  ],
+  "face_properties": []
+}

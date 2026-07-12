@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_format_conversion\\08_断层与边界线.geojson",
+  "primary_artifact": "08_断层与边界线_converted.obj",
+  "source_summary": {
+    "vertex_count": 6,
+    "face_count": 0,
+    "triangle_count": 0,
+    "line_count": 2,
+    "vertex_property_count": 0,
+    "face_property_count": 0,
+    "attribute_fields": [],
+    "bounds": {
+      "min": [
+        500000.0,
+        3400000.0,
+        90.0
+      ],
+      "max": [
+        500120.0,
+        3400070.0,
+        102.0
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "GeoJSON"
+  },
+  "lines": [
+    [
+      0,
+      1,
+      2
+    ],
+    [
+      3,
+      4,
+      5
+    ]
+  ],
+  "faces": [],
+  "vertex_properties": [],
+  "face_properties": []
+}

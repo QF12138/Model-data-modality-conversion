@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "name": "fault_and_boundary_lines",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "F001",
+        "name": "主断层",
+        "type": "fault",
+        "dip": 65,
+        "source": "engineering_interpretation"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [500000.000, 3400000.000, 100.000],
+          [500050.000, 3400030.000, 95.000],
+          [500100.000, 3400060.000, 90.000]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "B001",
+        "name": "地层边界",
+        "type": "stratum_boundary",
+        "source": "field_mapping"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [500010.000, 3400010.000, 102.000],
+          [500060.000, 3400040.000, 98.000],
+          [500120.000, 3400070.000, 93.000]
+        ]
+      }
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import csv
+import hashlib
 import json
 import math
 import re
@@ -112,6 +114,18 @@ class ModelData:
             fields.update(str(key) for key in item)
         return sorted(fields)
 
+    def summary(self) -> dict[str, Any]:
+        return {
+            "vertex_count": len(self.vertices),
+            "face_count": len(self.faces),
+            "triangle_count": sum(max(0, len(face) - 2) for face in self.faces),
+            "line_count": len(self.lines),
+            "vertex_property_count": len(self.vertex_properties),
+            "face_property_count": len(self.face_properties),
+            "attribute_fields": self.attribute_fields,
+            "bounds": self.bounds,
+        }
+
 
 def normalize_target_format(value: str) -> str:
     """把界面输入的目标格式归一为 GEOJSON/OBJ/STL/PLY/VTK/IFC/CSV。"""
@@ -208,6 +222,8 @@ def convert_model_files(
         )
 
     report: dict[str, Any] = {
+        "schema_version": "2.0",
+        "conversion_id": f"CONV-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8].upper()}",
         "task": "model_format_conversion",
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "status": "运行中",
@@ -254,28 +270,62 @@ def convert_model_files(
 
             model = read_model(source)
             model.validate()
+            source_model = copy.deepcopy(model)
+            source_summary = source_model.summary()
+            source_checksum = _sha256(source)
             coordinate_warning = apply_coordinate_rule(model, coordinate_rule)
             apply_attribute_rule(model, attribute_rule)
 
+            losses = _analyze_conversion_losses(model, normalized_format)
+
             target = _build_target_path(output_path, source.stem, normalized_format, overwrite)
-            write_model(model, target, normalized_format)
+            temporary_target = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
+            sidecar_files: list[str] = []
+            try:
+                write_model(model, temporary_target, normalized_format)
+                temporary_target.replace(target)
+                if _needs_attribute_sidecar(model, normalized_format):
+                    sidecar_files.append(_write_attribute_sidecar(model, source, target, source_summary))
+                validation = _validate_written_output(model, target, normalized_format)
+                if validation["status"] != "通过":
+                    raise ConversionError("成果回读验证失败：" + "；".join(validation["errors"]))
+            except Exception:
+                temporary_target.unlink(missing_ok=True)
+                target.unlink(missing_ok=True)
+                for sidecar in sidecar_files:
+                    Path(sidecar).unlink(missing_ok=True)
+                raise
 
             artifact.update(
                 {
                     "status": "成功",
                     "output": str(target.resolve()),
-                    "message": "转换完成",
+                    "message": "转换完成并通过成果回读验证",
+                    "source_checksum_sha256": source_checksum,
+                    "output_checksum_sha256": _sha256(target),
+                    "source_summary": source_summary,
+                    "output_summary": model.summary(),
                     "vertex_count": len(model.vertices),
                     "face_count": len(model.faces),
                     "line_count": len(model.lines),
                     "attribute_fields": model.attribute_fields,
                     "bounds": model.bounds,
                     "size_bytes": target.stat().st_size,
+                    "coordinate_transform": {
+                        "rule": model.metadata.get("coordinate_rule", coordinate_rule),
+                        "offset": model.metadata.get("coordinate_offset", [0.0, 0.0, 0.0]),
+                    },
+                    "information_losses": losses,
+                    "sidecar_files": sidecar_files,
+                    "validation": validation,
+                    "quality_score": max(0, 100 - len(losses) * 3),
                 }
             )
             report["success_count"] += 1
             if coordinate_warning:
                 report["warnings"].append(f"{source.name}：{coordinate_warning}")
+            for loss in losses:
+                report["warnings"].append(f"{source.name}：{loss}")
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, csv.Error, ConversionError, ValueError) as exc:
             message = str(exc)
             artifact["message"] = message
@@ -291,11 +341,10 @@ def convert_model_files(
     else:
         report["status"] = "失败"
 
+    artifact_scores = [item.get("quality_score", 0) for item in report["artifacts"] if item.get("status") == "成功"]
     success_ratio = report["success_count"] / max(1, len(file_paths))
-    report["quality_score"] = max(
-        0,
-        min(100, round(success_ratio * 100 - report["warning_count"] * 3)),
-    )
+    validated_score = sum(artifact_scores) / len(artifact_scores) if artifact_scores else 0
+    report["quality_score"] = max(0, min(100, round(validated_score * success_ratio)))
     report["manifest_path"] = _write_manifest(output_path, report, overwrite=True)
     return report
 
@@ -870,6 +919,109 @@ def _normal(
     return nx / length, ny / length, nz / length
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _analyze_conversion_losses(model: ModelData, target_format: str) -> list[str]:
+    """显式说明目标格式无法原生承载的信息，禁止静默丢失。"""
+    losses: list[str] = []
+    has_vertex_attributes = any(model.vertex_properties)
+    has_face_attributes = any(model.face_properties)
+    if target_format == "CSV":
+        if model.faces:
+            losses.append("CSV 主文件仅输出顶点表，面片拓扑保存在属性旁车文件中。")
+        if model.lines:
+            losses.append("CSV 主文件不承载线拓扑，线索引保存在属性旁车文件中。")
+        if has_face_attributes:
+            losses.append("CSV 主文件不承载面属性，面属性保存在属性旁车文件中。")
+    elif target_format == "GEOJSON":
+        if model.faces and has_vertex_attributes:
+            losses.append("面要素 GeoJSON 不逐顶点承载属性，顶点属性保存在属性旁车文件中。")
+    elif target_format in {"OBJ", "STL", "PLY", "VTK", "IFC"}:
+        if has_vertex_attributes or has_face_attributes:
+            losses.append(f"{target_format} 主文件的当前写出器不完整承载业务属性，属性保存在旁车 JSON 中。")
+        if target_format in {"STL", "IFC"} and model.lines:
+            losses.append(f"{target_format} 三角表面成果不承载独立线对象，线索引保存在旁车 JSON 中。")
+    return losses
+
+
+def _needs_attribute_sidecar(model: ModelData, target_format: str) -> bool:
+    if target_format == "CSV":
+        return bool(model.faces or model.lines or any(model.face_properties) or model.metadata)
+    if target_format == "GEOJSON":
+        return bool(model.metadata or (model.faces and any(model.vertex_properties)))
+    return bool(any(model.vertex_properties) or any(model.face_properties) or model.metadata)
+
+
+def _write_attribute_sidecar(
+    model: ModelData, source: Path, target: Path, source_summary: dict[str, Any],
+) -> str:
+    sidecar = target.with_suffix(target.suffix + ".attributes.json")
+    payload = {
+        "schema_version": "1.0",
+        "source": str(source.resolve()),
+        "primary_artifact": target.name,
+        "source_summary": source_summary,
+        "coordinate_transform": {
+            "rule": model.metadata.get("coordinate_rule", "保留源坐标"),
+            "offset": model.metadata.get("coordinate_offset", [0.0, 0.0, 0.0]),
+        },
+        "metadata": _json_safe_dict(model.metadata),
+        "lines": model.lines,
+        "faces": model.faces,
+        "vertex_properties": [_json_safe_dict(item) for item in model.vertex_properties],
+        "face_properties": [_json_safe_dict(item) for item in model.face_properties],
+    }
+    temporary = sidecar.with_name(f".{sidecar.name}.{uuid.uuid4().hex}.tmp")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(sidecar)
+    return str(sidecar.resolve())
+
+
+def _validate_written_output(model: ModelData, target: Path, target_format: str) -> dict[str, Any]:
+    checks: list[dict[str, Any]] = []
+    errors: list[str] = []
+
+    def add(name: str, passed: bool, detail: str) -> None:
+        checks.append({"name": name, "passed": passed, "detail": detail})
+        if not passed:
+            errors.append(f"{name}：{detail}")
+
+    add("文件存在", target.is_file(), str(target))
+    add("文件非空", target.is_file() and target.stat().st_size > 0, f"{target.stat().st_size if target.exists() else 0} bytes")
+    if errors:
+        return {"status": "未通过", "checks": checks, "errors": errors}
+
+    if target_format == "IFC":
+        text = target.read_text(encoding="utf-8", errors="replace").upper()
+        add("IFC STEP 结构", all(token in text for token in ("ISO-10303-21;", "HEADER;", "DATA;", "END-ISO-10303-21;")), "检查 STEP 头、数据段和结束标记")
+        add("IFC 几何实体", "IFCTRIANGULATEDFACESET" in text, "检查 IfcTriangulatedFaceSet")
+    else:
+        roundtrip = read_model(target)
+        roundtrip.validate()
+        add("顶点数量", len(roundtrip.vertices) == len(model.vertices), f"期望 {len(model.vertices)}，回读 {len(roundtrip.vertices)}")
+        add("空间范围", _bounds_close(roundtrip.bounds, model.bounds), f"期望 {model.bounds}，回读 {roundtrip.bounds}")
+        if target_format != "CSV":
+            expected_faces = sum(max(0, len(face) - 2) for face in model.faces) if target_format == "STL" else len(model.faces)
+            add("面片数量", len(roundtrip.faces) == expected_faces, f"期望 {expected_faces}，回读 {len(roundtrip.faces)}")
+        if target_format in {"OBJ", "PLY", "VTK", "GEOJSON"}:
+            add("线数量", len(roundtrip.lines) == len(model.lines), f"期望 {len(model.lines)}，回读 {len(roundtrip.lines)}")
+    return {"status": "通过" if not errors else "未通过", "checks": checks, "errors": errors}
+
+
+def _bounds_close(left: dict[str, list[float]], right: dict[str, list[float]], tolerance: float = 1e-8) -> bool:
+    left_values = [*left.get("min", []), *left.get("max", [])]
+    right_values = [*right.get("min", []), *right.get("max", [])]
+    return len(left_values) == len(right_values) and all(
+        math.isclose(a, b, rel_tol=tolerance, abs_tol=tolerance) for a, b in zip(left_values, right_values)
+    )
+
+
 def _build_target_path(output_dir: Path, stem: str, target_format: str, overwrite: bool) -> Path:
     suffix_map = {
         "GEOJSON": ".geojson",
@@ -896,7 +1048,11 @@ def _write_manifest(output_dir: Path, report: dict[str, Any], overwrite: bool = 
     manifest = output_dir / "conversion_manifest.json"
     if not overwrite and manifest.exists():
         manifest = _build_target_path(output_dir, "conversion_manifest", "GEOJSON", overwrite=False).with_suffix(".json")
-    manifest.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    payload = copy.deepcopy(report)
+    payload["manifest_path"] = str(manifest.resolve())
+    temporary = manifest.with_name(f".{manifest.name}.{uuid.uuid4().hex}.tmp")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(manifest)
     return str(manifest.resolve())
 
 
@@ -910,6 +1066,8 @@ def _failed_report(
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     report = {
+        "schema_version": "2.0",
+        "conversion_id": f"CONV-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8].upper()}",
         "task": "model_format_conversion",
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "status": "失败",

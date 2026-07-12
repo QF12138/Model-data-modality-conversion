@@ -1,0 +1,10 @@
+# Valid closed tetrahedron used as a passing quality-control baseline.
+o closed_tetrahedron
+v 0.000 0.000 0.000
+v 1.000 0.000 0.000
+v 0.000 1.000 0.000
+v 0.000 0.000 1.000
+f 1 3 2
+f 1 2 4
+f 2 3 4
+f 3 1 4

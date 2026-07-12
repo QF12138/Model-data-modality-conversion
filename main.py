@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import math
+import re
 import sys
 import threading
 import tkinter as tk
@@ -36,7 +38,7 @@ from function.rule_template_library import (
     list_templates,
 )
 from function.semantic_encoding import ALL_DICTIONARIES, LIBRARY_METADATA, build_semantic_report, semantic_library_stats
-from function.model_quality_check import build_model_quality_report
+from function.model_quality_check import QualityRules, build_model_quality_report
 from function.model_format_conversion import (
     ATTRIBUTE_RULES,
     COORDINATE_RULES,
@@ -87,7 +89,7 @@ FEATURE_MODULES = [
         "数据预处理与质量清洗模块",
         "对导入的钻孔、剖面、点云、栅格、矢量、网格及表格数据进行字段校验、缺失值识别、重复数据清理、异常值检查和单位规范化处理。",
         ("钻孔/剖面/点云/栅格/矢量/网格/表格文件", "字段字典", "单位换算表"),
-        ("字段必填规则", "重复识别键", "异常值阈值", "单位标准"),
+        ("字段必填规则", "重复识别键", "异常值阈值", "单位标准", "成果目录"),
         ("清洗后数据", "数据问题清单", "质量统计报告"),
         ("datasets", "data_quality_issues", "cleaning_rules"),
     ),
@@ -105,7 +107,7 @@ FEATURE_MODULES = [
         "地质语义编码转换模块",
         "建立地层、岩性、构造、地下水、不良地质、围岩等级和工程地质指标等语义字典，支持编码映射、名称归一和语义关联转换。",
         ("地质属性表", "项目编码表", "行业标准字典"),
-        ("语义字典", "编码映射规则", "同义词归一策略", "冲突处理方式"),
+        ("语义字典", "编码映射规则", "同义词归一策略", "冲突处理方式", "成果目录"),
         ("标准编码数据", "语义映射报告", "冲突记录"),
         ("semantic_dictionaries", "semantic_mappings", "normalized_attributes"),
     ),
@@ -1175,7 +1177,9 @@ class GeoConversionApp(tk.Tk):
         root.columnconfigure(0, weight=1)
 
         report = self.quality_report or {}
-        score = int(report.get("score", 0) or 0)
+        source_score = int(report.get("score", 0) or 0)
+        post_clean = report.get("post_clean_validation", {}) if isinstance(report.get("post_clean_validation"), dict) else {}
+        score = int(post_clean.get("score", source_score) or 0)
         issue_count = int(report.get("issue_count", 0) or 0)
         file_count = int(report.get("file_count", len(self.selected_files)) or 0)
 
@@ -1185,7 +1189,7 @@ class GeoConversionApp(tk.Tk):
         for idx in range(4):
             summary.columnconfigure(idx, weight=1)
         summary_items = (
-            ("清洗评分", f"{score if self.run_completed else '--'}", "字段 · 缺失 · 重复 · 异常 · 单位综合结果", self.TEAL),
+            ("清洗后评分", f"{score if self.run_completed else '--'}", f"清洗前 {source_score} 分 · 自动复检", self.TEAL),
             ("数据问题", f"{issue_count} 项" if self.run_completed else "待清洗", "严重/警告/提示分级定位", self.RED if issue_count else self.GREEN),
             ("检查文件", f"{file_count} 个", "表格 / GeoJSON / 网格 / 点云", self.BLUE),
             ("检查维度", "5 类", "字段校验、缺失值、重复、异常、单位", self.PURPLE),
@@ -1222,23 +1226,24 @@ class GeoConversionApp(tk.Tk):
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
-            input_card, columns=("name", "type", "state"), show="headings",
+            input_card, columns=("name", "type", "state", "output"), show="headings",
             style="Dashboard.Treeview", height=11,
         )
-        for key, title, width in (("name", "文件", 220), ("type", "类型", 80), ("state", "状态", 90)):
+        for key, title, width in (("name", "文件", 190), ("type", "类型", 70), ("state", "状态", 75), ("output", "清洗成果", 210)):
             file_tree.heading(key, text=title)
             file_tree.column(key, width=width, anchor="w")
         file_tree.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 12))
         files = report.get("files", []) if isinstance(report.get("files"), list) else []
         if files:
             for item in files:
-                file_tree.insert("", "end", values=(item.get("name", ""), item.get("type", ""), item.get("status", "")))
+                output_name = Path(str(item.get("cleaned_output", ""))).name if item.get("cleaned_output") else "-"
+                file_tree.insert("", "end", values=(item.get("name", ""), item.get("type", ""), item.get("status", ""), output_name))
         elif self.selected_files:
             for file_path in self.selected_files:
                 suffix = Path(file_path).suffix.lower() or "unknown"
-                file_tree.insert("", "end", values=(Path(file_path).name, suffix, "待清洗"))
+                file_tree.insert("", "end", values=(Path(file_path).name, suffix, "待清洗", "-"))
         else:
-            file_tree.insert("", "end", values=("未加载数据", "-", "待接入"))
+            file_tree.insert("", "end", values=("未加载数据", "-", "待接入", "-"))
 
         # 中：清洗流程与字段列表
         check_card = self._card(work)
@@ -2762,7 +2767,7 @@ class GeoConversionApp(tk.Tk):
         summary_items = (
             ("质量评分", f"{score if self.run_completed else '--'}", "几何、拓扑、属性、坐标综合结果", self.TEAL),
             ("缺陷数量", f"{issue_count} 项" if self.run_completed else "待检查", "严重/警告/提示分级定位", self.RED if issue_count else self.GREEN),
-            ("检查文件", f"{file_count} 个", "OBJ / GeoJSON / CSV 示例可直接验证", self.BLUE),
+            ("检查文件", f"{file_count} 个", "OBJ / STL / PLY / VTK / GeoJSON / CSV / IFC", self.BLUE),
             ("检查维度", "5 类", "闭合性、拓扑、属性、一致性、坐标精度", self.PURPLE),
         )
         for index, item in enumerate(summary_items):
@@ -2786,7 +2791,7 @@ class GeoConversionApp(tk.Tk):
         self._card_header(input_card, "数据输入")
         tk.Label(
             input_card,
-            text="导入转换后的模型成果、属性表或空间边界文件。当前内置解析 OBJ、GeoJSON/JSON、CSV/TXT；其它格式登记后留给后端解析器。",
+            text="导入转换后的模型成果、属性表或空间边界文件。内置检查 OBJ、STL、PLY、VTK、GeoJSON/JSON、CSV/TXT 和 IFC。",
             bg=self.PANEL,
             fg=self.MUTED,
             font=self.small_font,
@@ -2901,21 +2906,29 @@ class GeoConversionApp(tk.Tk):
         self._card_header(issue_card, "模型缺陷与数据异常清单")
         issue_tree = ttk.Treeview(
             issue_card,
-            columns=("severity", "category", "file", "message"),
+            columns=("severity", "code", "category", "file", "location", "message", "suggestion"),
             show="headings",
             style="Dashboard.Treeview",
             height=7,
         )
-        for key, title, width in (("severity", "级别", 80), ("category", "类别", 120), ("file", "来源文件", 220), ("message", "问题描述", 760)):
+        for key, title, width in (
+            ("severity", "级别", 65), ("code", "问题码", 145), ("category", "类别", 95),
+            ("file", "来源文件", 180), ("location", "问题位置", 210),
+            ("message", "问题描述", 410), ("suggestion", "修复建议", 410),
+        ):
             issue_tree.heading(key, text=title)
             issue_tree.column(key, width=width, anchor="w")
         issue_tree.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 12))
         issues = report.get("issues", []) if isinstance(report.get("issues"), list) else []
         if issues:
             for issue in issues:
-                issue_tree.insert("", "end", values=(issue.get("severity", ""), issue.get("category", ""), issue.get("file", ""), issue.get("message", "")))
+                issue_tree.insert("", "end", values=(
+                    issue.get("severity", ""), issue.get("code", ""), issue.get("category", ""),
+                    issue.get("file", ""), issue.get("location", ""), issue.get("message", ""),
+                    issue.get("suggestion", ""),
+                ))
         else:
-            issue_tree.insert("", "end", values=("待检查", "全部", "-", "加载模型文件后执行质量校验。"))
+            issue_tree.insert("", "end", values=("待检查", "-", "全部", "-", "-", "加载模型文件后执行质量校验。", "-"))
         tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
 
     def _render_format_conversion_page(self) -> None:
@@ -2970,7 +2983,8 @@ class GeoConversionApp(tk.Tk):
         ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
         input_actions = tk.Frame(input_card, bg=self.PANEL)
         input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
-        ttk.Button(input_actions, text="添加文件", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(input_actions, text="加载示例数据", style="Primary.TButton", command=self._load_format_conversion_sample_data).pack(side="left")
+        ttk.Button(input_actions, text="添加文件", style="Tool.TButton", command=self._choose_files).pack(side="left", padx=(7, 0))
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
@@ -3070,12 +3084,15 @@ class GeoConversionApp(tk.Tk):
 
         artifact_tree = ttk.Treeview(
             result_card,
-            columns=("source", "target", "status", "message"),
+            columns=("source", "target", "status", "validation", "checksum", "message"),
             show="headings",
             style="Dashboard.Treeview",
             height=10,
         )
-        for key, title, width in (("source", "源文件", 150), ("target", "成果文件", 170), ("status", "状态", 65), ("message", "说明", 180)):
+        for key, title, width in (
+            ("source", "源文件", 145), ("target", "成果文件", 165), ("status", "状态", 60),
+            ("validation", "回读校验", 75), ("checksum", "SHA-256", 95), ("message", "说明", 190),
+        ):
             artifact_tree.heading(key, text=title)
             artifact_tree.column(key, width=width, anchor="w")
         artifact_tree.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
@@ -3086,10 +3103,15 @@ class GeoConversionApp(tk.Tk):
                 artifact_tree.insert(
                     "",
                     "end",
-                    values=(item.get("source_name", ""), target_name, item.get("status", ""), item.get("message", "")),
+                    values=(
+                        item.get("source_name", ""), target_name, item.get("status", ""),
+                        (item.get("validation") or {}).get("status", "-"),
+                        str(item.get("output_checksum_sha256", ""))[:12] or "-",
+                        item.get("message", ""),
+                    ),
                 )
         else:
-            artifact_tree.insert("", "end", values=("-", "待生成", "待执行", "尚未执行转换"))
+            artifact_tree.insert("", "end", values=("-", "待生成", "待执行", "-", "-", "尚未执行转换"))
 
         ttk.Button(result_card, text="导出任务报告", style="Purple.TButton", command=self._export_report).grid(
             row=3, column=0, sticky="ew", padx=12, pady=(0, 12)
@@ -3270,6 +3292,10 @@ class GeoConversionApp(tk.Tk):
                 row=0, column=0, sticky="w", padx=13, pady=12
             )
             initial = self.param_values.get(name, defaults.get(name, "默认"))
+            if self._is_preprocessing_module() and name == "成果目录" and name not in self.param_values:
+                initial = str(Path(__file__).resolve().parent / "output" / "preprocessing")
+            if self._is_semantic_module() and name == "成果目录" and name not in self.param_values:
+                initial = str(Path(__file__).resolve().parent / "output" / "semantic")
             var = tk.StringVar(value=initial)
             self.param_vars[name] = var
             ttk.Entry(block, textvariable=var).grid(row=0, column=1, sticky="ew", padx=(10, 13), pady=9)
@@ -3343,8 +3369,14 @@ class GeoConversionApp(tk.Tk):
         tk.Label(body, text=f"质量评分 · {self._quality_grade(score)}", bg=self.PANEL, fg=self.MUTED, font=self.small_font).grid(
             row=1, column=0, sticky="w", pady=(0, 12)
         )
+        category_status = {
+            str(item.get("name", "")): str(item.get("status", ""))
+            for item in (self.quality_report or {}).get("categories", [])
+            if isinstance(item, dict)
+        }
         for row_index, check in enumerate(self._profile()["checks"], start=2):
-            passed = self.run_completed
+            status = category_status.get(check, "待执行")
+            passed = status == "通过"
             item = tk.Frame(body, bg="#f7faf9", highlightbackground=self.BORDER, highlightthickness=1)
             item.grid(row=row_index, column=0, sticky="ew", pady=(0, 7))
             item.columnconfigure(1, weight=1)
@@ -3354,7 +3386,11 @@ class GeoConversionApp(tk.Tk):
             tk.Label(item, text=check, bg="#f7faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
                 row=0, column=1, sticky="ew", padx=9
             )
-            tk.Label(item, text="通过" if passed else "待执行", bg="#f7faf9", fg=self.GREEN if passed else self.MUTED, font=self.tiny_font).grid(
+            tk.Label(
+                item, text=status, bg="#f7faf9",
+                fg=self.GREEN if passed else self.RED if status == "未通过" else self.AMBER if status == "需复核" else self.MUTED,
+                font=self.tiny_font,
+            ).grid(
                 row=0, column=2, sticky="e", padx=9
             )
         ttk.Button(body, text="重新执行质量检查", style="Primary.TButton", command=self._run_stub).grid(
@@ -3674,6 +3710,10 @@ class GeoConversionApp(tk.Tk):
             "编码映射规则": "ORIGINAL→PROJECT",
             "同义词归一策略": "规范优先",
             "冲突处理方式": "人工复核",
+            "闭合性规则": "严格封闭",
+            "拓扑规则": "严格检查",
+            "完整性规则": "自动识别",
+            "坐标精度阈值": "0",
         }
 
     def _quality_score(self) -> int:
@@ -4699,26 +4739,39 @@ class GeoConversionApp(tk.Tk):
 
     def _load_quality_sample_data(self) -> None:
         source_dir = Path(__file__).resolve().parent / "example_source" / "model_quality"
-        sample_files = [
-            source_dir / "model_quality_open_mesh.obj",
-            source_dir / "model_quality_attributes.csv",
-            source_dir / "model_quality_boundary.geojson",
-        ]
-        self.selected_files = [str(path) for path in sample_files if path.exists()]
+        supported = {".obj", ".stl", ".ply", ".vtk", ".json", ".geojson", ".csv", ".txt", ".ifc"}
+        sample_files = sorted(path for path in source_dir.iterdir() if path.is_file() and path.suffix.lower() in supported)
+        self.selected_files = [str(path) for path in sample_files]
         self.quality_report = None
         self.run_completed = False
         self.run_status_var.set("示例数据已加载")
         self.status_var.set(f"已加载 {len(self.selected_files)} 个质量校验示例文件")
-        self._append_log("已加载 example_source/model_quality 中的模型质量校验示例数据。")
+        self._append_log("已加载模型质量校验的多格式正常基线与故障注入示例数据。")
+        self._render_progress_strip()
+        self._render_current_page()
+
+    def _load_format_conversion_sample_data(self) -> None:
+        source_dir = Path(__file__).resolve().parent / "example_source" / "model_format_conversion"
+        supported = {".obj", ".stl", ".ply", ".vtk", ".geojson", ".csv"}
+        sample_files = sorted(
+            path for path in source_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in supported and not path.name.startswith("07_")
+        )
+        self.selected_files = [str(path) for path in sample_files]
+        self.conversion_report = None
+        self.run_completed = False
+        self.run_status_var.set("示例数据已加载")
+        self.status_var.set(f"已加载 {len(self.selected_files)} 个格式转换示例文件")
+        self._append_log("已加载 OBJ、STL、PLY、VTK、GeoJSON、CSV 和线对象转换示例。")
         self._render_progress_strip()
         self._render_current_page()
 
     def _load_preprocessing_sample_data(self) -> None:
         source_dir = Path(__file__).resolve().parent / "example_source" / "preprocessing_examples"
-        supported = {".csv", ".tsv", ".txt", ".json", ".geojson", ".obj"}
+        supported = {".csv", ".tsv", ".txt", ".json", ".geojson", ".obj", ".stl", ".ply", ".vtk"}
         sample_files = sorted(
             str(path.resolve()) for path in source_dir.iterdir()
-            if path.is_file() and path.suffix.lower() in supported
+            if path.is_file() and path.suffix.lower() in supported and path.name[:2].isdigit()
         ) if source_dir.exists() else []
         self.selected_files = sample_files
         self.quality_report = None
@@ -4980,8 +5033,11 @@ class GeoConversionApp(tk.Tk):
             if isinstance(item, dict):
                 self._append_log(
                     f"{item.get('source_name', '')} → {Path(str(item.get('output', ''))).name if item.get('output') else '-'}："
-                    f"{item.get('status', '')}，{item.get('message', '')}"
+                    f"{item.get('status', '')}，{item.get('message', '')}，"
+                    f"SHA-256={str(item.get('output_checksum_sha256', ''))[:12] or '-'}"
                 )
+                for sidecar in item.get("sidecar_files", []):
+                    self._append_log(f"属性旁车文件：{sidecar}")
         for warning in report.get("warnings", []):
             self._append_log(f"警告：{warning}")
         for error in report.get("errors", []):
@@ -4990,17 +5046,34 @@ class GeoConversionApp(tk.Tk):
         self._render_current_page()
 
     def _run_preprocessing(self) -> None:
+        self._apply_params()
+        try:
+            outlier_sigma = float(self.param_values.get("异常值阈值", "3.0") or "3.0")
+        except ValueError:
+            self.run_completed = False
+            self.run_status_var.set("参数错误")
+            self.status_var.set("异常值阈值必须是大于 0 的数字")
+            return
+        output_dir = Path(self.param_values.get("成果目录") or (Path(__file__).resolve().parent / "output" / "preprocessing"))
         self._append_log("开始执行数据预处理与质量清洗。")
         report = build_preprocessing_report(
             self.selected_files,
             required_fields=self.param_values.get("字段必填规则", "").split(",") if self.param_values.get("字段必填规则") else None,
             duplicate_keys=self.param_values.get("重复识别键", "").split(",") if self.param_values.get("重复识别键") else None,
-            outlier_sigma=float(self.param_values.get("异常值阈值", "3.0") or "3.0"),
+            outlier_sigma=outlier_sigma,
+            unit_standard=self.param_values.get("单位标准", "SI") or "SI",
+            auto_fix=True,
+            output_dir=output_dir,
+            fill_strategy="median_mode",
         )
         self.quality_report = report
-        self.run_completed = True
-        self.run_status_var.set("清洗完成")
-        self.status_var.set(f"数据预处理完成：{report['score']} 分 / {report['grade']}")
+        self.run_completed = bool(report.get("cleaned_files"))
+        self.run_status_var.set("清洗完成" if self.run_completed else "清洗失败")
+        post = report.get("post_clean_validation", {})
+        self.status_var.set(
+            f"数据清洗完成：清洗前 {report['score']} 分，清洗后 {post.get('score', report['score'])} 分；"
+            f"生成 {len(report.get('cleaned_files', []))} 个成果"
+        )
         self.task_payload_text = json.dumps(
             {
                 "task": "data_preprocessing",
@@ -5019,6 +5092,10 @@ class GeoConversionApp(tk.Tk):
             self._append_log(f"{category['name']}：{category['status']}，问题 {category['issue_count']} 项。")
         for issue in report.get("issues", [])[:10]:
             self._append_log(f"[{issue.get('severity', '')}] {issue.get('file', '')}：{issue.get('message', '')}")
+        for action in report.get("cleaning_actions", [])[:30]:
+            self._append_log(f"清洗动作 · {action.get('file', '')} · {action.get('action', '')}：{action.get('count', 0)} 项")
+        for output_file in report.get("cleaned_files", []):
+            self._append_log(f"清洗成果：{output_file}")
         self._render_progress_strip()
         self._render_current_page()
 
@@ -5032,7 +5109,10 @@ class GeoConversionApp(tk.Tk):
             target_domains = None
         synonym_strategy = self.param_values.get("同义词归一策略", "规范优先") or "规范优先"
         conflict_resolution = self.param_values.get("冲突处理方式", "人工复核") or "人工复核"
-        output_dir = Path(__file__).resolve().parent / "output" / "semantic"
+        mapping_rule = self.param_values.get("编码映射规则", "ORIGINAL→PROJECT") or "ORIGINAL→PROJECT"
+        mapping_tokens = [item.strip().upper() for item in re.split(r"→|->|=>", mapping_rule) if item.strip()]
+        target_code_system = mapping_tokens[-1] if mapping_tokens else "PROJECT"
+        output_dir = Path(self.param_values.get("成果目录") or (Path(__file__).resolve().parent / "output" / "semantic"))
 
         self._append_log(f"开始地质语义编码转换（{synonym_strategy} / {conflict_resolution}）。")
         report = build_semantic_report(
@@ -5041,6 +5121,7 @@ class GeoConversionApp(tk.Tk):
             synonym_strategy=synonym_strategy,
             conflict_resolution=conflict_resolution,
             output_dir=output_dir,
+            target_code_system=target_code_system,
         )
         self.quality_report = report
         self.run_completed = True
@@ -5324,11 +5405,42 @@ class GeoConversionApp(tk.Tk):
         self._render_current_page()
 
     def _run_model_quality_check(self) -> None:
+        self._apply_params()
+        closure_rule = self.param_values.get("闭合性规则", "严格封闭")
+        topology_rule = self.param_values.get("拓扑规则", "严格检查")
+        completeness_rule = self.param_values.get("完整性规则", "自动识别")
+        required_attributes: tuple[str, ...] = ()
+        if completeness_rule and completeness_rule not in {"默认", "自动", "自动识别", "不检查"}:
+            value = completeness_rule.replace("必填字段", "").replace("：", ",").replace(":", ",").replace("；", ",")
+            required_attributes = tuple(
+                item.strip() for item in value.replace("，", ",").split(",") if item.strip()
+            )
+        precision_text = self.param_values.get("坐标精度阈值", "0")
+        try:
+            precision_value = float(str(precision_text).lower().replace("m", "").strip() or "0")
+            minimum_decimal_places = (
+                max(0, int(round(-math.log10(precision_value))))
+                if 0 < precision_value < 1 else max(0, int(precision_value))
+            )
+        except (ValueError, OverflowError):
+            self.run_completed = False
+            self.run_status_var.set("参数错误")
+            self.status_var.set("坐标精度阈值应填写小数位数（如 3）或精度值（如 0.001）")
+            return
+        rules = QualityRules(
+            require_closed_geometry=not any(token in closure_rule for token in ("不检查", "允许开放", "关闭")),
+            check_topology=not any(token in topology_rule for token in ("不检查", "关闭")),
+            check_attributes=completeness_rule != "不检查",
+            check_consistency=True,
+            check_coordinate=True,
+            required_attributes=required_attributes,
+            minimum_decimal_places=minimum_decimal_places,
+        )
         self._append_log("开始执行模型质量校验。")
-        report = build_model_quality_report(self.selected_files)
+        report = build_model_quality_report(self.selected_files, rules)
         self.quality_report = report
-        self.run_completed = True
-        self.run_status_var.set("校验完成")
+        self.run_completed = bool(report.get("file_count"))
+        self.run_status_var.set("校验完成" if self.run_completed else "缺少输入数据")
         self.status_var.set(f"模型质量校验完成：{report['score']} 分 / {report['grade']}")
         self.task_payload_text = json.dumps(
             {
@@ -5337,6 +5449,7 @@ class GeoConversionApp(tk.Tk):
                 "module": self.active_module.name,
                 "input_files": self.selected_files,
                 "quality_report": report,
+                "parameters": report.get("parameters", {}),
                 "mysql_tables": list(self.active_module.mysql_tables),
                 "backend_endpoint": BACKEND_ENDPOINTS["quality_report"],
             },
@@ -5345,6 +5458,11 @@ class GeoConversionApp(tk.Tk):
         )
         for category in report["categories"]:
             self._append_log(f"{category['name']}：{category['status']}，问题 {category['issues']} 项。")
+        for issue in report.get("issues", [])[:20]:
+            self._append_log(
+                f"[{issue.get('severity', '')}] {issue.get('code', '')} · {issue.get('file', '')} · "
+                f"{issue.get('location', '')}：{issue.get('message', '')}"
+            )
         self._render_progress_strip()
         self._render_current_page()
 
@@ -5365,7 +5483,7 @@ class GeoConversionApp(tk.Tk):
         return (
             f"综合评分 {report.get('score')}，等级 {report.get('grade')}。\n\n"
             f"需重点复核：{'、'.join(failed)}。\n\n"
-            "下方缺陷清单给出了来源文件、问题类别和处理优先级。"
+            "下方缺陷清单给出了问题码、精确位置、处理优先级和修复建议。"
         )
 
     def _one_click_analysis(self) -> None:
@@ -5422,6 +5540,10 @@ class GeoConversionApp(tk.Tk):
             return self._build_quality_html_report(exported_at)
         if self._is_format_conversion_module():
             return self._build_conversion_html_report(exported_at)
+        if self._is_preprocessing_module():
+            return self._build_preprocessing_html_report(exported_at)
+        if self._is_semantic_module():
+            return self._build_semantic_html_report(exported_at)
         if self._is_version_module():
             return self._build_version_html_report(exported_at)
         return self._build_generic_html_report(exported_at)
@@ -5486,11 +5608,14 @@ li {{ margin: 6px 0; }}
             f"<td>{escape(str(item.get('source_format', '')))}</td>"
             f"<td>{escape(Path(str(item.get('output', ''))).name if item.get('output') else '-')}</td>"
             f"<td>{escape(str(item.get('status', '')))}</td>"
+            f"<td>{escape(str((item.get('validation') or {}).get('status', '-')))}</td>"
+            f"<td>{escape(str(item.get('output_checksum_sha256', '-')))}</td>"
+            f"<td>{escape(', '.join(Path(str(path)).name for path in item.get('sidecar_files', [])) or '-')}</td>"
             f"<td>{escape(str(item.get('message', '')))}</td>"
             "</tr>"
             for item in artifacts
             if isinstance(item, dict)
-        ) or "<tr><td colspan='5'>尚未生成转换成果</td></tr>"
+        ) or "<tr><td colspan='8'>尚未生成转换成果</td></tr>"
         warnings = "".join(f"<li>{escape(str(item))}</li>" for item in report.get("warnings", [])) or "<li>无</li>"
         errors = "".join(f"<li>{escape(str(item))}</li>" for item in report.get("errors", [])) or "<li>无</li>"
         body = f"""
@@ -5506,13 +5631,113 @@ li {{ margin: 6px 0; }}
 </div>
 <div class="section">
   <h2>成果文件</h2>
-  <table><thead><tr><th>源文件</th><th>源格式</th><th>成果文件</th><th>状态</th><th>说明</th></tr></thead><tbody>{artifact_rows}</tbody></table>
+  <table><thead><tr><th>源文件</th><th>源格式</th><th>成果文件</th><th>状态</th><th>回读校验</th><th>SHA-256</th><th>属性旁车</th><th>说明</th></tr></thead><tbody>{artifact_rows}</tbody></table>
 </div>
 <div class="section"><h2>警告</h2><ul>{warnings}</ul></div>
 <div class="section"><h2>错误</h2><ul>{errors}</ul></div>
 """
         return self._html_shell(
             "模型格式转换与输出报告",
+            f"项目：{self.project_var.get()} · 导出时间：{exported_at.strftime('%Y-%m-%d %H:%M:%S')}",
+            body,
+        )
+
+    def _build_preprocessing_html_report(self, exported_at: datetime) -> str:
+        report = self.quality_report or {}
+        post = report.get("post_clean_validation", {}) if isinstance(report.get("post_clean_validation"), dict) else {}
+        files = report.get("files", []) if isinstance(report.get("files"), list) else []
+        actions = report.get("cleaning_actions", []) if isinstance(report.get("cleaning_actions"), list) else []
+        issues = report.get("issues", []) if isinstance(report.get("issues"), list) else []
+        file_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('name', '')))}</td>"
+            f"<td>{escape(str(item.get('type', '')))}</td>"
+            f"<td>{escape(str(item.get('status', '')))}</td>"
+            f"<td>{escape(Path(str(item.get('cleaned_output', ''))).name if item.get('cleaned_output') else '-')}</td>"
+            f"<td>{escape(str((item.get('cleaning') or {}).get('output_sha256', '-')))}</td>"
+            "</tr>" for item in files
+        ) or "<tr><td colspan='5'>未加载数据</td></tr>"
+        action_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('file', '')))}</td>"
+            f"<td>{escape(str(item.get('action', '')))}</td>"
+            f"<td>{escape(str(item.get('field', '-')))}</td>"
+            f"<td>{escape(str(item.get('count', 0)))}</td>"
+            f"<td>{escape(json.dumps({key: value for key, value in item.items() if key not in {'file', 'action', 'field', 'count'}}, ensure_ascii=False))}</td>"
+            "</tr>" for item in actions
+        ) or "<tr><td colspan='5'>没有自动修复动作</td></tr>"
+        issue_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('severity', '')))}</td>"
+            f"<td>{escape(str(item.get('code', '')))}</td>"
+            f"<td>{escape(str(item.get('file', '')))}</td>"
+            f"<td>{escape(str(item.get('location', '')))}</td>"
+            f"<td>{escape(str(item.get('message', '')))}</td>"
+            f"<td>{escape(str(item.get('suggestion', '')))}</td>"
+            "</tr>" for item in issues
+        ) or "<tr><td colspan='6'>源数据未发现问题</td></tr>"
+        body = f"""
+<div class="section">
+  <h2>清洗前后对比</h2>
+  <div class="grid">
+    <div class="metric"><b>清洗前评分</b>{escape(str(report.get('score', 0)))}<br><span class="note">{escape(str(report.get('grade', '-')))}</span></div>
+    <div class="metric"><b>清洗后评分</b>{escape(str(post.get('score', '-')))}<br><span class="note">{escape(str(post.get('grade', '-')))}</span></div>
+    <div class="metric"><b>清洗成果</b>{len(report.get('cleaned_files', []))} 个</div>
+    <div class="metric"><b>修复动作</b>{len(actions)} 项</div>
+  </div>
+  <p class="note">清洗清单：{escape(str(report.get('manifest_path', '-')))}</p>
+</div>
+<div class="section"><h2>清洗成果</h2><table><thead><tr><th>源文件</th><th>类型</th><th>状态</th><th>清洗成果</th><th>输出 SHA-256</th></tr></thead><tbody>{file_rows}</tbody></table></div>
+<div class="section"><h2>清洗动作</h2><table><thead><tr><th>文件</th><th>动作</th><th>字段</th><th>数量</th><th>参数</th></tr></thead><tbody>{action_rows}</tbody></table></div>
+<div class="section"><h2>源数据问题</h2><table><thead><tr><th>级别</th><th>问题码</th><th>文件</th><th>位置</th><th>问题</th><th>建议</th></tr></thead><tbody>{issue_rows}</tbody></table></div>
+<div class="section"><h2>说明</h2><p>清洗成果均为新文件，源文件保持不变。缺失几何、缺少必填字段等不能安全推断的问题保留为人工复核项。</p></div>
+"""
+        return self._html_shell(
+            "数据预处理与质量清洗报告",
+            f"项目：{self.project_var.get()} · 导出时间：{exported_at.strftime('%Y-%m-%d %H:%M:%S')}",
+            body,
+        )
+
+    def _build_semantic_html_report(self, exported_at: datetime) -> str:
+        report = self.quality_report or {}
+        library = report.get("library_stats", {}) if isinstance(report.get("library_stats"), dict) else {}
+        audit = report.get("library_audit", {}) if isinstance(report.get("library_audit"), dict) else {}
+        mappings = report.get("mappings", []) if isinstance(report.get("mappings"), list) else []
+        unmapped = report.get("unmapped_terms", []) if isinstance(report.get("unmapped_terms"), list) else []
+        artifacts = report.get("output_artifacts", []) if isinstance(report.get("output_artifacts"), list) else []
+        mapping_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('domain', '')))}</td><td>{escape(str(item.get('field', '')))}</td>"
+            f"<td>{escape(str(item.get('original', '')))}</td><td>{escape(str(item.get('canonical', '')))}</td>"
+            f"<td>{escape(str(item.get('target_code', '')))}</td><td>{escape(str(item.get('code_system', '')))}</td>"
+            f"<td>{escape(str(item.get('matched_by', '')))}</td><td>{escape(str(item.get('confidence', '')))}</td>"
+            "</tr>" for item in mappings
+        ) or "<tr><td colspan='8'>暂无映射记录</td></tr>"
+        artifact_rows = "".join(
+            "<tr>"
+            f"<td>{escape(Path(str(item.get('source', ''))).name)}</td>"
+            f"<td>{escape(Path(str(item.get('output', ''))).name)}</td>"
+            f"<td>{escape(str(item.get('source_sha256', '')))}</td>"
+            f"<td>{escape(str(item.get('output_sha256', '')))}</td>"
+            "</tr>" for item in artifacts
+        ) or "<tr><td colspan='4'>尚未生成规范化成果</td></tr>"
+        unmapped_rows = "".join(
+            f"<tr><td>{escape(str(item.get('file', '')))}</td><td>{escape(str(item.get('field', '')))}</td><td>{escape(str(item.get('domain', '')))}</td><td>{escape(str(item.get('original', '')))}</td></tr>"
+            for item in unmapped
+        ) or "<tr><td colspan='4'>没有未匹配术语</td></tr>"
+        body = f"""
+<div class="section"><h2>语义转换摘要</h2><div class="grid">
+  <div class="metric"><b>评分</b>{escape(str(report.get('score', 0)))}<br><span class="note">{escape(str(report.get('grade', '-')))}</span></div>
+  <div class="metric"><b>覆盖率</b>{float(report.get('coverage_ratio', 0) or 0):.1%}</div>
+  <div class="metric"><b>语义库</b>{escape(str(library.get('terms', 0)))} 术语<br><span class="note">{escape(str(library.get('aliases', 0)))} 别名</span></div>
+  <div class="metric"><b>语义关系</b>{len(report.get('relations', []))} 条</div>
+</div><p class="note">语义库：{escape(str((library.get('metadata') or {}).get('name', '-')))} · 版本 {escape(str((library.get('metadata') or {}).get('version', '-')))} · 审计 {'通过' if audit.get('valid') else '需复核'}</p><p class="note">转换清单：{escape(str(report.get('manifest_path', '-')))}</p></div>
+<div class="section"><h2>术语映射</h2><table><thead><tr><th>语义域</th><th>字段</th><th>原始值</th><th>规范名</th><th>目标编码</th><th>编码体系</th><th>匹配方式</th><th>置信度</th></tr></thead><tbody>{mapping_rows}</tbody></table></div>
+<div class="section"><h2>未匹配术语</h2><table><thead><tr><th>文件</th><th>字段</th><th>语义域</th><th>原始值</th></tr></thead><tbody>{unmapped_rows}</tbody></table></div>
+<div class="section"><h2>规范化成果与校验和</h2><table><thead><tr><th>源文件</th><th>成果文件</th><th>源 SHA-256</th><th>成果 SHA-256</th></tr></thead><tbody>{artifact_rows}</tbody></table></div>
+"""
+        return self._html_shell(
+            "地质语义编码转换报告",
             f"项目：{self.project_var.get()} · 导出时间：{exported_at.strftime('%Y-%m-%d %H:%M:%S')}",
             body,
         )
@@ -5550,12 +5775,15 @@ li {{ margin: 6px 0; }}
         issue_rows = "".join(
             "<tr>"
             f"<td>{escape(str(item.get('severity', '')))}</td>"
+            f"<td>{escape(str(item.get('code', '')))}</td>"
             f"<td>{escape(str(item.get('category', '')))}</td>"
             f"<td>{escape(str(item.get('file', '')))}</td>"
+            f"<td>{escape(str(item.get('location', '')))}</td>"
             f"<td>{escape(str(item.get('message', '')))}</td>"
+            f"<td>{escape(str(item.get('suggestion', '')))}</td>"
             "</tr>"
             for item in issues
-        ) or "<tr><td colspan='4'>未发现缺陷或尚未执行检查</td></tr>"
+        ) or "<tr><td colspan='7'>未发现缺陷或尚未执行检查</td></tr>"
 
         conclusion = self._quality_conclusion_text(report)
         body = f"""
@@ -5591,7 +5819,7 @@ li {{ margin: 6px 0; }}
   </div>
   <div class="section">
     <h2>六、模型缺陷与数据异常清单</h2>
-    <table><thead><tr><th>级别</th><th>类别</th><th>来源文件</th><th>问题描述</th></tr></thead><tbody>{issue_rows}</tbody></table>
+    <table><thead><tr><th>级别</th><th>问题码</th><th>类别</th><th>来源文件</th><th>问题位置</th><th>问题描述</th><th>修复建议</th></tr></thead><tbody>{issue_rows}</tbody></table>
   </div>
   <div class="section">
     <h2>七、综合结论与建议</h2>

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import copy
 import csv
+import hashlib
 import json
 import math
+import re
+import uuid
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -174,45 +178,21 @@ def _detect_dtype(values: list[Any]) -> str:
 def _detect_field_unit(field_name: str, values: list[float]) -> str | None:
     """根据字段名和数值范围猜测单位。"""
     name_lower = field_name.lower().strip()
+    explicit = re.search(r"(?:_|\(|\[)(g/cm3|kg/m3|gpa|mpa|kpa|pa|km|cm|mm|deg|rad|ft|in)(?:\)|\])?$", name_lower)
+    if explicit:
+        return explicit.group(1)
     # 角度字段
     if any(token in name_lower for token in ("angle", "dip", "倾角", "倾向", "方位", "strike", "trend", "plunge")):
-        # 如果值在 0-360 范围，可能是度
-        if values:
-            max_abs = max(abs(v) for v in values)
-            if max_abs <= 360:
-                return "deg"
-            if max_abs <= 2 * math.pi + 0.1:
-                return "rad"
         return "deg"
-    # 坐标字段 —— 如果数值很大（> 1e5），可能是 mm
+    # 坐标绝对值不能用于猜测单位：投影坐标达到百万量级仍通常以米计。
     if any(token in name_lower for token in ("x", "y", "z", "easting", "northing", "坐标", "经度", "纬度", "高程", "标高")):
-        if values:
-            max_abs = max(abs(v) for v in values)
-            if max_abs > 1e6:
-                return "mm"
-            if max_abs > 1e3:
-                return "m"
         return "m"
     # 深度 / 厚度字段
     if any(token in name_lower for token in ("depth", "thick", "深", "厚", "孔", "borehole")):
-        if values:
-            max_abs = max(abs(v) for v in values)
-            if max_abs < 0.5:
-                return "mm"
-            if max_abs < 500:
-                return "m"
         return "m"
     # 应力 / 强度字段
     if any(token in name_lower for token in ("stress", "strength", "modulus", "模量", "强度", "应力", "pressure", "压")):
-        if values:
-            max_abs = max(abs(v) for v in values)
-            if max_abs > 1e8:
-                return "Pa"
-            if max_abs > 1e5:
-                return "kPa"
-            if max_abs > 100:
-                return "MPa"
-        return "kPa"
+        return None
     return None
 
 
@@ -227,6 +207,9 @@ def build_preprocessing_report(
     outlier_sigma: float = 3.0,
     unit_standard: str = "SI",
     auto_fix: bool = False,
+    output_dir: str | Path | None = None,
+    fill_strategy: str = "median_mode",
+    explicit_unit_conversions: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """
     对导入数据执行预处理与质量清洗，返回结构化报告。
@@ -253,7 +236,14 @@ def build_preprocessing_report(
         "outlier_sigma": outlier_sigma,
         "unit_standard": unit_standard,
         "auto_fix": auto_fix,
+        "output_dir": str(output_dir or ""),
+        "fill_strategy": fill_strategy,
+        "explicit_unit_conversions": explicit_unit_conversions or {},
     }
+    clean_root = Path(output_dir) if output_dir else None
+    if auto_fix:
+        clean_root = clean_root or (Path.cwd() / "output" / "preprocessing")
+        clean_root.mkdir(parents=True, exist_ok=True)
 
     if not file_paths:
         _add_issue(
@@ -271,7 +261,7 @@ def build_preprocessing_report(
             "path": str(path),
             "name": path.name,
             "type": path.suffix.lower() or "unknown",
-            "status": "已清洗",
+            "status": "待检查",
         }
         report["files"].append(entry)
 
@@ -282,7 +272,7 @@ def build_preprocessing_report(
 
         try:
             suffix = path.suffix.lower()
-            if suffix in {".csv", ".txt"}:
+            if suffix in {".csv", ".tsv", ".txt"}:
                 _inspect_tabular(path, report, entry, required_fields, duplicate_keys, outlier_sigma)
             elif suffix in {".json", ".geojson"}:
                 _inspect_geospatial(path, report, entry, required_fields, outlier_sigma)
@@ -298,11 +288,45 @@ def build_preprocessing_report(
                     report, "field_validation", file_name=path.name, severity="提示",
                     message=f"{suffix or '未知'} 格式暂未内置预处理解析器，已登记文件，后续交由后端解析器处理。",
                 )
+                continue
+            entry["status"] = "已检查"
+            if auto_fix and clean_root is not None:
+                cleaning = _clean_file(
+                    path, clean_root, duplicate_keys=duplicate_keys, outlier_sigma=outlier_sigma,
+                    fill_strategy=fill_strategy, explicit_unit_conversions=explicit_unit_conversions,
+                )
+                entry["cleaning"] = cleaning
+                if cleaning.get("output"):
+                    entry["status"] = "已清洗"
+                    entry["cleaned_output"] = cleaning["output"]
+                    report["cleaned_files"].append(cleaning["output"])
+                    report["cleaning_actions"].extend(
+                        {"file": path.name, **action} for action in cleaning.get("actions", [])
+                    )
+                else:
+                    entry["status"] = "清洗失败"
+                    _add_issue(
+                        report, "field_validation", file_name=path.name, severity="严重",
+                        message="自动清洗失败：" + "；".join(cleaning.get("errors", ["未知错误"])),
+                        suggestion="检查源文件结构和清洗参数后重试。",
+                    )
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, csv.Error, ValueError) as exc:
             entry["status"] = "解析失败"
             _add_issue(report, "field_validation", file_name=path.name, severity="严重", message=f"文件解析失败：{exc}")
 
-    return _finalize(report, file_paths)
+    if auto_fix and report["cleaned_files"]:
+        post = build_preprocessing_report(
+            report["cleaned_files"], required_fields=required_fields, duplicate_keys=duplicate_keys,
+            outlier_sigma=outlier_sigma, unit_standard=unit_standard, auto_fix=False,
+        )
+        report["post_clean_validation"] = {
+            "score": post["score"], "grade": post["grade"], "issue_count": post["issue_count"],
+            "categories": post["categories"],
+        }
+    finalized = _finalize(report, file_paths)
+    if auto_fix and clean_root is not None:
+        finalized["manifest_path"] = _write_cleaning_manifest(clean_root, finalized)
+    return finalized
 
 
 # ============================================================================
@@ -311,10 +335,14 @@ def build_preprocessing_report(
 
 def _new_preprocessing_report() -> dict[str, Any]:
     return {
+        "schema_version": "2.0",
+        "run_id": f"CLEAN-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8].upper()}",
         "checked_at": datetime.now().isoformat(timespec="seconds"),
         "files": [],
         "fields": [],
         "issues": [],
+        "cleaned_files": [],
+        "cleaning_actions": [],
         "categories": [
             {"key": key, "name": name, "status": "通过", "issue_count": 0, "summary": "未发现问题。"}
             for key, name in CATEGORY_NAMES.items()
@@ -331,14 +359,26 @@ def _add_issue(
     field_name: str | None = None,
     row: int | None = None,
     suggestion: str = "",
+    code: str = "",
+    location: str = "",
 ) -> None:
+    default_codes = {
+        "field_validation": "FIELD_VALIDATION",
+        "missing_values": "MISSING_VALUE",
+        "duplicates": "DUPLICATE_RECORD",
+        "outliers": "OUTLIER_VALUE",
+        "unit_normalization": "UNIT_NORMALIZATION",
+    }
     report["issues"].append(
         {
+            "issue_id": f"D-{len(report['issues']) + 1:04d}",
+            "code": code or default_codes.get(category_key, "DATA_QUALITY"),
             "category_key": category_key,
             "category": CATEGORY_NAMES.get(category_key, category_key),
             "file": file_name,
             "field": field_name,
             "row": row,
+            "location": location or (f"第 {row} 行" if row else f"字段 {field_name}" if field_name else "文件级"),
             "severity": severity,
             "message": message,
             "suggestion": suggestion,
@@ -468,8 +508,16 @@ def _evaluate_fields(
             profile.max_val = max(numeric_vals)
             profile.mean_val = round(mean, 6)
             profile.std_val = round(std, 6)
-            if std > 1e-12:
-                profile.outlier_count = sum(1 for v in numeric_vals if abs(v - mean) > outlier_sigma * std)
+            ordered = sorted(numeric_vals)
+            middle = n // 2
+            median = ordered[middle] if n % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+            deviations = sorted(abs(value - median) for value in ordered)
+            mad = deviations[middle] if n % 2 else (deviations[middle - 1] + deviations[middle]) / 2
+            robust_sigma = 1.4826 * mad
+            if robust_sigma <= 1e-12:
+                robust_sigma = std
+            if robust_sigma > 1e-12:
+                profile.outlier_count = sum(1 for value in numeric_vals if abs(value - median) > outlier_sigma * robust_sigma)
                 if profile.outlier_count:
                     outlier_ratio = profile.outlier_count / n
                     sev = "严重" if outlier_ratio > 0.1 else "警告" if outlier_ratio > 0.03 else "提示"
@@ -646,7 +694,7 @@ def _inspect_obj(
     zs = [v[2] for v in vertices]
     rows = [{"v_x": v[0], "v_y": v[1], "v_z": v[2]} for v in vertices]
     field_names = ["v_x", "v_y", "v_z"]
-    _evaluate_fields(rows, field_names, path.name, report, None, None, outlier_sigma)
+    _evaluate_fields(rows, field_names, path.name, report, None, None, math.inf)
 
     # 重复顶点
     unique_verts = set(vertices)
@@ -714,7 +762,7 @@ def _inspect_stl(
     ys = [v[1] for v in vertices]
     zs = [v[2] for v in vertices]
     rows = [{"x": v[0], "y": v[1], "z": v[2]} for v in vertices]
-    _evaluate_fields(rows, ["x", "y", "z"], path.name, report, None, None, outlier_sigma)
+    _evaluate_fields(rows, ["x", "y", "z"], path.name, report, None, None, math.inf)
 
     unique_verts = set(vertices)
     if len(vertices) - len(unique_verts):
@@ -753,12 +801,376 @@ def _inspect_tabular_like_mesh(
         return
 
     rows = [{"x": v[0], "y": v[1], "z": v[2]} for v in vertices]
-    _evaluate_fields(rows, ["x", "y", "z"], path.name, report, required_fields, None, outlier_sigma)
+    _evaluate_fields(rows, ["x", "y", "z"], path.name, report, required_fields, None, math.inf)
 
 
 # ============================================================================
 # 便捷函数：清洗后的数据导出（原地不修改源文件）
 # ============================================================================
+
+
+def _clean_file(
+    path: Path,
+    output_dir: Path,
+    *,
+    duplicate_keys: list[str] | None,
+    outlier_sigma: float,
+    fill_strategy: str,
+    explicit_unit_conversions: dict[str, float] | None,
+) -> dict[str, Any]:
+    try:
+        if path.suffix.lower() in {".csv", ".tsv", ".txt"}:
+            return _clean_tabular_file(
+                path, output_dir, duplicate_keys, outlier_sigma, fill_strategy,
+                explicit_unit_conversions or {},
+            )
+        if path.suffix.lower() in {".json", ".geojson"}:
+            return _clean_geojson_file(path, output_dir, duplicate_keys, fill_strategy)
+        if path.suffix.lower() in {".obj", ".stl", ".ply", ".vtk"}:
+            return _clean_model_file(path, output_dir)
+        return {"output": None, "actions": [], "errors": ["该格式没有自动清洗器。"]}
+    except (OSError, ValueError, json.JSONDecodeError, csv.Error) as exc:
+        return {"output": None, "actions": [], "errors": [str(exc)]}
+
+
+def _clean_tabular_file(
+    source: Path,
+    output_dir: Path,
+    duplicate_keys: list[str] | None,
+    outlier_sigma: float,
+    fill_strategy: str,
+    explicit_unit_conversions: dict[str, float],
+) -> dict[str, Any]:
+    text = _read_text(source)
+    try:
+        dialect = csv.Sniffer().sniff(text[:4096]) if text.strip() else csv.excel
+    except csv.Error:
+        dialect = csv.excel_tab if source.suffix.lower() == ".tsv" else csv.excel
+    reader = csv.DictReader(text.splitlines(), dialect=dialect)
+    if not reader.fieldnames:
+        raise ValueError("表格缺少表头。")
+    field_names = [str(name) for name in reader.fieldnames if name is not None]
+    rows = [dict(row) for row in reader]
+    if not rows:
+        raise ValueError("表格没有数据行。")
+    rows_in = len(rows)
+    actions: list[dict[str, Any]] = []
+
+    keys = [key for key in (duplicate_keys or field_names) if key in field_names] or field_names
+    seen: set[tuple[str, ...]] = set()
+    unique_rows: list[dict[str, Any]] = []
+    for row in rows:
+        key = tuple(str(row.get(name, "")).strip() for name in keys)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_rows.append(row)
+    removed = len(rows) - len(unique_rows)
+    rows = unique_rows
+    if removed:
+        actions.append({"action": "remove_duplicates", "count": removed, "fields": keys})
+
+    filled_total = 0
+    if fill_strategy.lower() not in {"", "none", "不填补", "保留空值"}:
+        for field_name in field_names:
+            present = [row.get(field_name) for row in rows if _has_value(row.get(field_name))]
+            if not present:
+                continue
+            numeric = []
+            for value in present:
+                try:
+                    numeric.append(float(str(value)))
+                except (TypeError, ValueError):
+                    pass
+            if len(numeric) / len(present) >= 0.8:
+                ordered = sorted(numeric)
+                middle = len(ordered) // 2
+                fill_value: Any = ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+                method = "median"
+            else:
+                counts = Counter(str(value) for value in present)
+                fill_value = counts.most_common(1)[0][0]
+                method = "mode"
+            count = 0
+            for row in rows:
+                if not _has_value(row.get(field_name)):
+                    row[field_name] = fill_value
+                    count += 1
+            if count:
+                filled_total += count
+                actions.append({"action": "fill_missing", "field": field_name, "count": count, "method": method, "value": fill_value})
+
+    unit_rules = _header_unit_rules(field_names)
+    for field_name, factor in explicit_unit_conversions.items():
+        if field_name in field_names:
+            unit_rules[field_name] = (field_name, float(factor), "explicit", "configured")
+    rename_map: dict[str, str] = {}
+    converted_total = 0
+    for field_name, (target_field, factor, source_unit, target_unit) in unit_rules.items():
+        count = 0
+        for row in rows:
+            if not _has_value(row.get(field_name)):
+                continue
+            try:
+                row[field_name] = float(str(row[field_name])) * factor
+                count += 1
+            except (TypeError, ValueError):
+                continue
+        if count:
+            converted_total += count
+            rename_map[field_name] = target_field
+            actions.append({
+                "action": "normalize_unit", "field": field_name, "target_field": target_field,
+                "count": count, "source_unit": source_unit, "target_unit": target_unit, "factor": factor,
+            })
+    if rename_map:
+        for row in rows:
+            for old, new in rename_map.items():
+                if old != new:
+                    row[new] = row.pop(old, "")
+        field_names = [rename_map.get(name, name) for name in field_names]
+
+    clipped_total = 0
+    if outlier_sigma > 0:
+        for field_name in field_names:
+            clipped_indexes: set[int] = set()
+            final_range: tuple[float, float] | None = None
+            for _iteration in range(20):
+                numeric: list[tuple[int, float]] = []
+                for index, row in enumerate(rows):
+                    try:
+                        numeric.append((index, float(str(row.get(field_name, "")))))
+                    except (TypeError, ValueError):
+                        pass
+                if len(numeric) < 5:
+                    break
+                bounds = _robust_bounds([value for _, value in numeric], outlier_sigma)
+                if bounds is None:
+                    break
+                low, high = bounds
+                final_range = bounds
+                changed = False
+                for index, value in numeric:
+                    if value < low or value > high:
+                        rows[index][field_name] = max(low, min(high, value))
+                        clipped_indexes.add(index)
+                        changed = True
+                if not changed:
+                    break
+            if clipped_indexes and final_range:
+                clipped_total += len(clipped_indexes)
+                actions.append({"action": "clip_outliers", "field": field_name, "count": len(clipped_indexes), "range": list(final_range), "sigma": outlier_sigma})
+
+    output = output_dir / f"{source.stem}_cleaned.csv"
+    temporary = output.with_name(f".{output.name}.{uuid.uuid4().hex}.tmp")
+    with temporary.open("w", encoding="utf-8-sig", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=field_names)
+        writer.writeheader()
+        writer.writerows(rows)
+    temporary.replace(output)
+    return {
+        "output": str(output.resolve()), "input_sha256": _file_sha256(source), "output_sha256": _file_sha256(output),
+        "rows_in": rows_in, "rows_out": len(rows), "removed_duplicates": removed,
+        "filled_missing": filled_total, "clamped_outliers": clipped_total,
+        "converted_units": converted_total, "actions": actions, "errors": [],
+    }
+
+
+def _header_unit_rules(field_names: list[str]) -> dict[str, tuple[str, float, str, str]]:
+    rules: dict[str, tuple[str, float, str, str]] = {}
+    for field_name in field_names:
+        normalized = field_name.strip().lower()
+        match = re.search(r"(?:_|\(|\[)(g/cm3|kg/m3|gpa|mpa|kpa|pa|km|cm|mm|deg|rad|ft|in)\]?$|(?:_|\(|\[)(g/cm3|kg/m3|gpa|mpa|kpa|pa|km|cm|mm|deg|rad|ft|in)\)?$", normalized)
+        if not match:
+            if any(token in normalized for token in ("angle", "dip", "strike", "trend", "plunge", "倾角", "倾向", "方位")):
+                target_unit, factor = UNIT_CONVERSIONS["deg"]
+                rules[field_name] = (f"{field_name}_rad", factor, "deg", target_unit)
+            continue
+        unit = next((value for value in match.groups() if value), "")
+        conversion = UNIT_CONVERSIONS.get(unit)
+        if not conversion or conversion[1] == 1.0:
+            continue
+        target_unit, factor = conversion
+        base = re.sub(rf"(?:_|\(|\[){re.escape(unit)}(?:\)|\])?$", "", field_name, flags=re.IGNORECASE).rstrip("_ ")
+        safe_target = target_unit.replace("/", "_").replace("³", "3")
+        rules[field_name] = (f"{base}_{safe_target}", factor, unit, target_unit)
+    return rules
+
+
+def _robust_bounds(values: list[float], sigma: float) -> tuple[float, float] | None:
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    median = ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+    deviations = sorted(abs(value - median) for value in ordered)
+    mad = deviations[middle] if len(deviations) % 2 else (deviations[middle - 1] + deviations[middle]) / 2
+    robust_sigma = 1.4826 * mad
+    if robust_sigma <= 1e-12:
+        mean = sum(ordered) / len(ordered)
+        robust_sigma = math.sqrt(sum((value - mean) ** 2 for value in ordered) / len(ordered))
+    if robust_sigma <= 1e-12:
+        return None
+    return median - sigma * robust_sigma, median + sigma * robust_sigma
+
+
+def _clean_geojson_file(
+    source: Path, output_dir: Path, duplicate_keys: list[str] | None, fill_strategy: str,
+) -> dict[str, Any]:
+    data = json.loads(_read_text(source))
+    if not isinstance(data, dict) or data.get("type") != "FeatureCollection":
+        raise ValueError("自动清洗要求 GeoJSON 根节点为 FeatureCollection。")
+    features = [feature for feature in data.get("features", []) if isinstance(feature, dict)]
+    fields = sorted({key for feature in features for key in (feature.get("properties") or {}) if isinstance(feature.get("properties"), dict)})
+    fill_values: dict[str, Any] = {}
+    for field_name in fields:
+        values = [
+            feature.get("properties", {}).get(field_name)
+            for feature in features
+            if isinstance(feature.get("properties"), dict)
+            and _has_value(feature.get("properties", {}).get(field_name))
+        ]
+        if values:
+            fill_values[field_name] = Counter(str(value) for value in values).most_common(1)[0][0]
+    unit_rules = _header_unit_rules(fields)
+    seen: set[str] = set()
+    cleaned: list[dict[str, Any]] = []
+    duplicate_count = closed_rings = filled = converted_units = 0
+    for feature in features:
+        item = copy.deepcopy(feature)
+        properties = item.get("properties") if isinstance(item.get("properties"), dict) else {}
+        item["properties"] = properties
+        if fill_strategy.lower() not in {"", "none", "不填补", "保留空值"}:
+            for field_name in fields:
+                if not _has_value(properties.get(field_name)):
+                    if field_name in fill_values:
+                        properties[field_name] = fill_values[field_name]
+                        filled += 1
+        for field_name, (target_field, factor, _source_unit, _target_unit) in unit_rules.items():
+            if not _has_value(properties.get(field_name)):
+                continue
+            try:
+                converted = float(str(properties[field_name])) * factor
+            except (TypeError, ValueError):
+                continue
+            properties[target_field] = converted
+            if target_field != field_name:
+                properties.pop(field_name, None)
+            converted_units += 1
+        closed_rings += _close_geojson_rings(item.get("geometry"))
+        if duplicate_keys:
+            key = json.dumps([properties.get(name) for name in duplicate_keys], ensure_ascii=False, sort_keys=True)
+        else:
+            key = json.dumps(item, ensure_ascii=False, sort_keys=True)
+        if key in seen:
+            duplicate_count += 1
+            continue
+        seen.add(key)
+        cleaned.append(item)
+    data["features"] = cleaned
+    output = output_dir / f"{source.stem}_cleaned.geojson"
+    _atomic_text(output, json.dumps(data, ensure_ascii=False, indent=2))
+    actions = []
+    if duplicate_count:
+        actions.append({"action": "remove_duplicates", "count": duplicate_count, "fields": duplicate_keys or ["full_feature"]})
+    if closed_rings:
+        actions.append({"action": "close_polygon_rings", "count": closed_rings})
+    if filled:
+        actions.append({"action": "align_property_schema", "count": filled, "fields": fields})
+    if converted_units:
+        actions.append({"action": "normalize_unit", "count": converted_units, "fields": sorted(unit_rules)})
+    return {
+        "output": str(output.resolve()), "input_sha256": _file_sha256(source), "output_sha256": _file_sha256(output),
+        "rows_in": len(features), "rows_out": len(cleaned), "actions": actions, "errors": [],
+    }
+
+
+def _close_geojson_rings(geometry: Any) -> int:
+    if not isinstance(geometry, dict):
+        return 0
+    geo_type = geometry.get("type")
+    coordinates = geometry.get("coordinates")
+    closed = 0
+    polygons = [coordinates] if geo_type == "Polygon" else coordinates if geo_type == "MultiPolygon" else []
+    for polygon in polygons if isinstance(polygons, list) else []:
+        for ring in polygon if isinstance(polygon, list) else []:
+            if isinstance(ring, list) and ring and ring[0] != ring[-1]:
+                ring.append(copy.deepcopy(ring[0]))
+                closed += 1
+    return closed
+
+
+def _clean_model_file(source: Path, output_dir: Path) -> dict[str, Any]:
+    from .model_format_conversion import read_model, write_model
+
+    model = read_model(source)
+    vertices_in, faces_in = len(model.vertices), len(model.faces)
+    lookup: dict[tuple[float, float, float], int] = {}
+    vertices: list[tuple[float, float, float]] = []
+    remap: dict[int, int] = {}
+    for index, vertex in enumerate(model.vertices):
+        if vertex not in lookup:
+            lookup[vertex] = len(vertices)
+            vertices.append(vertex)
+        remap[index] = lookup[vertex]
+    valid_faces: list[list[int]] = []
+    seen_faces: set[tuple[int, ...]] = set()
+    removed_invalid = removed_duplicate_faces = 0
+    for face in model.faces:
+        mapped = [remap[index] for index in face if index in remap]
+        if len(mapped) < 3 or len(set(mapped)) < 3:
+            removed_invalid += 1
+            continue
+        canonical = tuple(sorted(mapped))
+        if canonical in seen_faces:
+            removed_duplicate_faces += 1
+            continue
+        seen_faces.add(canonical)
+        valid_faces.append(mapped)
+    model.vertices = vertices
+    model.faces = valid_faces
+    model.lines = [[remap[index] for index in line if index in remap] for line in model.lines]
+    model.lines = [line for line in model.lines if len(line) >= 2]
+    output = output_dir / f"{source.stem}_cleaned{source.suffix.lower()}"
+    temporary = output.with_name(f".{output.name}.{uuid.uuid4().hex}.tmp")
+    write_model(model, temporary, source.suffix.lstrip(".").upper())
+    temporary.replace(output)
+    actions = []
+    if vertices_in != len(vertices):
+        actions.append({"action": "merge_duplicate_vertices", "count": vertices_in - len(vertices)})
+    if removed_invalid:
+        actions.append({"action": "remove_invalid_faces", "count": removed_invalid})
+    if removed_duplicate_faces:
+        actions.append({"action": "remove_duplicate_faces", "count": removed_duplicate_faces})
+    return {
+        "output": str(output.resolve()), "input_sha256": _file_sha256(source), "output_sha256": _file_sha256(output),
+        "vertices_in": vertices_in, "vertices_out": len(vertices), "faces_in": faces_in, "faces_out": len(valid_faces),
+        "actions": actions, "errors": [],
+    }
+
+
+def _has_value(value: Any) -> bool:
+    return value is not None and str(value).strip().lower() not in {"", "null", "none", "nan", "n/a"}
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _atomic_text(path: Path, content: str) -> None:
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    temporary.write_text(content, encoding="utf-8")
+    temporary.replace(path)
+
+
+def _write_cleaning_manifest(output_dir: Path, report: dict[str, Any]) -> str:
+    manifest = output_dir / "cleaning_manifest.json"
+    payload = copy.deepcopy(report)
+    payload["manifest_path"] = str(manifest.resolve())
+    _atomic_text(manifest, json.dumps(payload, ensure_ascii=False, indent=2))
+    return str(manifest.resolve())
 
 def clean_tabular_data(
     file_path: str,
@@ -783,6 +1195,7 @@ def clean_tabular_data(
     rows_in = len(rows)
     removed_dup = 0
     clamped_out = 0
+    filled_missing = 0
 
     # 去重
     if drop_duplicates:
@@ -797,6 +1210,13 @@ def clean_tabular_data(
             else:
                 removed_dup += 1
         rows = deduped
+
+    if fill_missing != "":
+        for row in rows:
+            for field_name in field_names:
+                if not _has_value(row.get(field_name)):
+                    row[field_name] = fill_missing
+                    filled_missing += 1
 
     # 单位转换
     if unit_conversions:
@@ -847,6 +1267,7 @@ def clean_tabular_data(
         "rows_in": rows_in,
         "rows_out": len(rows),
         "removed_duplicates": removed_dup,
+        "filled_missing": filled_missing,
         "clamped_outliers": clamped_out,
         "errors": [],
     }

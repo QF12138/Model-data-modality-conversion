@@ -2777,7 +2777,6 @@
           "Elastic Modulus",
           "Young Modulus",
           "杨氏模量",
-          "E",
           "弹模"
         ],
         "codes": {
@@ -2890,8 +2889,7 @@
       },
       "孔隙比": {
         "aliases": [
-          "Void Ratio",
-          "e"
+          "Void Ratio"
         ],
         "codes": {
           "PROJECT": "EI-VOID-RATIO"

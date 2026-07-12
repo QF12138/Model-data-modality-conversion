@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\01_drilling_and_boundary\\monitoring_points.txt",
+  "primary_artifact": "monitoring_points_converted.obj",
+  "source_summary": {
+    "vertex_count": 4,
+    "face_count": 0,
+    "triangle_count": 0,
+    "line_count": 0,
+    "vertex_property_count": 4,
+    "face_property_count": 0,
+    "attribute_fields": [
+      "date",
+      "id",
+      "settlement_mm"
+    ],
+    "bounds": {
+      "min": [
+        500010.0,
+        3400010.0,
+        103.8
+      ],
+      "max": [
+        500090.0,
+        3400072.0,
+        106.4
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "CSV"
+  },
+  "lines": [],
+  "faces": [],
+  "vertex_properties": [
+    {
+      "id": "M-001",
+      "settlement_mm": 1.2,
+      "date": "2026-07-01"
+    },
+    {
+      "id": "M-002",
+      "settlement_mm": 2.6,
+      "date": "2026-07-03"
+    },
+    {
+      "id": "M-003",
+      "settlement_mm": 3.1,
+      "date": "2026-07-05"
+    },
+    {
+      "id": "M-004",
+      "settlement_mm": 1.8,
+      "date": "2026-07-07"
+    }
+  ],
+  "face_properties": []
+}

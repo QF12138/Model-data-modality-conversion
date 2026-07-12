@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import copy
 import csv
+import hashlib
 import json
 import re
 import unicodedata
+import uuid
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +20,7 @@ MODULE_DIR = Path(__file__).resolve().parent
 DEFAULT_LIBRARY_CANDIDATES = (
     MODULE_DIR.parent / "source" / "semantic_library.json",
     MODULE_DIR / "semantic_library.json",
+    MODULE_DIR.parent / "example_source" / "semantic" / "semantic_library.json",
 )
 
 DOMAIN_ORDER = ("地层", "岩性", "构造", "地下水", "不良地质", "围岩等级", "工程地质指标")
@@ -220,7 +223,10 @@ def _merge_dictionary_sets(
     return merged
 
 
-def semantic_library_stats(dictionaries: dict[str, dict[str, dict[str, Any]]] | None = None) -> dict[str, Any]:
+def semantic_library_stats(
+    dictionaries: dict[str, dict[str, dict[str, Any]]] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     dictionaries = dictionaries or ALL_DICTIONARIES
     per_domain: dict[str, Any] = {}
     total_terms = total_aliases = total_codes = 0
@@ -237,7 +243,7 @@ def semantic_library_stats(dictionaries: dict[str, dict[str, dict[str, Any]]] | 
         "aliases": total_aliases,
         "codes": total_codes,
         "domains": per_domain,
-        "metadata": copy.deepcopy(LIBRARY_METADATA),
+        "metadata": copy.deepcopy(metadata if metadata is not None else LIBRARY_METADATA),
     }
 
 
@@ -680,6 +686,8 @@ def _infer_domain_from_values(values: Iterable[Any], dictionaries: dict[str, dic
 
 def _new_semantic_report() -> dict[str, Any]:
     return {
+        "schema_version": "2.0",
+        "run_id": f"SEM-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8].upper()}",
         "checked_at": datetime.now().isoformat(timespec="seconds"),
         "files": [],
         "mappings": [],
@@ -691,6 +699,7 @@ def _new_semantic_report() -> dict[str, Any]:
         "domain_stats": {},
         "library_stats": {},
         "custom_dictionary_terms": 0,
+        "output_artifacts": [],
     }
 
 
@@ -701,10 +710,15 @@ def _add_semantic_issue(
     message: str,
     field_name: str | None = None,
     suggestion: str = "",
+    code: str = "SEMANTIC_MAPPING",
+    location: str = "",
 ) -> None:
     report["issues"].append({
+        "issue_id": f"S-{len(report['issues']) + 1:04d}",
+        "code": code,
         "file": file_name,
         "field": field_name,
+        "location": location or (f"字段 {field_name}" if field_name else "文件级"),
         "severity": severity,
         "message": message,
         "suggestion": suggestion,
@@ -719,6 +733,7 @@ def _register_mapping(
     original: str,
     norm: dict[str, Any],
     conflict_strategy: str,
+    target_code_system: str,
 ) -> None:
     codes = norm.get("codes", {}) if isinstance(norm.get("codes"), dict) else {}
     mapping = {
@@ -734,7 +749,8 @@ def _register_mapping(
         "symbol": codes.get("SYMBOL", ""),
         # 兼容旧界面字段名；实际编码体系由 code_system 明确标识
         "standard_code": codes.get("PROJECT", ""),
-        "code_system": "PROJECT",
+        "target_code": codes.get(target_code_system, ""),
+        "code_system": target_code_system,
         "category": norm.get("category", ""),
         "subcategory": norm.get("subcategory", ""),
         "unit": norm.get("unit", ""),
@@ -797,6 +813,7 @@ def _normalize_rows(
     domains: set[str],
     synonym_strategy: str,
     conflict_strategy: str,
+    target_code_system: str,
     field_domain_map: dict[str, str] | None,
 ) -> tuple[list[dict[str, Any]], list[str], dict[str, str]]:
     semantic_fields = _semantic_fields_for_rows(rows, fieldnames, dictionaries, field_domain_map, domains)
@@ -823,8 +840,13 @@ def _normalize_rows(
         report["total_terms"] += len(values)
         for value in values:
             norm = normalize_name(value, domain, strategy=synonym_strategy, dictionaries=dictionaries)
+            if len(norm.get("candidates", [])) > 1 and conflict_strategy in {"人工复核", "保留原始"}:
+                norm = copy.deepcopy(norm)
+                norm["canonical"] = value
+                norm["codes"] = {}
+                norm["matched"] = "冲突待复核" if conflict_strategy == "人工复核" else "冲突保留原始"
             cache[(field, value)] = norm
-            _register_mapping(report, path, field, domain, value, norm, conflict_strategy)
+            _register_mapping(report, path, field, domain, value, norm, conflict_strategy, target_code_system)
             if float(norm.get("confidence", 0) or 0) == 0:
                 _add_semantic_issue(
                     report, path.name, "警告",
@@ -833,7 +855,7 @@ def _normalize_rows(
                     suggestion="请在项目语义字典中补充规范名、别名或项目编码。",
                 )
 
-        for suffix in ("规范名", "项目编码", "地质符号", "匹配方式", "置信度"):
+        for suffix in ("规范名", "项目编码", "地质符号", "目标编码", "编码体系", "匹配方式", "置信度"):
             new_field = f"{field}_{suffix}"
             if new_field not in output_fields:
                 output_fields.append(new_field)
@@ -848,6 +870,8 @@ def _normalize_rows(
             row[f"{field}_规范名"] = norm.get("canonical", raw)
             row[f"{field}_项目编码"] = codes.get("PROJECT", "")
             row[f"{field}_地质符号"] = codes.get("SYMBOL", "")
+            row[f"{field}_目标编码"] = codes.get(target_code_system, "")
+            row[f"{field}_编码体系"] = target_code_system
             row[f"{field}_匹配方式"] = norm.get("matched", "未匹配")
             row[f"{field}_置信度"] = norm.get("confidence", 0)
     return normalized_rows, output_fields, semantic_fields
@@ -855,10 +879,12 @@ def _normalize_rows(
 
 def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8-sig", newline="") as file:
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    with temporary.open("w", encoding="utf-8-sig", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+    temporary.replace(path)
 
 
 def _write_xlsx(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
@@ -873,7 +899,9 @@ def _write_xlsx(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -
     ws.append(fieldnames)
     for row in rows:
         ws.append([row.get(field, "") for field in fieldnames])
-    wb.save(path)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    wb.save(temporary)
+    temporary.replace(path)
 
 
 def _analyze_tabular_file(
@@ -884,6 +912,7 @@ def _analyze_tabular_file(
     domains: set[str],
     synonym_strategy: str,
     conflict_strategy: str,
+    target_code_system: str,
     field_domain_map: dict[str, str] | None,
     output_dir: Path | None,
 ) -> None:
@@ -898,7 +927,7 @@ def _analyze_tabular_file(
         return
     normalized_rows, output_fields, semantic_fields = _normalize_rows(
         path, rows, fields, report, dictionaries, domains,
-        synonym_strategy, conflict_strategy, field_domain_map,
+        synonym_strategy, conflict_strategy, target_code_system, field_domain_map,
     )
     entry["semantic_fields"] = semantic_fields
     if output_dir and normalized_rows and semantic_fields:
@@ -910,6 +939,7 @@ def _analyze_tabular_file(
             _write_csv(output, normalized_rows, output_fields)
         report["normalized_files"].append(str(output.resolve()))
         entry["normalized_output"] = str(output.resolve())
+        _register_output_artifact(report, path, output)
 
 
 def _json_feature_properties(data: Any) -> tuple[list[dict[str, Any]], str]:
@@ -932,6 +962,7 @@ def _analyze_json_file(
     domains: set[str],
     synonym_strategy: str,
     conflict_strategy: str,
+    target_code_system: str,
     field_domain_map: dict[str, str] | None,
     output_dir: Path | None,
 ) -> None:
@@ -945,7 +976,7 @@ def _analyze_json_file(
     fields = list(dict.fromkeys(str(key) for row in rows for key in row.keys()))
     normalized_rows, _, semantic_fields = _normalize_rows(
         path, rows, fields, report, dictionaries, domains,
-        synonym_strategy, conflict_strategy, field_domain_map,
+        synonym_strategy, conflict_strategy, target_code_system, field_domain_map,
     )
     entry["semantic_fields"] = semantic_fields
     if not output_dir or not semantic_fields:
@@ -967,9 +998,79 @@ def _analyze_json_file(
         normalized_data = normalized_rows[0]
     output = output_dir / f"{path.stem}_semantic_normalized{path.suffix.lower()}"
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(normalized_data, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_text(output, json.dumps(normalized_data, ensure_ascii=False, indent=2))
     report["normalized_files"].append(str(output.resolve()))
     entry["normalized_output"] = str(output.resolve())
+    _register_output_artifact(report, path, output)
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _atomic_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    temporary.write_text(content, encoding="utf-8")
+    temporary.replace(path)
+
+
+def _register_output_artifact(report: dict[str, Any], source: Path, output: Path) -> None:
+    report["output_artifacts"].append({
+        "source": str(source.resolve()),
+        "source_sha256": _file_sha256(source),
+        "output": str(output.resolve()),
+        "output_sha256": _file_sha256(output),
+        "size_bytes": output.stat().st_size,
+    })
+
+
+def audit_semantic_library(
+    dictionaries: dict[str, dict[str, dict[str, Any]]] | None = None,
+) -> dict[str, Any]:
+    """检查语义库内重复规范词、别名冲突、编码冲突和缺失项目编码。"""
+    dictionaries = dictionaries or ALL_DICTIONARIES
+    alias_index: dict[tuple[str, str], set[str]] = defaultdict(set)
+    code_index: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+    missing_project_codes: list[dict[str, str]] = []
+    for domain, entries in dictionaries.items():
+        for canonical, entry in entries.items():
+            for token in [canonical, *_as_alias_list(entry.get("aliases"))]:
+                normalized = _normalize_token(token)
+                if normalized:
+                    alias_index[(domain, normalized)].add(canonical)
+            codes = _entry_codes(entry)
+            if not codes.get("PROJECT"):
+                missing_project_codes.append({"domain": domain, "canonical": canonical})
+            for system, code in codes.items():
+                code_index[(domain, system, _normalize_token(code))].add(canonical)
+    alias_conflicts = [
+        {"domain": domain, "token": token, "canonicals": sorted(canonicals)}
+        for (domain, token), canonicals in alias_index.items() if len(canonicals) > 1
+    ]
+    code_conflicts = [
+        {"domain": domain, "system": system, "code": code, "canonicals": sorted(canonicals)}
+        for (domain, system, code), canonicals in code_index.items() if code and len(canonicals) > 1
+    ]
+    return {
+        "valid": not alias_conflicts and not code_conflicts,
+        "alias_conflicts": alias_conflicts,
+        "code_conflicts": code_conflicts,
+        "missing_project_codes": missing_project_codes,
+        "stats": semantic_library_stats(dictionaries),
+    }
+
+
+def _write_semantic_manifest(output_dir: Path, report: dict[str, Any]) -> str:
+    manifest = output_dir / "semantic_conversion_manifest.json"
+    payload = copy.deepcopy(report)
+    payload["manifest_path"] = str(manifest.resolve())
+    _atomic_text(manifest, json.dumps(payload, ensure_ascii=False, indent=2))
+    return str(manifest.resolve())
 
 
 def _semantic_grade(score: int) -> str:
@@ -1020,9 +1121,13 @@ def build_semantic_report(
     field_domain_map: dict[str, str] | None = None,
     output_dir: str | Path | None = None,
     library_path: str | Path | None = None,
+    target_code_system: str = "PROJECT",
 ) -> dict[str, Any]:
     """执行字典加载、名称归一、编码映射、语义关联和标准化成果导出。"""
     report = _new_semantic_report()
+    target_code_system = str(target_code_system or "PROJECT").strip().upper()
+    if target_code_system not in ENCODING_SYSTEMS:
+        target_code_system = "PROJECT"
     requested = target_domains or list(DOMAIN_ORDER)
     domains = {_canonical_domain(d) for d in requested}
     domains = {d for d in domains if d}
@@ -1038,12 +1143,15 @@ def build_semantic_report(
         "target_domains": [d for d in DOMAIN_ORDER if d in domains],
         "synonym_strategy": synonym_strategy,
         "conflict_resolution": conflict_resolution,
+        "target_code_system": target_code_system,
         "output_dir": str(output_dir) if output_dir else "",
     }
+    report["library_metadata"] = copy.deepcopy(base_library.get("metadata", {}))
 
     if not file_paths:
         _add_semantic_issue(report, "未选择文件", "警告", "请先导入地质属性数据、项目编码表或语义字典。")
-        report["library_stats"] = semantic_library_stats(working)
+        report["library_stats"] = semantic_library_stats(working, base_library.get("metadata", {}))
+        report["library_audit"] = audit_semantic_library(working)
         return _finalize_semantic(report)
 
     paths = [Path(p) for p in file_paths]
@@ -1057,6 +1165,7 @@ def build_semantic_report(
             entry["status"] = "文件缺失"
             _add_semantic_issue(report, path.name, "严重", "文件不存在或路径不可访问。")
             continue
+        entry["source_sha256"] = _file_sha256(path)
         try:
             custom_from_file = _load_dictionary_file(path)
         except (OSError, ValueError, json.JSONDecodeError, csv.Error) as exc:
@@ -1070,8 +1179,11 @@ def build_semantic_report(
             entry["dictionary_terms"] = added
             entry["is_dictionary"] = True
 
-    report["library_stats"] = semantic_library_stats(working)
+    report["library_stats"] = semantic_library_stats(working, base_library.get("metadata", {}))
+    report["library_audit"] = audit_semantic_library(working)
     out_dir = Path(output_dir) if output_dir else None
+    if out_dir:
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     # 第二遍：分析业务数据并输出规范化成果
     for path in paths:
@@ -1083,13 +1195,13 @@ def build_semantic_report(
             if suffix in {".csv", ".txt", ".xlsx"}:
                 _analyze_tabular_file(
                     path, report, entry, working, domains,
-                    synonym_strategy, conflict_resolution, field_domain_map, out_dir,
+                    synonym_strategy, conflict_resolution, target_code_system, field_domain_map, out_dir,
                 )
                 entry["status"] = "已转换"
             elif suffix in {".json", ".geojson"}:
                 _analyze_json_file(
                     path, report, entry, working, domains,
-                    synonym_strategy, conflict_resolution, field_domain_map, out_dir,
+                    synonym_strategy, conflict_resolution, target_code_system, field_domain_map, out_dir,
                 )
                 entry["status"] = "已转换"
             else:
@@ -1099,7 +1211,10 @@ def build_semantic_report(
             entry["status"] = "解析失败"
             _add_semantic_issue(report, path.name, "严重", f"文件解析失败：{exc}")
 
-    return _finalize_semantic(report)
+    finalized = _finalize_semantic(report)
+    if out_dir:
+        finalized["manifest_path"] = _write_semantic_manifest(out_dir, finalized)
+    return finalized
 
 
 def export_normalized_table(
@@ -1151,6 +1266,7 @@ __all__ = [
     "ENGINEERING_INDICATORS_DICTIONARY",
     "build_semantic_dictionary",
     "build_semantic_report",
+    "audit_semantic_library",
     "export_normalized_table",
     "load_semantic_library",
     "map_encoding",

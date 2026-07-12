@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_format_conversion\\04_数值模拟表面网格_ASCII.vtk",
+  "primary_artifact": "04_数值模拟表面网格_ASCII_converted_6.obj",
+  "source_summary": {
+    "vertex_count": 8,
+    "face_count": 6,
+    "triangle_count": 12,
+    "line_count": 0,
+    "vertex_property_count": 0,
+    "face_property_count": 0,
+    "attribute_fields": [],
+    "bounds": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        100.0,
+        80.0,
+        30.0
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "VTK"
+  },
+  "lines": [],
+  "faces": [
+    [
+      0,
+      3,
+      2,
+      1
+    ],
+    [
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      5,
+      4
+    ],
+    [
+      1,
+      2,
+      6,
+      5
+    ],
+    [
+      2,
+      3,
+      7,
+      6
+    ],
+    [
+      3,
+      0,
+      4,
+      7
+    ]
+  ],
+  "vertex_properties": [],
+  "face_properties": []
+}

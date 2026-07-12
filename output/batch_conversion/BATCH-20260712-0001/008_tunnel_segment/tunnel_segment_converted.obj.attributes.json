@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\02_3d_models\\tunnel_segment.obj",
+  "primary_artifact": "tunnel_segment_converted.obj",
+  "source_summary": {
+    "vertex_count": 8,
+    "face_count": 12,
+    "triangle_count": 12,
+    "line_count": 0,
+    "vertex_property_count": 0,
+    "face_property_count": 0,
+    "attribute_fields": [],
+    "bounds": {
+      "min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "max": [
+        2.0,
+        2.0,
+        6.0
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "OBJ",
+    "object_name": "tunnel_segment"
+  },
+  "lines": [],
+  "faces": [
+    [
+      0,
+      1,
+      2
+    ],
+    [
+      0,
+      2,
+      3
+    ],
+    [
+      4,
+      7,
+      6
+    ],
+    [
+      4,
+      6,
+      5
+    ],
+    [
+      0,
+      4,
+      5
+    ],
+    [
+      0,
+      5,
+      1
+    ],
+    [
+      1,
+      5,
+      6
+    ],
+    [
+      1,
+      6,
+      2
+    ],
+    [
+      2,
+      6,
+      7
+    ],
+    [
+      2,
+      7,
+      3
+    ],
+    [
+      3,
+      7,
+      4
+    ],
+    [
+      3,
+      4,
+      0
+    ]
+  ],
+  "vertex_properties": [],
+  "face_properties": []
+}

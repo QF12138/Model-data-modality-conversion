@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_format_conversion\\01_封闭地质块体.obj",
+  "primary_artifact": "01_封闭地质块体_converted_6.obj",
+  "source_summary": {
+    "vertex_count": 8,
+    "face_count": 6,
+    "triangle_count": 12,
+    "line_count": 0,
+    "vertex_property_count": 0,
+    "face_property_count": 0,
+    "attribute_fields": [],
+    "bounds": {
+      "min": [
+        500000.0,
+        3400000.0,
+        100.0
+      ],
+      "max": [
+        500100.0,
+        3400080.0,
+        130.0
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "OBJ",
+    "object_name": "geological_block"
+  },
+  "lines": [],
+  "faces": [
+    [
+      0,
+      3,
+      2,
+      1
+    ],
+    [
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      5,
+      4
+    ],
+    [
+      1,
+      2,
+      6,
+      5
+    ],
+    [
+      2,
+      3,
+      7,
+      6
+    ],
+    [
+      3,
+      0,
+      4,
+      7
+    ]
+  ],
+  "vertex_properties": [],
+  "face_properties": []
+}

@@ -1,0 +1,5 @@
+﻿孔号,东坐标,北坐标,高程,层顶深度,分层深度,地层名称,岩性,地层时代,SPT_N,含水层,工程地质分区,地层名称_规范名,地层名称_项目编码,地层名称_地质符号,地层名称_目标编码,地层名称_编码体系,地层名称_匹配方式,地层名称_置信度,岩性_规范名,岩性_项目编码,岩性_地质符号,岩性_目标编码,岩性_编码体系,岩性_匹配方式,岩性_置信度,地层时代_规范名,地层时代_项目编码,地层时代_地质符号,地层时代_目标编码,地层时代_编码体系,地层时代_匹配方式,地层时代_置信度
+CZK001,504210.5,3398210.2,512.6,0,3.2,人工填土层,杂填土,Qh,4,否,III,人工填土层,,,,PROJECT,未匹配,0.0,填土,LIT-SOIL-FILL,,LIT-SOIL-FILL,PROJECT,别名匹配,0.95,全新统,STR-HOLOCENE,Qh,STR-HOLOCENE,PROJECT,SYMBOL编码匹配,0.97
+CZK001,504210.5,3398210.2,512.6,3.2,15.8,第四系冲洪积层,粉质黏土,Qp,18,弱含水层,II,第四系,STR-QUATERNARY,Q,STR-QUATERNARY,PROJECT,复合描述匹配,0.72,粉质黏土,LIT-SOIL-SILTY-CLAY,,LIT-SOIL-SILTY-CLAY,PROJECT,规范名匹配,1.0,更新统,STR-PLEISTOCENE,Qp,STR-PLEISTOCENE,PROJECT,SYMBOL编码匹配,0.97
+CZK001,504210.5,3398210.2,512.6,15.8,32.0,基岩层,泥岩,J,52,否,II,基岩层,,,,PROJECT,未匹配,0.0,泥岩,LIT-SED-MUDSTONE,,LIT-SED-MUDSTONE,PROJECT,规范名匹配,1.0,侏罗系,STR-JURASSIC,J,STR-JURASSIC,PROJECT,SYMBOL编码匹配,0.97
+CZK002,504355.2,3398348.9,509.3,0,5.0,人工填土层,素填土,Qh,3,上层滞水,IV,人工填土层,,,,PROJECT,未匹配,0.0,填土,LIT-SOIL-FILL,,LIT-SOIL-FILL,PROJECT,别名匹配,0.95,全新统,STR-HOLOCENE,Qh,STR-HOLOCENE,PROJECT,SYMBOL编码匹配,0.97

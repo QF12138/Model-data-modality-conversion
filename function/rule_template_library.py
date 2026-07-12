@@ -3,10 +3,12 @@ from __future__ import annotations
 import ast
 import copy
 import csv
+import hashlib
 import json
 import math
 import operator
 import re
+import uuid
 from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime
 from pathlib import Path
@@ -222,6 +224,29 @@ def _dataclass_from_dict(cls: type[Any], data: dict[str, Any]) -> Any:
 
 def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
+
+
+def _atomic_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(path)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def template_fingerprint(template: RuleTemplate) -> str:
+    payload = template.to_dict()
+    payload.pop("created_at", None)
+    payload.pop("updated_at", None)
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _fm(
@@ -864,7 +889,7 @@ def get_template_names() -> list[str]:
     return [item.name for item in list_templates()]
 
 
-def save_template(template: RuleTemplate) -> str:
+def save_template(template: RuleTemplate, storage_dir: str | Path | None = None) -> str:
     result = validate_template(template)
     if not result.valid:
         raise ValueError("；".join(result.errors))
@@ -875,16 +900,23 @@ def save_template(template: RuleTemplate) -> str:
     if stored.author == "系统预置":
         stored.author = "用户修改"
     _USER_TEMPLATES[stored.name] = stored
+    if storage_dir is not None:
+        safe_name = re.sub(r"[\/:*?\"<>|]+", "_", stored.name)
+        _atomic_json(Path(storage_dir) / f"{safe_name}.json", stored.to_dict())
     return stored.name
 
 
-def delete_template(name: str) -> bool:
+def delete_template(name: str, storage_dir: str | Path | None = None) -> bool:
     if name in _BUILTIN_TEMPLATES:
         return False
-    return _USER_TEMPLATES.pop(name, None) is not None
+    deleted = _USER_TEMPLATES.pop(name, None) is not None
+    if deleted and storage_dir is not None:
+        safe_name = re.sub(r"[\/:*?\"<>|]+", "_", name)
+        (Path(storage_dir) / f"{safe_name}.json").unlink(missing_ok=True)
+    return deleted
 
 
-def duplicate_template(source_name: str, new_name: str) -> RuleTemplate | None:
+def duplicate_template(source_name: str, new_name: str, storage_dir: str | Path | None = None) -> RuleTemplate | None:
     source = get_template(source_name)
     if not source:
         return None
@@ -893,7 +925,7 @@ def duplicate_template(source_name: str, new_name: str) -> RuleTemplate | None:
     source.author = "用户复制"
     source.created_at = _now()
     source.updated_at = _now()
-    _USER_TEMPLATES[new_name] = copy.deepcopy(source)
+    save_template(source, storage_dir=storage_dir)
     return source
 
 
@@ -903,7 +935,7 @@ def export_template(name: str, output_path: str | Path) -> str | None:
         return None
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(template.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_json(output, template.to_dict())
     return str(output.resolve())
 
 
@@ -915,7 +947,7 @@ def export_template_library(output_dir: str | Path) -> list[str]:
     for template in list_templates(include_disabled=True):
         safe_name = re.sub(r"[\\/:*?\"<>|]+", "_", template.name)
         path = output / f"{safe_name}.json"
-        path.write_text(json.dumps(template.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+        _atomic_json(path, template.to_dict())
         exported.append(str(path.resolve()))
         index_rows.append({
             "name": template.name,
@@ -924,14 +956,22 @@ def export_template_library(output_dir: str | Path) -> list[str]:
             "data_source": template.data_source,
             "input_formats": template.input_formats,
             "file": path.name,
+            "sha256": _sha256(path),
+            "fingerprint": template_fingerprint(template),
+            "validation": asdict(validate_template(template)),
         })
     index_path = output / "template_index.json"
-    index_path.write_text(json.dumps(index_rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_json(index_path, {
+        "schema_version": SCHEMA_VERSION,
+        "exported_at": _now(),
+        "template_count": len(index_rows),
+        "templates": index_rows,
+    })
     exported.append(str(index_path.resolve()))
     return exported
 
 
-def import_template(file_path: str | Path) -> str | None:
+def import_template(file_path: str | Path, storage_dir: str | Path | None = None) -> str | None:
     path = Path(file_path)
     if not path.exists():
         return None
@@ -945,11 +985,10 @@ def import_template(file_path: str | Path) -> str | None:
     template.updated_at = _now()
     if template.author == "系统预置":
         template.author = "外部导入"
-    _USER_TEMPLATES[template.name] = template
-    return template.name
+    return save_template(template, storage_dir=storage_dir)
 
 
-def load_template_directory(directory: str | Path) -> dict[str, list[str]]:
+def load_template_directory(directory: str | Path, storage_dir: str | Path | None = None) -> dict[str, list[str]]:
     root = Path(directory)
     imported: list[str] = []
     errors: list[str] = []
@@ -959,7 +998,7 @@ def load_template_directory(directory: str | Path) -> dict[str, list[str]]:
         if path.name == "template_index.json":
             continue
         try:
-            name = import_template(path)
+            name = import_template(path, storage_dir=storage_dir)
             if name:
                 imported.append(name)
         except Exception as exc:
@@ -1229,12 +1268,22 @@ def apply_template_to_file(
     input_file = Path(input_path)
     rows = _read_tabular_file(input_file)
     result = apply_template_to_data(template_name, rows)
+    template = get_template(template_name)
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     safe_template = re.sub(r"[\\/:*?\"<>|]+", "_", template_name)
     output_file = output_root / f"{input_file.stem}_{safe_template}_mapped.json"
-    output_file.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    result["output_file"] = str(output_file.resolve())
+    result.update({
+        "schema_version": SCHEMA_VERSION,
+        "application_id": f"TPL-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8].upper()}",
+        "applied_at": _now(),
+        "input_file": str(input_file.resolve()),
+        "input_sha256": _sha256(input_file),
+        "template_fingerprint": template_fingerprint(template) if template else "",
+        "output_file": str(output_file.resolve()),
+    })
+    _atomic_json(output_file, result)
+    result["output_sha256"] = _sha256(output_file)
     return result
 
 
@@ -1328,12 +1377,37 @@ def analyze_input_files(file_paths: list[str]) -> list[dict[str, Any]]:
             "name": path.name,
             "exists": path.exists(),
             "size": path.stat().st_size if path.exists() else 0,
+            "sha256": _sha256(path) if path.exists() and path.is_file() else "",
             "format": fmt,
             "headers": headers,
             "inferred_data_source": inferred_source,
             "inferred_project_type": inferred_project,
         })
     return analyses
+
+
+def audit_template_library() -> dict[str, Any]:
+    templates = list_templates(include_disabled=True)
+    invalid: list[dict[str, Any]] = []
+    fingerprints: dict[str, list[str]] = {}
+    for template in templates:
+        validation = validate_template(template)
+        if not validation.valid:
+            invalid.append({"name": template.name, "errors": validation.errors, "warnings": validation.warnings})
+        fingerprint = template_fingerprint(template)
+        fingerprints.setdefault(fingerprint, []).append(template.name)
+    duplicates = [
+        {"fingerprint": fingerprint, "templates": names}
+        for fingerprint, names in fingerprints.items() if len(names) > 1
+    ]
+    return {
+        "valid": not invalid,
+        "template_count": len(templates),
+        "invalid_templates": invalid,
+        "duplicate_content": duplicates,
+        "built_in_count": len(_BUILTIN_TEMPLATES),
+        "user_count": len(_USER_TEMPLATES),
+    }
 
 
 def build_template_report(
@@ -1416,6 +1490,8 @@ def build_template_report(
     all_templates = [_template_summary(item) for item in list_templates()]
 
     return {
+        "schema_version": SCHEMA_VERSION,
+        "run_id": f"MATCH-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8].upper()}",
         "checked_at": _now(),
         "project_type": project_type,
         "data_source": data_source,
@@ -1424,6 +1500,7 @@ def build_template_report(
         "files": file_analysis,
         "matching_templates": matching,
         "all_templates": all_templates,
+        "library_audit": audit_template_library(),
         "summary": {
             "total_templates": len(all_templates),
             "matching_count": len(matching),

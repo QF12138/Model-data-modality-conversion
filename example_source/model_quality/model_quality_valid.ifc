@@ -1,0 +1,13 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Model quality example'),'2;1');
+FILE_NAME('model_quality_valid.ifc','2026-07-12T00:00:00',('Codex'),('OpenAI'),'Model-data-modality-conversion','Model-data-modality-conversion','');
+FILE_SCHEMA(('IFC4'));
+ENDSEC;
+DATA;
+#1=IFCCARTESIANPOINT((0.000,0.000,0.000));
+#2=IFCCARTESIANPOINT((1.000,0.000,0.000));
+#3=IFCCARTESIANPOINT((0.000,1.000,0.000));
+#4=IFCSITE('3t$QualityExample000001',$,'Quality control site',$,$,$,$,$,.ELEMENT.,$,$,$,$,$);
+ENDSEC;
+END-ISO-10303-21;

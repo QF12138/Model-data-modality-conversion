@@ -1,0 +1,7 @@
+sample_id,thickness_mm,pressure_mpa,dip_angle,material
+U001,1250,2.5,30,sandstone
+U002,1300,2.7,35,sandstone
+U003,1280,2.6,32,
+U004,1270,2.8,34,limestone
+U005,1290,2.4,31,sandstone
+U005,1290,2.4,31,sandstone

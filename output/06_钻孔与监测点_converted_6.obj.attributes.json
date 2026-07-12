@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_format_conversion\\06_钻孔与监测点.csv",
+  "primary_artifact": "06_钻孔与监测点_converted_6.obj",
+  "source_summary": {
+    "vertex_count": 5,
+    "face_count": 0,
+    "triangle_count": 0,
+    "line_count": 0,
+    "vertex_property_count": 5,
+    "face_property_count": 0,
+    "attribute_fields": [
+      "id",
+      "layer",
+      "lithology",
+      "name",
+      "rock_grade",
+      "water_level"
+    ],
+    "bounds": {
+      "min": [
+        500010.0,
+        3400010.0,
+        121.4
+      ],
+      "max": [
+        500140.0,
+        3400050.0,
+        128.5
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "CSV"
+  },
+  "lines": [],
+  "faces": [],
+  "vertex_properties": [
+    {
+      "id": "BH-001",
+      "name": "钻孔1",
+      "layer": "J2s",
+      "lithology": "中风化砂岩",
+      "water_level": 112.3,
+      "rock_grade": "III"
+    },
+    {
+      "id": "BH-002",
+      "name": "钻孔2",
+      "layer": "J2s",
+      "lithology": "中风化砂岩",
+      "water_level": 110.7,
+      "rock_grade": "III"
+    },
+    {
+      "id": "BH-003",
+      "name": "钻孔3",
+      "layer": "J2m",
+      "lithology": "强风化泥岩",
+      "water_level": 108.5,
+      "rock_grade": "IV"
+    },
+    {
+      "id": "BH-004",
+      "name": "钻孔4",
+      "layer": "J2m",
+      "lithology": "强风化泥岩",
+      "water_level": 107.9,
+      "rock_grade": "IV"
+    },
+    {
+      "id": "BH-005",
+      "name": "钻孔5",
+      "layer": "J2m",
+      "lithology": "中风化泥岩",
+      "water_level": 106.8,
+      "rock_grade": "IV"
+    }
+  ],
+  "face_properties": []
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_format_conversion\\02_四面体岩体_ASCII.stl",
+  "primary_artifact": "02_四面体岩体_ASCII_converted_7.obj",
+  "source_summary": {
+    "vertex_count": 4,
+    "face_count": 4,
+    "triangle_count": 4,
+    "line_count": 0,
+    "vertex_property_count": 0,
+    "face_property_count": 0,
+    "attribute_fields": [],
+    "bounds": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        60.0,
+        50.0,
+        45.0
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "STL"
+  },
+  "lines": [],
+  "faces": [
+    [
+      0,
+      1,
+      2
+    ],
+    [
+      0,
+      2,
+      3
+    ],
+    [
+      2,
+      1,
+      3
+    ],
+    [
+      1,
+      0,
+      3
+    ]
+  ],
+  "vertex_properties": [],
+  "face_properties": []
+}

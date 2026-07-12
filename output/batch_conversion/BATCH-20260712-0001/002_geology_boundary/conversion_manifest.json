@@ -1,0 +1,158 @@
+{
+  "schema_version": "2.0",
+  "conversion_id": "CONV-20260712191420-57153311",
+  "task": "model_format_conversion",
+  "created_at": "2026-07-12T19:14:20",
+  "status": "完成",
+  "target_platform": "三维建模软件",
+  "target_format": "OBJ",
+  "output_dir": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260712-0001\\002_geology_boundary",
+  "coordinate_rule": "保留源坐标",
+  "attribute_rule": "全部保留",
+  "source_count": 1,
+  "success_count": 1,
+  "failure_count": 0,
+  "warning_count": 1,
+  "artifacts": [
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\01_drilling_and_boundary\\geology_boundary.geojson",
+      "source_name": "geology_boundary.geojson",
+      "source_format": ".geojson",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "成功",
+      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260712-0001\\002_geology_boundary\\geology_boundary_converted.obj",
+      "message": "转换完成并通过成果回读验证",
+      "source_checksum_sha256": "7124e36c41b7d28704a28ee19a2f2fed09c1d93e1b5bca40e69012c04d502ab4",
+      "output_checksum_sha256": "6e9b986695800989a71512f502de9a07d766aeda6191568165e17369545c1a6f",
+      "source_summary": {
+        "vertex_count": 7,
+        "face_count": 1,
+        "triangle_count": 2,
+        "line_count": 1,
+        "vertex_property_count": 0,
+        "face_property_count": 1,
+        "attribute_fields": [
+          "code",
+          "grade",
+          "layer"
+        ],
+        "bounds": {
+          "min": [
+            500000.0,
+            3400000.0,
+            98.0
+          ],
+          "max": [
+            500080.0,
+            3400080.0,
+            104.0
+          ]
+        }
+      },
+      "output_summary": {
+        "vertex_count": 7,
+        "face_count": 1,
+        "triangle_count": 2,
+        "line_count": 1,
+        "vertex_property_count": 0,
+        "face_property_count": 1,
+        "attribute_fields": [
+          "code",
+          "grade",
+          "layer"
+        ],
+        "bounds": {
+          "min": [
+            500000.0,
+            3400000.0,
+            98.0
+          ],
+          "max": [
+            500080.0,
+            3400080.0,
+            104.0
+          ]
+        }
+      },
+      "vertex_count": 7,
+      "face_count": 1,
+      "line_count": 1,
+      "attribute_fields": [
+        "code",
+        "grade",
+        "layer"
+      ],
+      "bounds": {
+        "min": [
+          500000.0,
+          3400000.0,
+          98.0
+        ],
+        "max": [
+          500080.0,
+          3400080.0,
+          104.0
+        ]
+      },
+      "size_bytes": 242,
+      "coordinate_transform": {
+        "rule": "保留源坐标",
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "information_losses": [
+        "OBJ 主文件的当前写出器不完整承载业务属性，属性保存在旁车 JSON 中。"
+      ],
+      "sidecar_files": [
+        "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260712-0001\\002_geology_boundary\\geology_boundary_converted.obj.attributes.json"
+      ],
+      "validation": {
+        "status": "通过",
+        "checks": [
+          {
+            "name": "文件存在",
+            "passed": true,
+            "detail": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260712-0001\\002_geology_boundary\\geology_boundary_converted.obj"
+          },
+          {
+            "name": "文件非空",
+            "passed": true,
+            "detail": "242 bytes"
+          },
+          {
+            "name": "顶点数量",
+            "passed": true,
+            "detail": "期望 7，回读 7"
+          },
+          {
+            "name": "空间范围",
+            "passed": true,
+            "detail": "期望 {'min': [500000.0, 3400000.0, 98.0], 'max': [500080.0, 3400080.0, 104.0]}，回读 {'min': [500000.0, 3400000.0, 98.0], 'max': [500080.0, 3400080.0, 104.0]}"
+          },
+          {
+            "name": "面片数量",
+            "passed": true,
+            "detail": "期望 1，回读 1"
+          },
+          {
+            "name": "线数量",
+            "passed": true,
+            "detail": "期望 1，回读 1"
+          }
+        ],
+        "errors": []
+      },
+      "quality_score": 97
+    }
+  ],
+  "warnings": [
+    "geology_boundary.geojson：OBJ 主文件的当前写出器不完整承载业务属性，属性保存在旁车 JSON 中。"
+  ],
+  "errors": [],
+  "quality_score": 97,
+  "manifest_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260712-0001\\002_geology_boundary\\conversion_manifest.json"
+}

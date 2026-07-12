@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_format_conversion\\05_地质图斑.geojson",
+  "primary_artifact": "05_地质图斑_converted_6.obj",
+  "source_summary": {
+    "vertex_count": 6,
+    "face_count": 2,
+    "triangle_count": 4,
+    "line_count": 0,
+    "vertex_property_count": 0,
+    "face_property_count": 2,
+    "attribute_fields": [
+      "density",
+      "elastic_modulus_mpa",
+      "id",
+      "lithology",
+      "name",
+      "stratum"
+    ],
+    "bounds": {
+      "min": [
+        500000.0,
+        3400000.0,
+        100.0
+      ],
+      "max": [
+        500150.0,
+        3400060.0,
+        103.0
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "GeoJSON"
+  },
+  "lines": [],
+  "faces": [
+    [
+      0,
+      1,
+      2,
+      3
+    ],
+    [
+      1,
+      4,
+      5,
+      2
+    ]
+  ],
+  "vertex_properties": [],
+  "face_properties": [
+    {
+      "id": "GEO-001",
+      "name": "砂岩区",
+      "stratum": "J2s",
+      "lithology": "中风化砂岩",
+      "density": 2450,
+      "elastic_modulus_mpa": 8200
+    },
+    {
+      "id": "GEO-002",
+      "name": "泥岩区",
+      "stratum": "J2m",
+      "lithology": "强风化泥岩",
+      "density": 2180,
+      "elastic_modulus_mpa": 3200
+    }
+  ]
+}

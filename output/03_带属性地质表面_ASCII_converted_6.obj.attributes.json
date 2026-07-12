@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\model_format_conversion\\03_带属性地质表面_ASCII.ply",
+  "primary_artifact": "03_带属性地质表面_ASCII_converted_6.obj",
+  "source_summary": {
+    "vertex_count": 5,
+    "face_count": 4,
+    "triangle_count": 4,
+    "line_count": 0,
+    "vertex_property_count": 5,
+    "face_property_count": 0,
+    "attribute_fields": [
+      "blue",
+      "green",
+      "lithology_code",
+      "red"
+    ],
+    "bounds": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        80.0,
+        60.0,
+        25.0
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "PLY"
+  },
+  "lines": [],
+  "faces": [
+    [
+      0,
+      1,
+      4
+    ],
+    [
+      1,
+      2,
+      4
+    ],
+    [
+      2,
+      3,
+      4
+    ],
+    [
+      3,
+      0,
+      4
+    ]
+  ],
+  "vertex_properties": [
+    {
+      "red": 194,
+      "green": 178,
+      "blue": 128,
+      "lithology_code": 101
+    },
+    {
+      "red": 194,
+      "green": 178,
+      "blue": 128,
+      "lithology_code": 101
+    },
+    {
+      "red": 160,
+      "green": 140,
+      "blue": 100,
+      "lithology_code": 101
+    },
+    {
+      "red": 160,
+      "green": 140,
+      "blue": 100,
+      "lithology_code": 101
+    },
+    {
+      "red": 120,
+      "green": 100,
+      "blue": 80,
+      "lithology_code": 205
+    }
+  ],
+  "face_properties": []
+}
