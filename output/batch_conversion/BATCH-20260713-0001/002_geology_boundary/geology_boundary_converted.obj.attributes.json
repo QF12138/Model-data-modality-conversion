@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\01_drilling_and_boundary\\geology_boundary.geojson",
+  "primary_artifact": "geology_boundary_converted.obj",
+  "source_summary": {
+    "vertex_count": 7,
+    "face_count": 1,
+    "triangle_count": 2,
+    "line_count": 1,
+    "vertex_property_count": 0,
+    "face_property_count": 1,
+    "attribute_fields": [
+      "code",
+      "grade",
+      "layer"
+    ],
+    "bounds": {
+      "min": [
+        500000.0,
+        3400000.0,
+        98.0
+      ],
+      "max": [
+        500080.0,
+        3400080.0,
+        104.0
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "GeoJSON"
+  },
+  "lines": [
+    [
+      4,
+      5,
+      6
+    ]
+  ],
+  "faces": [
+    [
+      0,
+      1,
+      2,
+      3
+    ]
+  ],
+  "vertex_properties": [],
+  "face_properties": [
+    {
+      "layer": "砂岩层",
+      "code": "J2s",
+      "grade": "IV"
+    }
+  ]
+}

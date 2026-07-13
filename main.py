@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import queue
 import re
 import sys
 import threading
@@ -30,12 +31,15 @@ from function.rule_template_library import (
     DATA_SOURCES,
     PROJECT_TYPES,
     apply_template_to_file,
+    duplicate_template,
     build_template_report,
     export_template_library,
     get_example_files,
     get_template,
     get_template_names,
+    import_template,
     list_templates,
+    load_template_directory,
 )
 from function.semantic_encoding import ALL_DICTIONARIES, LIBRARY_METADATA, build_semantic_report, semantic_library_stats
 from function.model_quality_check import QualityRules, build_model_quality_report
@@ -251,7 +255,7 @@ FEATURE_MODULES = [
         "可视化预览与对比检查模块",
         "提供转换前后数据的二维、三维和剖切预览，对坐标位置、空间范围、属性映射、模型尺度和关键边界进行对比检查。",
         ("转换前数据", "转换后数据", "对比规则", "关键边界"),
-        ("预览模式", "剖切方向", "差异阈值", "对比指标"),
+        ("预览模式", "剖切方向", "剖切位置", "差异阈值", "热图点上限", "对比指标"),
         ("二维预览", "三维预览", "剖切对比", "差异报告"),
         ("preview_sessions", "comparison_reports", "task_artifacts"),
     ),
@@ -514,6 +518,7 @@ class GeoConversionApp(tk.Tk):
         self.logs: list[str] = []
         self.selected_template_name = ""
         self._batch_running = False
+        self._batch_result_queue: queue.Queue[tuple[BatchJob | None, Exception | None]] = queue.Queue()
         self.quality_report: dict[str, object] | None = None
         self.conversion_report: dict[str, object] | None = None
         self.version_report: dict[str, object] | None = None
@@ -1407,7 +1412,7 @@ class GeoConversionApp(tk.Tk):
         input_actions = tk.Frame(input_card, bg=self.PANEL)
         input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
         ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
-        ttk.Button(input_actions, text="加载示例", style="Blue.TButton", command=self._load_template_sample_data).pack(side="left", padx=(7, 0))
+        ttk.Button(input_actions, text="加载示例", style="Blue.TButton", command=self._load_semantic_sample_data).pack(side="left", padx=(7, 0))
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
@@ -1667,7 +1672,7 @@ class GeoConversionApp(tk.Tk):
         root.grid(row=0, column=0, sticky="ew")
         root.columnconfigure(0, weight=1)
 
-        report = self.quality_report or {}
+        report = self.quality_report or build_template_report([], "全部", "全部")
         matching = report.get("matching_templates", []) if isinstance(report.get("matching_templates"), list) else []
         all_tmpl = report.get("all_templates", []) if isinstance(report.get("all_templates"), list) else []
         total = report.get("summary", {}).get("total_templates", len(all_tmpl))
@@ -1726,6 +1731,7 @@ class GeoConversionApp(tk.Tk):
         input_actions = tk.Frame(filter_card, bg=self.PANEL)
         input_actions.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 9))
         ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        ttk.Button(input_actions, text="加载示例", style="Blue.TButton", command=self._load_template_sample_data).pack(side="left", padx=(7, 0))
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
@@ -1793,6 +1799,8 @@ class GeoConversionApp(tk.Tk):
         ttk.Button(action_row, text="分析匹配", style="Blue.TButton", command=self._run_stub).pack(side="left")
         ttk.Button(action_row, text="应用所选模板", style="Primary.TButton", command=self._apply_selected_template).pack(side="left", padx=(7, 0))
         ttk.Button(action_row, text="导出模板库", style="Tool.TButton", command=self._export_template_library_files).pack(side="left", padx=(7, 0))
+        ttk.Button(action_row, text="复制为项目模板", style="Tool.TButton", command=self._duplicate_selected_template).pack(side="left", padx=(7, 0))
+        ttk.Button(action_row, text="导入模板", style="Tool.TButton", command=self._import_template_file).pack(side="left", padx=(7, 0))
 
         # 右：模板详情
         detail_card = self._card(work)
@@ -2053,7 +2061,7 @@ class GeoConversionApp(tk.Tk):
             ("输出格式", "OBJ"),
             ("坐标输出规则", "保留源坐标"),
             ("属性保留规则", "全部保留"),
-            ("规则模板", "默认转换模板"),
+            ("规则模板", "不使用模板"),
             ("失败重试次数", "3"),
             ("重试间隔(秒)", "0.5"),
             ("重试策略", "延迟重试"),
@@ -2066,7 +2074,16 @@ class GeoConversionApp(tk.Tk):
                 row=ri, column=0, sticky="w", padx=(0, 8), pady=6)
             var = tk.StringVar(value=self.param_values.get(label, default))
             self.param_vars[label] = var
-            ttk.Entry(param_form, textvariable=var, width=18).grid(row=ri, column=1, sticky="ew", pady=6)
+            if label == "规则模板":
+                ttk.Combobox(
+                    param_form,
+                    textvariable=var,
+                    values=("不使用模板", *get_template_names()),
+                    state="readonly",
+                    width=18,
+                ).grid(row=ri, column=1, sticky="ew", pady=6)
+            else:
+                ttk.Entry(param_form, textvariable=var, width=18).grid(row=ri, column=1, sticky="ew", pady=6)
 
         # 文件格式分布
         if self.selected_files:
@@ -2241,9 +2258,36 @@ class GeoConversionApp(tk.Tk):
                     row=1, column=1, sticky="ew", padx=(10, 8))
                 tk.Frame(item, bg="#ffffff", height=6).grid(row=2, column=1, sticky="ew", padx=10, pady=(4, 10))
 
+        # 四种模式使用后端计算的同一对几何数据，避免界面生成虚假示意图。
+        visual_card = self._card(root)
+        visual_card.grid(row=2, column=0, sticky="nsew", pady=(8, 0))
+        visual_card.columnconfigure(0, weight=1)
+        self._card_header(visual_card, "二维·三维·剖切·差异热图")
+        visualizations = report.get("visualizations", []) if isinstance(report.get("visualizations"), list) else []
+        selected_visual: dict[str, object] = {}
+        if visualizations:
+            selected_visual = next(
+                (item for item in visualizations if item.get("slice_comparison", {}).get("before", {}).get("points")),
+                visualizations[0],
+            )
+        visual_grid = tk.Frame(visual_card, bg=self.PANEL)
+        visual_grid.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 12))
+        for column in range(2):
+            visual_grid.columnconfigure(column, weight=1)
+        for index, mode in enumerate(VIEW_MODES):
+            panel = tk.Frame(visual_grid, bg="#f8faf9", highlightbackground=self.BORDER, highlightthickness=1)
+            panel.grid(row=index // 2, column=index % 2, sticky="nsew", padx=(0 if index % 2 == 0 else 5, 5 if index % 2 == 0 else 0), pady=4)
+            panel.columnconfigure(0, weight=1)
+            tk.Label(panel, text=mode, bg="#f8faf9", fg=self.TEXT, font=(self.font_family, 9, "bold"), anchor="w").grid(
+                row=0, column=0, sticky="ew", padx=9, pady=(7, 4)
+            )
+            canvas = tk.Canvas(panel, bg="#ffffff", height=210, highlightthickness=0)
+            canvas.grid(row=1, column=0, sticky="ew", padx=7, pady=(0, 7))
+            self.after_idle(lambda c=canvas, m=mode, v=selected_visual: self._draw_comparison_visual(c, m, v))
+
         # 下方全宽 OBJ 三维模型预览：每个导入模型使用独立视口
         preview_card = self._card(root)
-        preview_card.grid(row=2, column=0, sticky="nsew", pady=(8, 0))
+        preview_card.grid(row=3, column=0, sticky="nsew", pady=(8, 0))
         preview_card.columnconfigure(0, weight=1)
         preview_card.rowconfigure(2, weight=1)
         self._card_header(preview_card, "导入 OBJ 三维模型预览")
@@ -2277,7 +2321,93 @@ class GeoConversionApp(tk.Tk):
         preview_canvas.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
         self.after_idle(lambda c=preview_canvas: self._start_3d_preview(c))
 
-        tk.Frame(root, bg=self.BG, height=18).grid(row=3, column=0, sticky="ew")
+        tk.Frame(root, bg=self.BG, height=18).grid(row=4, column=0, sticky="ew")
+
+    def _draw_comparison_visual(self, canvas: tk.Canvas, mode: str, visual: dict[str, object]) -> None:
+        canvas.delete("all")
+        width = max(canvas.winfo_width(), 320)
+        height = max(canvas.winfo_height(), 190)
+        canvas.create_rectangle(0, 0, width, height, fill="#ffffff", outline="")
+        if not visual:
+            canvas.create_text(width / 2, height / 2, text="执行对比后生成真实预览", fill=self.MUTED, font=self.small_font)
+            return
+
+        pair = str(visual.get("pair", ""))
+        canvas.create_text(9, 10, text=pair, anchor="nw", fill=self.MUTED, font=self.tiny_font)
+        margin = 24
+        plot = (margin, 28, width - margin, height - 22)
+
+        def draw_series(
+            series: list[list[float]], color: str, *, lines: bool = False, radius: int = 3,
+            bounds: tuple[float, float, float, float] | None = None,
+            region: tuple[float, float, float, float] | None = None,
+        ) -> None:
+            if not series:
+                return
+            xs = [float(point[0]) for point in series]
+            ys = [float(point[1]) for point in series]
+            x_min, x_max, y_min, y_max = bounds or (min(xs), max(xs), min(ys), max(ys))
+            target = region or plot
+            sx = (target[2] - target[0]) / max(x_max - x_min, 1e-9)
+            sy = (target[3] - target[1]) / max(y_max - y_min, 1e-9)
+            projected = [(target[0] + (x - x_min) * sx, target[3] - (y - y_min) * sy) for x, y in zip(xs, ys)]
+            if lines and len(projected) >= 2:
+                flat = [value for point in projected for value in point]
+                canvas.create_line(*flat, fill=color, width=2)
+                canvas.create_line(*(flat[-2:] + flat[:2]), fill=color, width=2)
+            for x, y in projected:
+                canvas.create_oval(x - radius, y - radius, x + radius, y + radius, fill=color, outline="#ffffff")
+
+        if mode == "二维叠加":
+            overlay = visual.get("two_dimensional_overlay", {})
+            before = list(overlay.get("before_points", []))
+            after = list(overlay.get("after_points", []))
+            combined = before + after
+            if combined:
+                xs = [float(point[0]) for point in combined]; ys = [float(point[1]) for point in combined]
+                bounds = (min(xs), max(xs), min(ys), max(ys))
+                draw_series(before, self.BLUE, lines=True, bounds=bounds)
+                draw_series(after, self.ORANGE, lines=True, bounds=bounds)
+            canvas.create_text(9, height - 8, text="蓝：转换前  橙：转换后", anchor="sw", fill=self.MUTED, font=self.tiny_font)
+        elif mode == "三维并排":
+            preview = visual.get("three_dimensional_preview", {})
+            groups = (
+                (preview.get("before_points", []), self.BLUE, (plot[0], plot[1], width/2-10, plot[3])),
+                (preview.get("after_points", []), self.ORANGE, (width/2+10, plot[1], plot[2], plot[3])),
+            )
+            for points, color, region in groups:
+                projected = [[float(p[0]) - float(p[1]) * .35, float(p[2]) + float(p[1]) * .18] for p in points]
+                draw_series(projected, color, radius=3, region=region)
+            canvas.create_line(width/2, 28, width/2, height-22, fill=self.BORDER)
+            canvas.create_text(width*.25, height-8, text="转换前", fill=self.BLUE, font=self.tiny_font)
+            canvas.create_text(width*.75, height-8, text="转换后", fill=self.ORANGE, font=self.tiny_font)
+        elif mode == "剖切对比":
+            section = visual.get("slice_comparison", {})
+            before = section.get("before", {}).get("points", [])
+            after = section.get("after", {}).get("points", [])
+            combined = list(before) + list(after)
+            bounds = None
+            if combined:
+                bounds = (min(p[0] for p in combined), max(p[0] for p in combined), min(p[1] for p in combined), max(p[1] for p in combined))
+            draw_series(list(before), self.BLUE, lines=True, bounds=bounds)
+            draw_series(list(after), self.ORANGE, lines=True, bounds=bounds)
+            canvas.create_text(9, height - 8, text=f"{section.get('axis','XY')} @ {float(section.get('position',0)):.4g}", anchor="sw", fill=self.MUTED, font=self.tiny_font)
+        else:
+            heatmap = visual.get("difference_heatmap", {})
+            points = list(heatmap.get("points", []))
+            if points:
+                maximum = max(float(item.get("distance", 0)) for item in points) or 1.0
+                coords = [[float(item["x"]), float(item["y"])] for item in points]
+                xs=[p[0] for p in coords]; ys=[p[1] for p in coords]
+                bounds = (min(xs), max(xs), min(ys), max(ys))
+                x_span=max(bounds[1]-bounds[0],1e-9); y_span=max(bounds[3]-bounds[2],1e-9)
+                for item, point in zip(points, coords):
+                    ratio = min(float(item.get("distance", 0))/maximum, 1.0)
+                    color = f"#{int(40 + 210*ratio):02x}{int(145 - 95*ratio):02x}{int(205 - 165*ratio):02x}"
+                    px=plot[0]+(point[0]-bounds[0])/x_span*(plot[2]-plot[0])
+                    py=plot[3]-(point[1]-bounds[2])/y_span*(plot[3]-plot[1])
+                    canvas.create_oval(px-5,py-5,px+5,py+5,fill=color,outline="#ffffff")
+            canvas.create_text(9, height - 8, text=f"最大偏差 {float(heatmap.get('max_distance') or 0):.4g}", anchor="sw", fill=self.MUTED, font=self.tiny_font)
 
     def _render_legacy_version_page(self) -> None:
         """旧版手工登记界面（保留供兼容，不再作为工作台入口）。"""
@@ -3704,7 +3834,9 @@ class GeoConversionApp(tk.Tk):
             "对比版本": "最近两个版本",
             "预览模式": "二维 + 三维 + 剖切",
             "剖切方向": "XY",
+            "剖切位置": "50%",
             "差异阈值": "5%",
+            "热图点上限": "800",
             "对比指标": "全部",
             "语义字典": "地层,岩性,构造,地下水,不良地质,围岩等级,工程地质指标",
             "编码映射规则": "ORIGINAL→PROJECT",
@@ -4684,6 +4816,50 @@ class GeoConversionApp(tk.Tk):
         self.status_var.set(f"已导出 {len(exported) - 1} 个规则模板")
         self._append_log(f"规则模板库已导出至：{Path(output_dir).resolve()}")
 
+    @staticmethod
+    def _template_storage_dir() -> Path:
+        return Path(__file__).resolve().parent / "output" / "rule_templates" / "user"
+
+    def _duplicate_selected_template(self) -> None:
+        source_name = self.selected_template_name
+        if not source_name:
+            self.status_var.set("请先选择需要复制的模板")
+            return
+        base_name = f"{source_name}（项目副本）"
+        new_name = base_name
+        counter = 2
+        while get_template(new_name):
+            new_name = f"{base_name}{counter}"
+            counter += 1
+        duplicated = duplicate_template(source_name, new_name, storage_dir=self._template_storage_dir())
+        if not duplicated:
+            self.status_var.set("模板复制失败：源模板不存在")
+            return
+        self.selected_template_name = duplicated.name
+        self.quality_report = None
+        self.run_completed = False
+        self.status_var.set(f"已持久化项目模板：{duplicated.name}")
+        self._append_log(f"用户模板已保存：{duplicated.name} · 指纹随导出索引记录。")
+        self._render_current_page()
+
+    def _import_template_file(self) -> None:
+        path = filedialog.askopenfilename(title="导入规则模板", filetypes=(("JSON 模板", "*.json"),))
+        if not path:
+            self.status_var.set("已取消模板导入")
+            return
+        try:
+            name = import_template(path, storage_dir=self._template_storage_dir())
+        except Exception as exc:
+            self.status_var.set(f"模板导入失败：{exc}")
+            self._append_log(f"模板导入失败：{exc}")
+            return
+        self.selected_template_name = str(name or "")
+        self.quality_report = None
+        self.run_completed = False
+        self.status_var.set(f"模板导入完成：{name}")
+        self._append_log(f"外部模板已校验并持久化：{path}")
+        self._render_current_page()
+
     def _apply_selected_template(self) -> None:
         report = self.quality_report or {}
         matching = report.get("matching_templates", []) if isinstance(report.get("matching_templates"), list) else []
@@ -4696,12 +4872,13 @@ class GeoConversionApp(tk.Tk):
             self.status_var.set("请先添加数据或加载示例数据")
             return
 
-        output_dir = Path(__file__).resolve().parent / "output" / "rule_template_results"
+        output_dir = Path(self.param_values.get("成果目录") or (Path(__file__).resolve().parent / "output" / "rule_template_results"))
         success = 0
         skipped = 0
         total_errors = 0
         total_warnings = 0
         output_files: list[str] = []
+        applications: list[dict[str, object]] = []
         for file_path in self.selected_files:
             suffix = Path(file_path).suffix.lower()
             if suffix not in {".csv", ".json", ".geojson"}:
@@ -4715,6 +4892,7 @@ class GeoConversionApp(tk.Tk):
                 self._append_log(f"应用模板失败：{Path(file_path).name} —— {exc}")
                 continue
             success += 1
+            applications.append(result)
             total_errors += len(result.get("errors", []))
             total_warnings += len(result.get("warnings", []))
             if result.get("output_file"):
@@ -4728,6 +4906,7 @@ class GeoConversionApp(tk.Tk):
             "errors": total_errors,
             "warnings": total_warnings,
             "output_files": output_files,
+            "applications": applications,
         }
         self.run_completed = success > 0
         self.run_status_var.set("模板应用完成" if success else "模板应用失败")
@@ -5214,12 +5393,15 @@ class GeoConversionApp(tk.Tk):
         output_dir = self.param_values.get(
             "成果目录", str(Path(__file__).resolve().parent / "output" / "batch_conversion")
         )
+        template_name = self.param_values.get("规则模板", "").strip()
+        if template_name in {"不使用模板", "默认转换模板"}:
+            template_name = ""
         job = create_batch_from_paths(
             self.selected_files,
             job_name=self.param_values.get("批次名称", "自动化批量转换"),
             target_format=self.param_values.get("输出格式", "OBJ"),
             output_dir=output_dir,
-            template_name=self.param_values.get("规则模板", ""),
+            template_name=template_name,
             coordinate_rule=self.param_values.get("坐标输出规则", "保留源坐标"),
             attribute_rule=self.param_values.get("属性保留规则", "全部保留"),
             concurrency=concurrency,
@@ -5233,7 +5415,8 @@ class GeoConversionApp(tk.Tk):
         self.run_status_var.set("运行中")
         self.status_var.set(f"批量任务 {job.job_id} 已进入执行队列")
         self._append_log(
-            f"开始执行批量转换：文件 {job.total} 个，并发 {concurrency}，重试策略={retry_policy.strategy}。"
+            f"开始执行批量转换：文件 {job.total} 个，并发 {concurrency}，"
+            f"模板={template_name or '未使用'}，重试策略={retry_policy.strategy}。"
         )
         self._render_progress_strip()
         self._render_current_page()
@@ -5244,6 +5427,7 @@ class GeoConversionApp(tk.Tk):
             daemon=True,
             name=f"batch-worker-{job.job_id}",
         ).start()
+        self.after(50, self._poll_batch_result)
 
     def _run_batch_worker(self, job_id: str) -> None:
         """后台执行耗时任务，避免 Tkinter 主线程卡死。"""
@@ -5253,7 +5437,19 @@ class GeoConversionApp(tk.Tk):
         except Exception as exc:  # 防止后台线程静默退出
             job = None
             error = exc
-        self.after(0, lambda: self._finish_batch_run(job, error))
+        # Tk 的 after/createcommand 也不允许从工作线程调用。
+        # 工作线程只写入 Queue，由主线程定时轮询并更新界面。
+        self._batch_result_queue.put((job, error))
+
+    def _poll_batch_result(self) -> None:
+        if not self._batch_running:
+            return
+        try:
+            job, error = self._batch_result_queue.get_nowait()
+        except queue.Empty:
+            self.after(50, self._poll_batch_result)
+            return
+        self._finish_batch_run(job, error)
 
     def _finish_batch_run(self, job: BatchJob | None, error: Exception | None = None) -> None:
         self._batch_running = False
@@ -5358,9 +5554,18 @@ class GeoConversionApp(tk.Tk):
             return
 
         threshold = self._parse_ratio(self.param_values.get("差异阈值", "5%"), 0.05)
+        slice_ratio = self._parse_ratio(self.param_values.get("剖切位置", "50%"), 0.5)
+        slice_axis = self.param_values.get("剖切方向", "XY").upper()
+        if slice_axis not in {"XY", "XZ", "YZ"}:
+            slice_axis = "XY"
+        try:
+            heatmap_limit = max(10, min(5000, int(self.param_values.get("热图点上限", "800") or "800")))
+        except ValueError:
+            heatmap_limit = 800
         self._append_log(
             f"开始可视化对比检查：转换前 {len(files_before)} 个，转换后 {len(files_after)} 个；"
-            f"{grouping_message}；统一差异阈值 {threshold:.1%}。"
+            f"{grouping_message}；统一差异阈值 {threshold:.1%}；"
+            f"剖切 {slice_axis}@{slice_ratio:.0%}；热图上限 {heatmap_limit} 点。"
         )
         report = build_comparison_report(
             files_before, files_after,
@@ -5369,6 +5574,9 @@ class GeoConversionApp(tk.Tk):
             scale_threshold=threshold,
             attribute_threshold=threshold,
             boundary_threshold=threshold,
+            slice_axis=slice_axis,
+            slice_ratio=slice_ratio,
+            heatmap_limit=heatmap_limit,
         )
         self.quality_report = report
         self.run_completed = report.get("total_checks", 0) > 0
@@ -5381,6 +5589,8 @@ class GeoConversionApp(tk.Tk):
                 "module": self.active_module.name,
                 "grouping": grouping_message,
                 "difference_threshold": threshold,
+                "slice_axis": slice_axis, "slice_ratio": slice_ratio,
+                "heatmap_limit": heatmap_limit,
                 "files_before": files_before, "files_after": files_after,
                 "comparison_report": report,
                 "mysql_tables": list(self.active_module.mysql_tables),
@@ -5544,6 +5754,12 @@ class GeoConversionApp(tk.Tk):
             return self._build_preprocessing_html_report(exported_at)
         if self._is_semantic_module():
             return self._build_semantic_html_report(exported_at)
+        if self._is_template_module():
+            return self._build_template_html_report(exported_at)
+        if self._is_batch_module():
+            return self._build_batch_html_report(exported_at)
+        if self._is_comparison_module():
+            return self._build_comparison_html_report(exported_at)
         if self._is_version_module():
             return self._build_version_html_report(exported_at)
         return self._build_generic_html_report(exported_at)
@@ -5738,6 +5954,134 @@ li {{ margin: 6px 0; }}
 """
         return self._html_shell(
             "地质语义编码转换报告",
+            f"项目：{self.project_var.get()} · 导出时间：{exported_at.strftime('%Y-%m-%d %H:%M:%S')}",
+            body,
+        )
+
+    def _build_template_html_report(self, exported_at: datetime) -> str:
+        report = self.quality_report or {}
+        audit = report.get("library_audit", {}) if isinstance(report.get("library_audit"), dict) else {}
+        matches = report.get("matching_templates", []) if isinstance(report.get("matching_templates"), list) else []
+        applications = (self.conversion_report or {}).get("applications", []) if isinstance((self.conversion_report or {}).get("applications"), list) else []
+        match_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('name', '')))}</td><td>{escape(str(item.get('version', '')))}</td>"
+            f"<td>{escape(str(item.get('score', 0)))}</td><td>{escape(str(item.get('field_coverage', 0)))}</td>"
+            f"<td>{escape(str(item.get('fingerprint', '')))}</td><td>{escape('；'.join(item.get('reasons', [])))}</td>"
+            "</tr>" for item in matches
+        ) or "<tr><td colspan='6'>尚未执行模板匹配</td></tr>"
+        application_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('template', '')))}</td><td>{escape(Path(str(item.get('input_file', ''))).name)}</td>"
+            f"<td>{escape(Path(str(item.get('output_file', ''))).name)}</td><td>{escape(str(item.get('application_id', '')))}</td>"
+            f"<td>{escape(str(item.get('template_fingerprint', '')))}</td><td>{escape(str(item.get('output_sha256', '')))}</td>"
+            f"<td>{len(item.get('errors', []))} / {len(item.get('warnings', []))}</td>"
+            "</tr>" for item in applications
+        ) or "<tr><td colspan='7'>尚未应用模板</td></tr>"
+        summary = report.get("summary", {}) if isinstance(report.get("summary"), dict) else {}
+        body = f"""
+<div class="section"><h2>模板库摘要</h2><div class="grid">
+  <div class="metric"><b>模板总数</b>{escape(str(audit.get('template_count', summary.get('total_templates', 0))))}</div>
+  <div class="metric"><b>库审计</b>{'通过' if audit.get('valid') else '需复核'}</div>
+  <div class="metric"><b>最佳匹配</b>{escape(str(summary.get('best_match', '-')))}<br><span class="note">{escape(str(summary.get('best_score', 0)))} 分</span></div>
+  <div class="metric"><b>应用成果</b>{len(applications)} 个</div>
+</div></div>
+<div class="section"><h2>模板匹配结果</h2><table><thead><tr><th>模板</th><th>版本</th><th>得分</th><th>字段覆盖</th><th>内容指纹</th><th>理由</th></tr></thead><tbody>{match_rows}</tbody></table></div>
+<div class="section"><h2>模板应用追溯</h2><table><thead><tr><th>模板</th><th>输入</th><th>输出</th><th>应用 ID</th><th>模板指纹</th><th>输出 SHA-256</th><th>错误/警告</th></tr></thead><tbody>{application_rows}</tbody></table></div>
+"""
+        return self._html_shell(
+            "转换规则模板库报告",
+            f"项目：{self.project_var.get()} · 导出时间：{exported_at.strftime('%Y-%m-%d %H:%M:%S')}",
+            body,
+        )
+
+    def _build_batch_html_report(self, exported_at: datetime) -> str:
+        report = build_batch_report()
+        jobs = report.get("jobs", []) if isinstance(report.get("jobs"), list) else []
+        summary = report.get("summary", {}) if isinstance(report.get("summary"), dict) else {}
+        job_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('job_id', '')))}</td><td>{escape(str(item.get('name', '')))}</td>"
+            f"<td>{escape(str(item.get('status', '')))}</td><td>{escape(str(item.get('total', 0)))}</td>"
+            f"<td>{escape(str(item.get('success', 0)))}</td><td>{escape(str(item.get('failed', 0)))}</td>"
+            f"<td>{escape(str(item.get('skipped', 0)))}</td><td>{escape(str(item.get('retried', 0)))}</td>"
+            f"<td>{escape(str((item.get('config') or {}).get('template_name') or '未使用'))}</td>"
+            "</tr>" for item in jobs
+        ) or "<tr><td colspan='9'>尚无批量作业</td></tr>"
+        artifact_rows: list[str] = []
+        for job in jobs:
+            for item in job.get("artifacts", []):
+                application = item.get("template_application", {}) if isinstance(item, dict) else {}
+                artifact_rows.append(
+                    "<tr>"
+                    f"<td>{escape(str(job.get('job_id', '')))}</td>"
+                    f"<td>{escape(Path(str(item.get('batch_source') or item.get('source') or '')).name)}</td>"
+                    f"<td>{escape(str(item.get('status', '')))}</td>"
+                    f"<td>{escape(str(application.get('status', 'not_requested')))}</td>"
+                    f"<td>{escape(str(application.get('template_fingerprint', '')))}</td>"
+                    f"<td>{escape(str(item.get('output_sha256', '')))}</td>"
+                    f"<td>{escape(str(item.get('output') or item.get('output_file') or ''))}</td>"
+                    "</tr>"
+                )
+        artifacts_html = "".join(artifact_rows) or "<tr><td colspan='7'>尚无成果</td></tr>"
+        workflow_html = "".join(
+            f"<li>{escape(str(step.get('name', '')))}：{escape(str(step.get('status', '')))} — {escape(str(step.get('detail', '')))}</li>"
+            for job in jobs[-1:] for step in job.get("workflow", [])
+        ) or "<li>尚未执行</li>"
+        body = f"""
+<div class="section"><h2>批量执行摘要</h2><div class="grid">
+  <div class="metric"><b>作业数</b>{escape(str(summary.get('total_jobs', 0)))}</div>
+  <div class="metric"><b>成功文件</b>{escape(str(summary.get('total_success', 0)))}</div>
+  <div class="metric"><b>失败/跳过</b>{escape(str(summary.get('total_failed', 0)))} / {escape(str(summary.get('total_skipped', 0)))}</div>
+  <div class="metric"><b>成功率</b>{float(summary.get('success_rate', 0) or 0):.1%}</div>
+</div></div>
+<div class="section"><h2>作业队列</h2><table><thead><tr><th>作业ID</th><th>名称</th><th>状态</th><th>文件</th><th>成功</th><th>失败</th><th>跳过</th><th>重试</th><th>模板</th></tr></thead><tbody>{job_rows}</tbody></table></div>
+<div class="section"><h2>最新作业流程</h2><ol>{workflow_html}</ol></div>
+<div class="section"><h2>成果、模板与校验和追溯</h2><table><thead><tr><th>作业</th><th>源文件</th><th>转换状态</th><th>模板状态</th><th>模板指纹</th><th>成果 SHA-256</th><th>成果路径</th></tr></thead><tbody>{artifacts_html}</tbody></table></div>
+"""
+        return self._html_shell(
+            "自动化批量转换报告",
+            f"项目：{self.project_var.get()} · 导出时间：{exported_at.strftime('%Y-%m-%d %H:%M:%S')}",
+            body,
+        )
+
+    def _build_comparison_html_report(self, exported_at: datetime) -> str:
+        report = self.quality_report or {}
+        dimensions = report.get("dimension_results", {}) if isinstance(report.get("dimension_results"), dict) else {}
+        visual_summary = report.get("visualization_summary", {}) if isinstance(report.get("visualization_summary"), dict) else {}
+        comparisons = report.get("comparisons", []) if isinstance(report.get("comparisons"), list) else []
+        dimension_rows = "".join(
+            f"<tr><td>{escape(name)}</td><td>{escape(str(item.get('passed', 0)))}/{escape(str(item.get('total', 0)))}</td><td>{float(item.get('pass_rate', 0) or 0):.1%}</td></tr>"
+            for name, item in dimensions.items()
+        ) or "<tr><td colspan='3'>尚未执行</td></tr>"
+        difference_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('severity', '')))}</td><td>{escape(str(item.get('dimension', '')))}</td>"
+            f"<td>{escape(str(item.get('metric', '')))}</td><td>{escape(str(item.get('value_before', '')))}</td>"
+            f"<td>{escape(str(item.get('value_after', '')))}</td><td>{float(item.get('deviation', 0) or 0):.2%}</td>"
+            f"<td>{escape(str(item.get('message', '')))}</td></tr>"
+            for item in comparisons if not item.get("passed")
+        ) or "<tr><td colspan='7'>未发现超阈值差异</td></tr>"
+        file_rows = "".join(
+            f"<tr><td>{escape(side)}</td><td>{escape(str(item.get('name', '')))}</td><td>{escape(str(item.get('format', '')))}</td><td>{escape(str(item.get('vertices', 0)))}</td><td>{escape(str(item.get('sha256', '')))}</td></tr>"
+            for side, files in (("转换前", report.get("files_before", [])), ("转换后", report.get("files_after", [])))
+            for item in files
+        ) or "<tr><td colspan='5'>未加载文件</td></tr>"
+        params = report.get("parameters", {}) if isinstance(report.get("parameters"), dict) else {}
+        body = f"""
+<div class="section"><h2>对比摘要</h2><div class="grid">
+  <div class="metric"><b>综合评分</b>{escape(str(report.get('score', 0)))}<br><span class="note">{escape(str(report.get('grade', '-')))}</span></div>
+  <div class="metric"><b>通过项</b>{escape(str(report.get('passed_checks', 0)))} / {escape(str(report.get('total_checks', 0)))}</div>
+  <div class="metric"><b>可视化文件对</b>{escape(str(visual_summary.get('pair_count', 0)))}</div>
+  <div class="metric"><b>热图点</b>{escape(str(visual_summary.get('heatmap_points', 0)))}</div>
+</div><p class="note">剖切：{escape(str(params.get('slice_axis', 'XY')))} @ {float(params.get('slice_ratio', .5) or .5):.0%} · 对比ID：{escape(str(report.get('comparison_id', '-')))}</p></div>
+<div class="section"><h2>文件与校验和</h2><table><thead><tr><th>阶段</th><th>文件</th><th>格式</th><th>顶点</th><th>SHA-256</th></tr></thead><tbody>{file_rows}</tbody></table></div>
+<div class="section"><h2>五项维度</h2><table><thead><tr><th>维度</th><th>通过</th><th>通过率</th></tr></thead><tbody>{dimension_rows}</tbody></table></div>
+<div class="section"><h2>超阈值差异</h2><table><thead><tr><th>级别</th><th>维度</th><th>指标</th><th>转换前</th><th>转换后</th><th>偏差</th><th>说明</th></tr></thead><tbody>{difference_rows}</tbody></table></div>
+<div class="section"><h2>可视化覆盖</h2><p>已生成：{escape('、'.join(visual_summary.get('modes', [])))}。有效剖面 {escape(str(visual_summary.get('slice_profiles', 0)))} 对。</p></div>
+"""
+        return self._html_shell(
+            "可视化预览与对比检查报告",
             f"项目：{self.project_var.get()} · 导出时间：{exported_at.strftime('%Y-%m-%d %H:%M:%S')}",
             body,
         )
@@ -5979,6 +6323,8 @@ li {{ margin: 6px 0; }}
             self.log_text.see(tk.END)
 
     def _select_module(self, module: ModuleSpec, keep_page: bool = False) -> None:
+        if module.name == "转换规则模板库模块":
+            load_template_directory(self._template_storage_dir())
         self.active_module = module
         self.module_title.set(module.name)
         self.module_desc.set(module.description)

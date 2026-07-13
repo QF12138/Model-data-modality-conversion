@@ -1,0 +1,142 @@
+{
+  "schema_version": "2.0",
+  "conversion_id": "CONV-20260713082606-2FF490B2",
+  "task": "model_format_conversion",
+  "created_at": "2026-07-13T08:26:06",
+  "status": "完成",
+  "target_platform": "三维建模软件",
+  "target_format": "OBJ",
+  "output_dir": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260713-0001\\007_slope_surface",
+  "coordinate_rule": "保留源坐标",
+  "attribute_rule": "全部保留",
+  "source_count": 1,
+  "success_count": 1,
+  "failure_count": 0,
+  "warning_count": 0,
+  "artifacts": [
+    {
+      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\02_3d_models\\slope_surface.stl",
+      "source_name": "slope_surface.stl",
+      "source_format": ".stl",
+      "target_format": "OBJ",
+      "target_platform": "三维建模软件",
+      "status": "成功",
+      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260713-0001\\007_slope_surface\\slope_surface_converted.obj",
+      "message": "转换完成并通过成果回读验证",
+      "source_checksum_sha256": "7e602d7e805739bfae35e70d788503ad06679029afb20a98be608233cf0f72d5",
+      "output_checksum_sha256": "3f1ebc6c3b2f70e1f55ce054e6167163c9895055692d9ad9744d889b0ed1d687",
+      "source_summary": {
+        "vertex_count": 4,
+        "face_count": 2,
+        "triangle_count": 2,
+        "line_count": 0,
+        "vertex_property_count": 0,
+        "face_property_count": 0,
+        "attribute_fields": [],
+        "bounds": {
+          "min": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "max": [
+            10.0,
+            10.0,
+            3.0
+          ]
+        }
+      },
+      "output_summary": {
+        "vertex_count": 4,
+        "face_count": 2,
+        "triangle_count": 2,
+        "line_count": 0,
+        "vertex_property_count": 0,
+        "face_property_count": 0,
+        "attribute_fields": [],
+        "bounds": {
+          "min": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "max": [
+            10.0,
+            10.0,
+            3.0
+          ]
+        }
+      },
+      "vertex_count": 4,
+      "face_count": 2,
+      "line_count": 0,
+      "attribute_fields": [],
+      "bounds": {
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          10.0,
+          10.0,
+          3.0
+        ]
+      },
+      "size_bytes": 125,
+      "coordinate_transform": {
+        "rule": "保留源坐标",
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "information_losses": [],
+      "sidecar_files": [
+        "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260713-0001\\007_slope_surface\\slope_surface_converted.obj.attributes.json"
+      ],
+      "validation": {
+        "status": "通过",
+        "checks": [
+          {
+            "name": "文件存在",
+            "passed": true,
+            "detail": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260713-0001\\007_slope_surface\\slope_surface_converted.obj"
+          },
+          {
+            "name": "文件非空",
+            "passed": true,
+            "detail": "125 bytes"
+          },
+          {
+            "name": "顶点数量",
+            "passed": true,
+            "detail": "期望 4，回读 4"
+          },
+          {
+            "name": "空间范围",
+            "passed": true,
+            "detail": "期望 {'min': [0.0, 0.0, 0.0], 'max': [10.0, 10.0, 3.0]}，回读 {'min': [0.0, 0.0, 0.0], 'max': [10.0, 10.0, 3.0]}"
+          },
+          {
+            "name": "面片数量",
+            "passed": true,
+            "detail": "期望 2，回读 2"
+          },
+          {
+            "name": "线数量",
+            "passed": true,
+            "detail": "期望 0，回读 0"
+          }
+        ],
+        "errors": []
+      },
+      "quality_score": 100
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "quality_score": 100,
+  "manifest_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\batch_conversion\\BATCH-20260713-0001\\007_slope_surface\\conversion_manifest.json"
+}

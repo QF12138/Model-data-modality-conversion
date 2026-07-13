@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import re
 import struct
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -74,6 +76,10 @@ class ModelSnapshot:
     scale: float = 1.0
     parse_ok: bool = False
     parse_message: str = ""
+    source_path: str = ""
+    sha256: str = ""
+    vertices: list[tuple[float, float, float]] = field(default_factory=list, repr=False)
+    faces: list[list[int]] = field(default_factory=list, repr=False)
 
 
 @dataclass
@@ -122,6 +128,8 @@ def extract_snapshot(file_path: str | Path) -> ModelSnapshot:
         file_name=path.name,
         format=path.suffix.lower(),
         file_size_bytes=path.stat().st_size if path.exists() else 0,
+        source_path=str(path.resolve()) if path.exists() else str(path),
+        sha256=_sha256(path) if path.exists() and path.is_file() else "",
     )
     if not path.exists():
         snap.parse_message = "文件不存在"
@@ -163,6 +171,7 @@ def extract_snapshot(file_path: str | Path) -> ModelSnapshot:
 
 def _extract_obj(path: Path, snap: ModelSnapshot) -> None:
     vertices: list[tuple[float, float, float]] = []
+    faces: list[list[int]] = []
     for line in _read_text(path).splitlines():
         parts = line.strip().split()
         if not parts:
@@ -171,9 +180,16 @@ def _extract_obj(path: Path, snap: ModelSnapshot) -> None:
             vertices.append(tuple(float(v) for v in parts[1:4]))
         elif parts[0] == "f" and len(parts) >= 4:
             snap.face_count += 1
+            face: list[int] = []
+            for token in parts[1:]:
+                raw_index = int(token.split("/")[0])
+                face.append(raw_index - 1 if raw_index > 0 else len(vertices) + raw_index)
+            faces.append(face)
         elif parts[0] == "l" and len(parts) >= 3:
             snap.line_count += 1
     snap.vertex_count = len(vertices)
+    snap.vertices = vertices
+    snap.faces = faces
     if vertices:
         xs, ys, zs = zip(*vertices)
         snap.bounds = Bounds(min(xs), max(xs), min(ys), max(ys), min(zs), max(zs))
@@ -208,6 +224,8 @@ def _extract_stl(path: Path, snap: ModelSnapshot) -> None:
         snap.face_count = len(vertices) // 3
 
     snap.vertex_count = len(vertices)
+    snap.vertices = vertices
+    snap.faces = [[index, index + 1, index + 2] for index in range(0, len(vertices) - 2, 3)]
     if vertices:
         xs, ys, zs = zip(*vertices)
         snap.bounds = Bounds(min(xs), max(xs), min(ys), max(ys), min(zs), max(zs))
@@ -257,6 +275,7 @@ def _extract_geojson(path: Path, snap: ModelSnapshot) -> None:
 
     _collect(data)
     snap.vertex_count = len(vertices)
+    snap.vertices = vertices
     snap.attribute_fields = sorted(attrs)
     snap.attribute_count = len(attrs)
     if vertices:
@@ -293,6 +312,7 @@ def _extract_csv(path: Path, snap: ModelSnapshot) -> None:
                 continue
             vertices.append((x, y, z))
         snap.vertex_count = len(vertices)
+        snap.vertices = vertices
         if vertices:
             xs, ys, zs = zip(*vertices)
             snap.bounds = Bounds(min(xs), max(xs), min(ys), max(ys), min(zs), max(zs))
@@ -325,6 +345,15 @@ def _extract_ply(path: Path, snap: ModelSnapshot) -> None:
             continue
         vertices.append((float(parts[0]), float(parts[1]), float(parts[2])))
     snap.vertex_count = len(vertices)
+    snap.vertices = vertices
+    faces: list[list[int]] = []
+    for line in lines[header_end + 1 + vertex_count:]:
+        parts = line.strip().split()
+        if parts and parts[0].isdigit() and len(parts) >= int(parts[0]) + 1:
+            count = int(parts[0])
+            faces.append([int(value) for value in parts[1:1 + count]])
+    snap.faces = faces
+    snap.face_count = len(faces)
     if vertices:
         xs, ys, zs = zip(*vertices)
         snap.bounds = Bounds(min(xs), max(xs), min(ys), max(ys), min(zs), max(zs))
@@ -354,6 +383,7 @@ def _extract_vtk(path: Path, snap: ModelSnapshot) -> None:
             break
     vertices = [tuple(values[i:i + 3]) for i in range(0, min(len(values), point_count * 3), 3) if len(values[i:i + 3]) == 3]
     snap.vertex_count = len(vertices)
+    snap.vertices = vertices
     if vertices:
         xs, ys, zs = zip(*vertices)
         snap.bounds = Bounds(min(xs), max(xs), min(ys), max(ys), min(zs), max(zs))
@@ -388,6 +418,118 @@ def _pair_snapshots(
     pairs.extend((None, item) for item in remaining_after)
     return pairs
 
+
+def _sample_points(points: list[tuple[float, float, float]], limit: int) -> list[tuple[float, float, float]]:
+    if len(points) <= limit:
+        return list(points)
+    step = len(points) / limit
+    return [points[min(int(index * step), len(points) - 1)] for index in range(limit)]
+
+
+def _project_point(point: tuple[float, float, float], plane: str) -> tuple[float, float]:
+    if plane == "XZ":
+        return point[0], point[2]
+    if plane == "YZ":
+        return point[1], point[2]
+    return point[0], point[1]
+
+
+def _profile_dict(profile: "SliceProfile") -> dict[str, Any]:
+    return {
+        "axis": profile.axis, "position": profile.position,
+        "points": [[x, y] for x, y in profile.points],
+        "area": profile.area, "perimeter": profile.perimeter,
+    }
+
+
+def _heatmap_payload(
+    before: ModelSnapshot | None,
+    after: ModelSnapshot | None,
+    plane: str,
+    limit: int,
+) -> dict[str, Any]:
+    if not before or not after or not before.vertices or not after.vertices:
+        return {"points": [], "mean_distance": None, "max_distance": None, "p95_distance": None, "normalized_max": None}
+    references = _sample_points(before.vertices, max(limit, 1000))
+    targets = _sample_points(after.vertices, limit)
+    distances: list[float] = []
+    points: list[dict[str, float]] = []
+    diagonal = max(before.bounds.diagonal, 1e-9)
+    for target in targets:
+        distance = min(
+            math.sqrt(sum((target[index] - source[index]) ** 2 for index in range(3)))
+            for source in references
+        )
+        distances.append(distance)
+        px, py = _project_point(target, plane)
+        points.append({"x": px, "y": py, "distance": distance, "normalized": distance / diagonal})
+    ordered = sorted(distances)
+    p95_index = min(len(ordered) - 1, max(0, math.ceil(len(ordered) * 0.95) - 1))
+    return {
+        "points": points,
+        "mean_distance": sum(distances) / len(distances),
+        "max_distance": max(distances),
+        "p95_distance": ordered[p95_index],
+        "normalized_max": max(distances) / diagonal,
+    }
+
+
+def _build_visualization_pair(
+    before: ModelSnapshot | None,
+    after: ModelSnapshot | None,
+    *,
+    slice_axis: str,
+    slice_ratio: float,
+    heatmap_limit: int,
+) -> dict[str, Any]:
+    axis = slice_axis if slice_axis in {"XY", "XZ", "YZ"} else "XY"
+    label = (before and before.file_name) or (after and after.file_name) or "未知"
+    before_points = _sample_points(before.vertices, heatmap_limit) if before else []
+    after_points = _sample_points(after.vertices, heatmap_limit) if after else []
+    all_axis_values: list[float] = []
+    axis_index = {"YZ": 0, "XZ": 1, "XY": 2}[axis]
+    if before:
+        all_axis_values.extend(point[axis_index] for point in before.vertices)
+    if after:
+        all_axis_values.extend(point[axis_index] for point in after.vertices)
+    minimum = min(all_axis_values) if all_axis_values else 0.0
+    maximum = max(all_axis_values) if all_axis_values else 0.0
+    position = minimum + (maximum - minimum) * slice_ratio
+    before_slice = compute_slice(before.vertices, before.faces, axis, position) if before else SliceProfile(axis, position)
+    after_slice = compute_slice(after.vertices, after.faces, axis, position) if after else SliceProfile(axis, position)
+    area_deviation = (
+        abs(before_slice.area - after_slice.area) / max(before_slice.area, 1e-9)
+        if before_slice.area or after_slice.area else None
+    )
+    return {
+        "pair": label,
+        "before_file": before.file_name if before else "",
+        "after_file": after.file_name if after else "",
+        "projection": axis,
+        "two_dimensional_overlay": {
+            "before_points": [list(_project_point(point, axis)) for point in before_points],
+            "after_points": [list(_project_point(point, axis)) for point in after_points],
+            "before_bounds": before.bounds.to_dict() if before else {},
+            "after_bounds": after.bounds.to_dict() if after else {},
+        },
+        "three_dimensional_preview": {
+            "before_points": [list(point) for point in before_points],
+            "after_points": [list(point) for point in after_points],
+            "before_face_count": len(before.faces) if before else 0,
+            "after_face_count": len(after.faces) if after else 0,
+        },
+        "slice_comparison": {
+            "axis": axis, "position": position, "ratio": slice_ratio,
+            "before": _profile_dict(before_slice), "after": _profile_dict(after_slice),
+            "area_deviation": area_deviation,
+        },
+        "difference_heatmap": _heatmap_payload(before, after, axis, heatmap_limit),
+        "key_boundaries": {
+            "before": before.bounds.to_dict() if before else {},
+            "after": after.bounds.to_dict() if after else {},
+        },
+    }
+
 def compare_models(
     files_before: list[str],
     files_after: list[str],
@@ -396,6 +538,9 @@ def compare_models(
     scale_threshold: float = 0.10,
     attribute_threshold: float = 0.10,
     boundary_threshold: float = 0.05,
+    slice_axis: str = "XY",
+    slice_ratio: float = 0.5,
+    heatmap_limit: int = 800,
 ) -> dict[str, Any]:
     """
     对比转换前后的模型数据，生成多维度偏差报告。
@@ -411,11 +556,21 @@ def compare_models(
     boundary_threshold : 关键边界偏差阈值
     """
     report: dict[str, Any] = {
+        "schema_version": "2.0",
+        "comparison_id": f"CMP-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8].upper()}",
         "checked_at": datetime.now().isoformat(timespec="seconds"),
         "files_before": [],
         "files_after": [],
         "comparisons": [],
         "dimension_results": {},
+        "parameters": {
+            "coordinate_threshold": coordinate_threshold, "extent_threshold": extent_threshold,
+            "scale_threshold": scale_threshold, "attribute_threshold": attribute_threshold,
+            "boundary_threshold": boundary_threshold, "slice_axis": slice_axis,
+            "slice_ratio": max(0.0, min(float(slice_ratio), 1.0)),
+            "heatmap_limit": max(10, min(int(heatmap_limit), 5000)),
+        },
+        "visualizations": [],
     }
 
     # 提取快照
@@ -425,7 +580,7 @@ def compare_models(
     for fp in files_before:
         snap = extract_snapshot(fp)
         snaps_before.append(snap)
-        report["files_before"].append({"name": snap.file_name, "format": snap.format,
+        report["files_before"].append({"name": snap.file_name, "path": snap.source_path, "sha256": snap.sha256, "format": snap.format,
                                         "vertices": snap.vertex_count, "faces": snap.face_count,
                                         "bounds": snap.bounds.to_dict(),
                                         "parse_ok": snap.parse_ok, "parse_message": snap.parse_message})
@@ -433,17 +588,25 @@ def compare_models(
     for fp in files_after:
         snap = extract_snapshot(fp)
         snaps_after.append(snap)
-        report["files_after"].append({"name": snap.file_name, "format": snap.format,
+        report["files_after"].append({"name": snap.file_name, "path": snap.source_path, "sha256": snap.sha256, "format": snap.format,
                                        "vertices": snap.vertex_count, "faces": snap.face_count,
                                        "bounds": snap.bounds.to_dict(),
                                        "parse_ok": snap.parse_ok, "parse_message": snap.parse_message})
 
     # 配对对比：优先同名/规范化名称，剩余项再按顺序补齐
     comparisons: list[ComparisonItem] = []
-    for before, after in _pair_snapshots(snaps_before, snaps_after):
+    pairs = _pair_snapshots(snaps_before, snaps_after)
+    for before, after in pairs:
         _compare_pair(before, after, comparisons,
                       coordinate_threshold, extent_threshold, scale_threshold,
                       attribute_threshold, boundary_threshold)
+        report["visualizations"].append(
+            _build_visualization_pair(
+                before, after, slice_axis=slice_axis,
+                slice_ratio=max(0.0, min(float(slice_ratio), 1.0)),
+                heatmap_limit=max(10, min(int(heatmap_limit), 5000)),
+            )
+        )
 
     report["comparisons"] = [
         {
@@ -473,6 +636,16 @@ def compare_models(
     report["grade"] = _grade(report["score"])
     report["total_checks"] = total
     report["passed_checks"] = passed_total
+    report["visualization_summary"] = {
+        "pair_count": len(report["visualizations"]),
+        "modes": list(VIEW_MODES),
+        "slice_profiles": sum(
+            bool(item.get("slice_comparison", {}).get("before", {}).get("points"))
+            or bool(item.get("slice_comparison", {}).get("after", {}).get("points"))
+            for item in report["visualizations"]
+        ),
+        "heatmap_points": sum(len(item.get("difference_heatmap", {}).get("points", [])) for item in report["visualizations"]),
+    }
 
     return report
 
@@ -631,7 +804,7 @@ def _grade(score: int) -> str:
 
 
 # ============================================================================
-# 截面剖切（虚拟）
+# 截面剖切（基于面片-截平面交点）
 # ============================================================================
 
 @dataclass
@@ -651,7 +824,7 @@ def compute_slice(
     position: float = 0.0,
 ) -> SliceProfile:
     """
-    计算模型在指定位置和方向的剖切轮廓（简化实现——提取交点连线）。
+    计算模型在指定位置和方向的剖切轮廓：遍历面片边，提取与截平面的交点并构成轮廓。
 
     参数
     ----
@@ -676,8 +849,20 @@ def compute_slice(
             da = va[axis_idx] - position
             db = vb[axis_idx] - position
 
-            if da * db < 0:  # 跨剖切面
-                t = abs(da) / (abs(da) + abs(db))
+            epsilon = 1e-9
+            if abs(da) <= epsilon and abs(db) <= epsilon:
+                candidates = (va, vb)
+                for pt in candidates:
+                    if axis == "XY":
+                        crossings.append((pt[0], pt[1]))
+                    elif axis == "XZ":
+                        crossings.append((pt[0], pt[2]))
+                    else:
+                        crossings.append((pt[1], pt[2]))
+                continue
+            if da * db <= 0:  # 跨剖切面或端点位于剖切面
+                denominator = abs(da) + abs(db)
+                t = abs(da) / denominator if denominator > epsilon else 0.0
                 pt = [
                     va[0] + t * (vb[0] - va[0]),
                     va[1] + t * (vb[1] - va[1]),
@@ -693,6 +878,11 @@ def compute_slice(
 
     # 按角度排序形成多边形轮廓
     if crossings:
+        # 同一交点常被相邻面重复记录，按坐标容差去重后再计算面积。
+        unique: dict[tuple[int, int], tuple[float, float]] = {}
+        for point in crossings:
+            unique.setdefault((round(point[0] * 1e9), round(point[1] * 1e9)), point)
+        crossings = list(unique.values())
         cx = sum(p[0] for p in crossings) / len(crossings)
         cy = sum(p[1] for p in crossings) / len(crossings)
         sorted_pts = sorted(crossings, key=lambda p: math.atan2(p[1] - cy, p[0] - cx))
@@ -736,13 +926,25 @@ def build_comparison_report(
     scale_threshold: float = 0.10,
     attribute_threshold: float = 0.10,
     boundary_threshold: float = 0.05,
+    slice_axis: str = "XY",
+    slice_ratio: float = 0.5,
+    heatmap_limit: int = 800,
 ) -> dict[str, Any]:
     """便捷入口：对比转换前后的模型数据。"""
     return compare_models(
         files_before, files_after,
         coordinate_threshold, extent_threshold, scale_threshold,
         attribute_threshold, boundary_threshold,
+        slice_axis, slice_ratio, heatmap_limit,
     )
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 __all__ = [
