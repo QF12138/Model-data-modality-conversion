@@ -1,0 +1,17 @@
+import json
+from datetime import datetime
+
+def build_borehole_schema(record):
+    return {
+        "BH_ID": record["BH_ID"],
+        "location": {"x": float(record["X"]), "y": float(record["Y"]), "z": float(record["Z"])},
+        "lithology": record.get("lithology", []),
+        "groundwater": record.get("groundwater", {}),
+        "engineering": record.get("engineering", {}),
+        "structure_planes": record.get("structure_planes", []),
+        "created": datetime.now().isoformat()
+    }
+
+def export_attribute_json(data, path):
+    with open(path,"w",encoding="utf-8") as f:
+        json.dump(data,f,ensure_ascii=False,indent=2)
