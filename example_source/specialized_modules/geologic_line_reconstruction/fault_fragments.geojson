@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"boundary_id":"F1","geology_type":"fault","contact":"tectonic"},"geometry":{"type":"LineString","coordinates":[[0,0,10],[10,2,9],[20,3,8]]}},
+    {"type":"Feature","properties":{"boundary_id":"F1","geology_type":"fault","contact":"tectonic"},"geometry":{"type":"LineString","coordinates":[[20.4,3.1,8],[30,5,7],[40,7,6]]}},
+    {"type":"Feature","properties":{"boundary_id":"F1","geology_type":"fault","contact":"tectonic"},"geometry":{"type":"LineString","coordinates":[[60,11,4],[50,9,5],[40.3,7.1,6]]}},
+    {"type":"Feature","properties":{"boundary_id":"F2","geology_type":"reverse_fault","contact":"tectonic"},"geometry":{"type":"LineString","coordinates":[[5,35,12],[15,31,10],[25,28,9]]}},
+    {"type":"Feature","properties":{"boundary_id":"F2","geology_type":"reverse_fault","contact":"tectonic"},"geometry":{"type":"LineString","coordinates":[[25.5,27.8,9],[35,24,7],[45,20,6]]}},
+    {"type":"Feature","properties":{"boundary_id":"F2","geology_type":"reverse_fault","contact":"tectonic"},"geometry":{"type":"LineString","coordinates":[[45.4,19.9,6],[55,16,4],[65,12,3]]}},
+    {"type":"Feature","properties":{"boundary_id":"Q-J","geology_type":"stratum_boundary","contact":"unconformity"},"geometry":{"type":"LineString","coordinates":[[0,55,18],[12,53,17],[24,52,16]]}},
+    {"type":"Feature","properties":{"boundary_id":"Q-J","geology_type":"stratum_boundary","contact":"unconformity"},"geometry":{"type":"LineString","coordinates":[[24.2,52.1,16],[38,50,15],[52,47,13]]}},
+    {"type":"Feature","properties":{"boundary_id":"Q-J","geology_type":"stratum_boundary","contact":"unconformity"},"geometry":{"type":"LineString","coordinates":[[52.6,47.1,13],[66,44,12],[80,40,10]]}},
+    {"type":"Feature","properties":{"boundary_id":"C3","geology_type":"intrusive_contact","contact":"intrusive"},"geometry":{"type":"LineString","coordinates":[[10,75,25],[22,70,22],[34,66,20]]}},
+    {"type":"Feature","properties":{"boundary_id":"C3","geology_type":"intrusive_contact","contact":"intrusive"},"geometry":{"type":"LineString","coordinates":[[39,63,19],[50,58,17],[62,54,15]]}},
+    {"type":"Feature","properties":{"boundary_id":"LENS-1","geology_type":"lithologic_lens","contact":"conformable"},"geometry":{"type":"LineString","coordinates":[[18,88,30],[28,85,29],[38,84,28]]}},
+    {"type":"Feature","properties":{"boundary_id":"LENS-1","geology_type":"lithologic_lens","contact":"conformable"},"geometry":{"type":"LineString","coordinates":[[38.3,84.1,28],[48,85,27],[58,89,26],[66,94,25]]}}
+  ]
+}

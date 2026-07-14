@@ -1,0 +1,96 @@
+{
+  "module": "多尺度模型转换模块",
+  "status": "完成",
+  "score": 100,
+  "grade": "优秀",
+  "file_count": 3,
+  "output_count": 4,
+  "outputs": [
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\multiscale_model_conversion\\fault_surface_engineering.obj",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\multiscale_model_conversion\\regional_surface_engineering.obj",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\multiscale_model_conversion\\scale_conversion_record.json",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\multiscale_model_conversion\\scale_accuracy_report.json"
+  ],
+  "artifacts": [
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\multiscale_model_conversion\\fault_surface_engineering.obj",
+      "name": "fault_surface_engineering.obj",
+      "sha256": "6fc6e8435e1ca1ee34df654d1fdddc2a8f1d9b9610e79e25b5b3f8e0d05f2333",
+      "size_bytes": 413
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\multiscale_model_conversion\\regional_surface_engineering.obj",
+      "name": "regional_surface_engineering.obj",
+      "sha256": "75f714f51aaa5329e94aeca553fa78b96de2ef3ff49edc8fc99ff7ce7df711f5",
+      "size_bytes": 649
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\multiscale_model_conversion\\scale_conversion_record.json",
+      "name": "scale_conversion_record.json",
+      "sha256": "038e8cd2778b4f440f8dd23fdde1a9cdbe6d0b739820ef7b5d6f1e9d50d79848",
+      "size_bytes": 1051
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\multiscale_model_conversion\\scale_accuracy_report.json",
+      "name": "scale_accuracy_report.json",
+      "sha256": "ae636c6d20d501e011c78a78cc7b7ac6f872d8478c5fa4935cc25b8bf9e6a356",
+      "size_bytes": 1109
+    }
+  ],
+  "metrics": {
+    "model_count": 2,
+    "models": [
+      {
+        "source": "fault_surface.obj",
+        "output": "fault_surface_engineering.obj",
+        "source_vertices": 16,
+        "source_faces": 18,
+        "output_vertices": 16,
+        "output_faces": 18,
+        "vertex_ratio": 1.0,
+        "face_ratio": 1.0,
+        "max_vertex_error": 0.0,
+        "mean_vertex_error": 0.0,
+        "bounds": [
+          5.0,
+          0.0,
+          0.0,
+          35.0,
+          36.0,
+          12.0
+        ]
+      },
+      {
+        "source": "regional_surface.obj",
+        "output": "regional_surface_engineering.obj",
+        "source_vertices": 25,
+        "source_faces": 32,
+        "output_vertices": 25,
+        "output_faces": 32,
+        "vertex_ratio": 1.0,
+        "face_ratio": 1.0,
+        "max_vertex_error": 0.0,
+        "mean_vertex_error": 0.0,
+        "bounds": [
+          0.0,
+          0.0,
+          0.0,
+          40.0,
+          40.0,
+          9.0
+        ]
+      }
+    ],
+    "total_source_faces": 50,
+    "total_output_faces": 50,
+    "max_error": 0.0
+  },
+  "parameters": {
+    "target_scale": "工程尺度",
+    "decimation_strategy": "顶点聚类 2.0",
+    "refinement_rule": "按目标尺度自动",
+    "precision_strategy": "边界优先"
+  },
+  "issues": [],
+  "issue_count": 0
+}

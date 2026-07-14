@@ -1,0 +1,19 @@
+{
+  "input_points": 90,
+  "output_points": 78,
+  "retention_ratio": 0.8666666666666667,
+  "voxel_spacing": 1.0,
+  "classes": {
+    "ground": 9,
+    "slope_surface": 42,
+    "high_feature": 27
+  },
+  "bounds": [
+    0.0,
+    0.0,
+    0.15,
+    15.0,
+    9.0,
+    9.6
+  ]
+}

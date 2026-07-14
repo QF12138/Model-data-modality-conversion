@@ -1,0 +1,60 @@
+{
+  "module": "点云数据转换模块",
+  "status": "完成",
+  "score": 100,
+  "grade": "优秀",
+  "file_count": 3,
+  "output_count": 3,
+  "outputs": [
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\standardized_point_cloud.csv",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\classified_point_cloud.ply",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\point_cloud_statistics.json"
+  ],
+  "artifacts": [
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\standardized_point_cloud.csv",
+      "name": "standardized_point_cloud.csv",
+      "sha256": "64591bd721ae9e2cad9c8adb03bb3d2765eb91f2b0d1da3d650608327168c882",
+      "size_bytes": 4114
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\classified_point_cloud.ply",
+      "name": "classified_point_cloud.ply",
+      "sha256": "331c707e6280a8bc72c84980027884aa31572d31664b30e1b94b30226ac962d7",
+      "size_bytes": 1014
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\point_cloud_statistics.json",
+      "name": "point_cloud_statistics.json",
+      "sha256": "569a4e6774b0537c7ec9745f9552041cf5aab4c203e4bebc9adb0bb186979480",
+      "size_bytes": 272
+    }
+  ],
+  "metrics": {
+    "input_points": 90,
+    "output_points": 78,
+    "retention_ratio": 0.8666666666666667,
+    "voxel_spacing": 1.0,
+    "classes": {
+      "ground": 9,
+      "slope_surface": 42,
+      "high_feature": 27
+    },
+    "bounds": [
+      0.0,
+      0.0,
+      0.15,
+      15.0,
+      9.0,
+      9.6
+    ]
+  },
+  "parameters": {
+    "thinning_ratio": 1.0,
+    "resampling_spacing": 1.0,
+    "classification_rule": "高程分位分类",
+    "output_format": "PLY"
+  },
+  "issues": [],
+  "issue_count": 0
+}

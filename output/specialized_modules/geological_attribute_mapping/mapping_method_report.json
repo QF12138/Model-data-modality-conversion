@@ -1,0 +1,27 @@
+{
+  "metrics": {
+    "sample_count": 24,
+    "model_units": 9,
+    "mapped_values": 63,
+    "unmapped_values": 0,
+    "coverage_ratio": 1.0,
+    "method_counts": {
+      "nearest": 18,
+      "idw_power_2": 45
+    }
+  },
+  "parameters": {
+    "fields": [
+      "lithology",
+      "permeability",
+      "density",
+      "elastic_modulus",
+      "cohesion",
+      "friction_angle",
+      "water_state"
+    ],
+    "method": "IDW",
+    "search_radius": 100.0
+  },
+  "issues": []
+}

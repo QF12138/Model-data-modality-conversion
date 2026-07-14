@@ -1,0 +1,15 @@
+{
+  "source_crs": "EPSG:4326",
+  "target_crs": "EPSG:3857",
+  "source_unit": "m",
+  "target_unit": "m",
+  "vertical_offset": 0.35,
+  "affine": {
+    "scale_x": 1.0002,
+    "scale_y": 0.9998,
+    "offset_x": 12956580.25,
+    "offset_y": 4852500.75,
+    "rotation_deg": 0.018
+  },
+  "vertical_datum_note": "示例偏移用于验证高程基准统一流程"
+}

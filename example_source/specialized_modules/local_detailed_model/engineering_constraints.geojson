@@ -1,0 +1,9 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"constraint":"fault_core","priority":1},"geometry":{"type":"LineString","coordinates":[[8,8,-1],[15,15,-2],[22,22,-1]]}},
+    {"type":"Feature","properties":{"constraint":"tunnel_axis","priority":1},"geometry":{"type":"LineString","coordinates":[[6,11,-2],[15,11,-2],[24,11,-2]]}},
+    {"type":"Feature","properties":{"constraint":"slope_break","priority":2},"geometry":{"type":"LineString","coordinates":[[8,19,0],[15,20,-1],[22,18,0]]}},
+    {"type":"Feature","properties":{"constraint":"monitoring_zone","priority":3},"geometry":{"type":"Polygon","coordinates":[[[10,10,0],[20,10,0],[20,20,0],[10,20,0],[10,10,0]]]}}
+  ]
+}

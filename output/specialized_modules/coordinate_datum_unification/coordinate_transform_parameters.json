@@ -1,0 +1,35 @@
+{
+  "target_crs": "EPSG:3857",
+  "target_vertical_datum": "1985 国家高程基准",
+  "target_unit": "m",
+  "tolerance": 0.01,
+  "transformations": [
+    {
+      "source": "control_checkpoints.csv",
+      "output": "control_checkpoints_unified.csv",
+      "method": "geographic_to_web_mercator",
+      "source_crs": "EPSG:4326",
+      "target_crs": "EPSG:3857",
+      "vertical_offset": 0.35,
+      "unit_factor": 1.0
+    },
+    {
+      "source": "local_engineering_control.csv",
+      "output": "local_engineering_control_unified.csv",
+      "method": "geographic_to_web_mercator",
+      "source_crs": "EPSG:4326",
+      "target_crs": "EPSG:3857",
+      "vertical_offset": 0.35,
+      "unit_factor": 1.0
+    },
+    {
+      "source": "survey_points.csv",
+      "output": "survey_points_unified.csv",
+      "method": "geographic_to_web_mercator",
+      "source_crs": "EPSG:4326",
+      "target_crs": "EPSG:3857",
+      "vertical_offset": 0.35,
+      "unit_factor": 1.0
+    }
+  ]
+}

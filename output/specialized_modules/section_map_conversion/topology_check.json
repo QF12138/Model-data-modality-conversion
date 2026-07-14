@@ -1,0 +1,10 @@
+{
+  "rule": "严格检查",
+  "passed": true,
+  "metrics": {
+    "near_duplicate_vertices": 0,
+    "open_rings": 0,
+    "invalid_short_parts": 0
+  },
+  "issues": []
+}

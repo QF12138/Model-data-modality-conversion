@@ -1,0 +1,8 @@
+{
+  "source_segments": 13,
+  "reconstructed_parts": 6,
+  "joined_gaps": 7,
+  "anomaly_endpoints": 4,
+  "length_change_ratio": 0.008089740374295884,
+  "continuity_rate": 1.0
+}

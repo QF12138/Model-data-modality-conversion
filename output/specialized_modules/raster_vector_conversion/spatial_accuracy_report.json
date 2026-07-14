@@ -1,0 +1,32 @@
+{
+  "resolution": 10.0,
+  "boundary_threshold": 1.0,
+  "attribute_field": "value",
+  "metrics": {
+    "raster_to_vector_files": 2,
+    "vector_to_raster_files": 1,
+    "dem_slope_classes.asc": {
+      "raster_rows": 8,
+      "raster_columns": 10,
+      "active_cells": 75,
+      "vector_components": 1,
+      "cellsize": 10.0
+    },
+    "geology_polygons.geojson": {
+      "vector_features": 5,
+      "raster_rows": 12,
+      "raster_columns": 14,
+      "populated_cells": 98,
+      "resolution": 10.0,
+      "coverage_ratio": 0.5833333333333334
+    },
+    "hazard_index.asc": {
+      "raster_rows": 10,
+      "raster_columns": 12,
+      "active_cells": 76,
+      "vector_components": 1,
+      "cellsize": 10.0
+    }
+  },
+  "issues": []
+}

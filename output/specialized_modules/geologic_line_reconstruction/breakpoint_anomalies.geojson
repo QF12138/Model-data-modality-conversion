@@ -1,0 +1,73 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "boundary_id": "C3",
+        "endpoint": "start",
+        "nearest_distance": 31.953090617340916,
+        "reason": "超过连接容差"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10,
+          75,
+          25
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundary_id": "C3",
+        "endpoint": "end",
+        "nearest_distance": 5.916079783099616,
+        "reason": "超过连接容差"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          34,
+          66,
+          20
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundary_id": "C3",
+        "endpoint": "start",
+        "nearest_distance": 5.916079783099616,
+        "reason": "超过连接容差"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          39,
+          63,
+          19
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundary_id": "C3",
+        "endpoint": "end",
+        "nearest_distance": 30.870698080866262,
+        "reason": "超过连接容差"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          62,
+          54,
+          15
+        ]
+      }
+    }
+  ]
+}

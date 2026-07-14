@@ -1,0 +1,41 @@
+{
+  "module": "剖面与平面图转换模块",
+  "status": "完成",
+  "score": 100,
+  "grade": "优秀",
+  "file_count": 3,
+  "output_count": 2,
+  "outputs": [
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\section_map_conversion\\section_map_positioned.geojson",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\section_map_conversion\\topology_check.json"
+  ],
+  "artifacts": [
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\section_map_conversion\\section_map_positioned.geojson",
+      "name": "section_map_positioned.geojson",
+      "sha256": "1906de0acaea794703a8d794df81931cd6e6ebdef3f5b0018bb85a27eb3a50fd",
+      "size_bytes": 10031
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\section_map_conversion\\topology_check.json",
+      "name": "topology_check.json",
+      "sha256": "986994d452cdbe92b24a25458b385ad1b4e2e32a81115ab420e8abe4d516945a",
+      "size_bytes": 167
+    }
+  ],
+  "metrics": {
+    "source_records": 32,
+    "output_features": 11,
+    "near_duplicate_vertices": 0,
+    "open_rings": 0,
+    "invalid_short_parts": 0
+  },
+  "parameters": {
+    "vector_tolerance": 0.01,
+    "topology_rule": "严格检查",
+    "positioning": "控制点/基线定位",
+    "layer_mapping": "自动"
+  },
+  "issues": [],
+  "issue_count": 0
+}

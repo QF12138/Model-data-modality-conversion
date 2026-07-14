@@ -51,6 +51,8 @@ from function.model_format_conversion import (
     convert_model_files,
     infer_target_platform,
 )
+from function.specialized_modules import MODULE_SLUGS, example_directory, run_specialized_module
+from function.specialized_workbenches import SpecializedWorkbenchMixin
 from function.obj_renderer import ObjModel, RenderState, load_models, transform_vertices, collect_face_depths, face_visible, project_ortho, parse_obj
 from function.obj_renderer import rotate_x as _rot_x, rotate_y as _rot_y
 
@@ -470,7 +472,7 @@ class BackendClient:
         )
 
 
-class GeoConversionApp(tk.Tk):
+class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
     """仿照“预测结果汇总研判”界面重新设计的 Tkinter 前端。"""
 
     BG = "#eef2f1"
@@ -1032,6 +1034,10 @@ class GeoConversionApp(tk.Tk):
             self._render_format_conversion_page()
             self._refresh_content_scrollregion()
             return
+        if self._is_specialized_module() and self.current_page == "工作台":
+            self._render_specialized_workbench()
+            self._refresh_content_scrollregion()
+            return
 
         renderers = {
             "工作台": self._render_dashboard_page,
@@ -1125,6 +1131,10 @@ class GeoConversionApp(tk.Tk):
         source_actions = tk.Frame(source_card, bg=self.PANEL)
         source_actions.grid(row=3, column=0, sticky="ew", padx=12, pady=11)
         ttk.Button(source_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
+        if self._is_specialized_module():
+            ttk.Button(source_actions, text="加载示例", style="Blue.TButton", command=self._load_specialized_sample_data).pack(
+                side="left", padx=(7, 0)
+            )
         ttk.Button(source_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         # 中：与模块匹配的转换流程图和运行状态。
@@ -3815,10 +3825,36 @@ class GeoConversionApp(tk.Tk):
 
     def _parameter_defaults(self) -> dict[str, str]:
         return {
-            "目标坐标系": "CGCS2000 / 工程坐标系",
+            "目标坐标系": "EPSG:3857",
             "目标高程基准": "1985 国家高程基准",
-            "单位体系": "m / kN / MPa",
-            "转换精度": "工程级",
+            "单位体系": "m",
+            "转换精度": "0.01",
+            "矢量化精度": "0.01",
+            "空间定位方式": "控制点/基线定位",
+            "图层映射": "自动",
+            "重建算法": "端点匹配+Chaikin 平滑",
+            "平滑参数": "1",
+            "连接容差": "1.0",
+            "边界约束": "保持地质类型与接触关系",
+            "转换方向": "自动双向",
+            "分辨率": "10",
+            "边界提取阈值": "1",
+            "属性映射规则": "value",
+            "抽稀比例": "100%",
+            "重采样间距": "1",
+            "分类规则": "配置规则优先/高程分位回退",
+            "映射字段": "lithology,permeability,density,elastic_modulus,cohesion,friction_angle,water_state",
+            "插值方法": "IDW",
+            "搜索半径": "100",
+            "追溯标识": "自动生成",
+            "目标尺度": "工程尺度",
+            "抽稀策略": "顶点聚类 2.0",
+            "加密规则": "按目标尺度自动",
+            "精度保留策略": "边界优先",
+            "加密级别": "1",
+            "局部边界": "ROI 配置文件",
+            "细化方法": "三角形中点细分",
+            "过渡区策略": "1 环过渡",
             "目标格式": "OBJ",
             "坐标输出规则": "保留源坐标",
             "属性保留规则": "全部保留",
@@ -4961,21 +4997,44 @@ class GeoConversionApp(tk.Tk):
         self._render_progress_strip()
         self._render_current_page()
 
+    def _load_specialized_sample_data(self) -> None:
+        """Load only the self-contained examples for the active required module."""
+        if not self._is_specialized_module():
+            self.status_var.set("当前模块没有专业示例目录")
+            return
+        source_dir = example_directory(Path(__file__).resolve().parent, self.active_module.name)
+        supported = {".csv", ".json", ".geojson", ".asc", ".grd", ".ply", ".obj"}
+        sample_files = sorted(
+            str(path.resolve()) for path in source_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in supported
+        ) if source_dir.exists() else []
+        self.selected_files = sample_files
+        self.quality_report = None
+        self.conversion_report = None
+        self.run_completed = False
+        self.run_status_var.set("示例数据已加载" if sample_files else "未找到示例数据")
+        self.status_var.set(f"已加载 {len(sample_files)} 个{self.active_module.name}示例文件")
+        self._append_log(f"已加载 {source_dir} 中的独立可复现示例数据。")
+        self._render_progress_strip()
+        self._render_current_page()
+
     def _clear_files(self) -> None:
         if self._is_version_module():
             self._clear_version_files()
             return
-        if not self.selected_files:
-            self.status_var.set("当前没有已加载的数据")
-            return
         count = len(self.selected_files)
-        self.selected_files.clear()
+        self.selected_files = []
         self.run_completed = False
         self.quality_report = None
         self.conversion_report = None
+        self.version_report = None
+        self.task_payload_text = "任务状态：待配置\n\n请添加数据或加载示例后执行处理。\n"
+        if hasattr(self, "_3d_models"):
+            self._3d_models = []
         self.run_status_var.set("待处理")
-        self._append_log(f"已清空 {count} 个数据文件。")
-        self.status_var.set("数据列表已清空")
+        message = f"已清空 {count} 个数据文件，报告与预览已重置。" if count else "当前模块已重置为空白状态。"
+        self._append_log(message)
+        self.status_var.set(message)
         self._render_progress_strip()
         self._render_current_page()
 
@@ -5019,6 +5078,8 @@ class GeoConversionApp(tk.Tk):
             self._run_model_quality_check()
         elif self._is_format_conversion_module():
             self._run_format_conversion()
+        elif self._is_specialized_module():
+            self._run_specialized_module()
         else:
             self.run_completed = True
             self.run_status_var.set("处理完成")
@@ -5168,6 +5229,76 @@ class GeoConversionApp(tk.Tk):
 
     def _is_format_conversion_module(self) -> bool:
         return self.active_module.name == "模型格式转换与输出模块"
+
+    def _is_specialized_module(self) -> bool:
+        return self.active_module.name in MODULE_SLUGS
+
+    def _run_specialized_module(self) -> None:
+        """Execute one of the eight document-required modules with real file outputs."""
+        self._apply_params()
+        if not self.selected_files:
+            self.run_completed = False
+            self.run_status_var.set("缺少输入数据")
+            self.status_var.set("请先添加数据或加载当前模块示例")
+            return
+        output_root = Path(self.param_values.get("成果目录") or (Path(__file__).resolve().parent / "output" / "specialized_modules"))
+        self._append_log(f"开始执行 {self.active_module.name}，成果目录：{output_root}")
+        try:
+            report = run_specialized_module(
+                self.active_module.name,
+                list(self.selected_files),
+                output_root,
+                dict(self.param_values),
+            )
+        except (OSError, ValueError, TypeError) as exc:
+            self.quality_report = {
+                "module": self.active_module.name,
+                "status": "失败",
+                "score": 0,
+                "grade": "需复核",
+                "outputs": [],
+                "issues": [{"severity": "严重", "code": "MODULE_EXECUTION_FAILED", "file": "全部", "message": str(exc)}],
+            }
+            self.run_completed = False
+            self.run_status_var.set("执行失败")
+            self.status_var.set(f"{self.active_module.name}执行失败：{exc}")
+            self._append_log(f"执行失败：{exc}")
+            self._render_progress_strip()
+            self._render_current_page()
+            return
+        self.quality_report = report
+        self.run_completed = bool(report.get("outputs")) and not any(
+            item.get("severity") == "严重" for item in report.get("issues", []) if isinstance(item, dict)
+        )
+        self.run_status_var.set(str(report.get("status", "完成")))
+        self.status_var.set(
+            f"{self.active_module.name}{report.get('status', '完成')}："
+            f"输出 {report.get('output_count', len(report.get('outputs', [])))} 项，质量 {report.get('score', 0)} 分"
+        )
+        self.task_payload_text = json.dumps(
+            {
+                "task": MODULE_SLUGS[self.active_module.name],
+                "project": self.project_var.get(),
+                "module": self.active_module.name,
+                "input_files": self.selected_files,
+                "parameters": self.param_values,
+                "result": report,
+                "mysql_tables": list(self.active_module.mysql_tables),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        for artifact in report.get("artifacts", []):
+            if isinstance(artifact, dict):
+                self._append_log(
+                    f"成果：{artifact.get('name', '')} · {artifact.get('size_bytes', 0)} bytes · "
+                    f"SHA-256={str(artifact.get('sha256', ''))[:12]}"
+                )
+        for issue in report.get("issues", []):
+            if isinstance(issue, dict):
+                self._append_log(f"[{issue.get('severity', '')}] {issue.get('code', '')}：{issue.get('message', '')}")
+        self._render_progress_strip()
+        self._render_current_page()
 
     def _run_format_conversion(self) -> None:
         self.param_values.update(
@@ -6266,6 +6397,32 @@ li {{ margin: 6px 0; }}
         param_rows = "".join(f"<tr><td>{escape(key)}</td><td>{escape(value)}</td></tr>" for key, value in self.param_values.items())
         if not param_rows:
             param_rows = "<tr><td colspan='2'>未配置参数</td></tr>"
+        report = self.quality_report or {}
+        artifact_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('name', Path(str(item.get('path', ''))).name)))}</td>"
+            f"<td>{escape(str(item.get('path', '')))}</td>"
+            f"<td>{escape(str(item.get('size_bytes', '-')))}</td>"
+            f"<td>{escape(str(item.get('sha256', '-')))}</td>"
+            "</tr>"
+            for item in report.get("artifacts", []) if isinstance(item, dict)
+        ) or "<tr><td colspan='4'>尚未生成实际成果</td></tr>"
+        issue_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(item.get('severity', '')))}</td>"
+            f"<td>{escape(str(item.get('code', '')))}</td>"
+            f"<td>{escape(str(item.get('file', '')))}</td>"
+            f"<td>{escape(str(item.get('message', '')))}</td>"
+            "</tr>"
+            for item in report.get("issues", []) if isinstance(item, dict)
+        ) or "<tr><td colspan='4'>未发现异常</td></tr>"
+        metrics_text = escape(json.dumps(report.get("metrics", {}), ensure_ascii=False, indent=2))
+        execution_note = (
+            f"<p class='ok'>本模块已执行真实算法，质量评分 {escape(str(report.get('score', 0)))} 分 / "
+            f"{escape(str(report.get('grade', '-')))}，转换参数、校验和和成果路径已写入清单。</p>"
+            if self._is_specialized_module() and report
+            else "<p class='warn'>当前尚未执行专业算法或未生成结果，请先加载数据并执行转换。</p>"
+        )
         body = f"""
   <div class="section">
     <h2>一、分析概况</h2>
@@ -6289,7 +6446,13 @@ li {{ margin: 6px 0; }}
   <div class="section">
     <h2>五、成果与建议</h2>
     <ul>{''.join(f'<li>{escape(output)}</li>' for output in self.active_module.outputs)}</ul>
-    <p class="warn">说明：当前模块的后端算法仍按接口占位接入，报告用于前端交付样式和任务记录展示。</p>
+    {execution_note}
+    <table><thead><tr><th>实际成果</th><th>路径</th><th>字节</th><th>SHA-256</th></tr></thead><tbody>{artifact_rows}</tbody></table>
+  </div>
+  <div class="section">
+    <h2>六、质量指标与异常</h2>
+    <pre>{metrics_text}</pre>
+    <table><thead><tr><th>级别</th><th>问题码</th><th>文件</th><th>说明</th></tr></thead><tbody>{issue_rows}</tbody></table>
   </div>
 """
         subtitle = f"{APP_TITLE} | V1.0 | 导出时间：{exported}"

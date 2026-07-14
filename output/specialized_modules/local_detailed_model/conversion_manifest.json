@@ -1,0 +1,107 @@
+{
+  "module": "局部精细模型构建模块",
+  "status": "完成",
+  "score": 100,
+  "grade": "优秀",
+  "file_count": 4,
+  "output_count": 3,
+  "outputs": [
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\local_detailed_model\\base_engineering_model_local_detail.obj",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\local_detailed_model\\tunnel_portal_local_detail.obj",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\local_detailed_model\\local_detail_quality.json"
+  ],
+  "artifacts": [
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\local_detailed_model\\base_engineering_model_local_detail.obj",
+      "name": "base_engineering_model_local_detail.obj",
+      "sha256": "eb1ce0d2c66b8f17c6f001559ca7d3fcad6db46a96c3b5f28889e6379a6defaa",
+      "size_bytes": 1281
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\local_detailed_model\\tunnel_portal_local_detail.obj",
+      "name": "tunnel_portal_local_detail.obj",
+      "sha256": "c296a49be8f87fd1442dae62e090a958a9e9cf2f37e601d0c4e50d2be932a210",
+      "size_bytes": 1271
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\local_detailed_model\\local_detail_quality.json",
+      "name": "local_detail_quality.json",
+      "sha256": "f224f38d37548fdb26aaeccf84c35ea2e541c91f0dc1349a4065bf8015a4656e",
+      "size_bytes": 1857
+    }
+  ],
+  "metrics": {
+    "model_count": 2,
+    "models": [
+      {
+        "source": "base_engineering_model.obj",
+        "output": "base_engineering_model_local_detail.obj",
+        "roi_bbox": [
+          8.0,
+          8.0,
+          -5.0,
+          22.0,
+          22.0,
+          2.0
+        ],
+        "refinement_levels": 1,
+        "transition_rings": 1,
+        "selected_base_faces": 16,
+        "source_vertices": 16,
+        "source_faces": 18,
+        "output_vertices": 45,
+        "output_faces": 66,
+        "face_growth_ratio": 3.6666666666666665,
+        "degenerate_faces": 0,
+        "boundary_edges": 26,
+        "non_manifold_edges": 0,
+        "min_edge_length": 5.0,
+        "max_edge_length": 14.142135623730951,
+        "mean_edge_length": 5.885976254314492
+      },
+      {
+        "source": "tunnel_portal.obj",
+        "output": "tunnel_portal_local_detail.obj",
+        "roi_bbox": [
+          8.0,
+          8.0,
+          -5.0,
+          22.0,
+          22.0,
+          2.0
+        ],
+        "refinement_levels": 1,
+        "transition_rings": 1,
+        "selected_base_faces": 18,
+        "source_vertices": 12,
+        "source_faces": 18,
+        "output_vertices": 41,
+        "output_faces": 72,
+        "face_growth_ratio": 4.0,
+        "degenerate_faces": 0,
+        "boundary_edges": 8,
+        "non_manifold_edges": 0,
+        "min_edge_length": 1.4142135623730951,
+        "max_edge_length": 4.47213595499958,
+        "mean_edge_length": 2.52999786443086
+      }
+    ],
+    "constraint_features": 4,
+    "constraint_types": {
+      "fault_core": 1,
+      "tunnel_axis": 1,
+      "slope_break": 1,
+      "monitoring_zone": 1
+    },
+    "total_source_faces": 36,
+    "total_output_faces": 138
+  },
+  "parameters": {
+    "refinement_level": 1,
+    "local_boundary": "ROI 配置文件",
+    "refinement_method": "三角形中点细分",
+    "transition_strategy": "1 环过渡"
+  },
+  "issues": [],
+  "issue_count": 0
+}
