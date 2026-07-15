@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\batch_conversion_examples\\04_template_mapping\\classified_points.csv",
+  "primary_artifact": "classified_points_converted.obj",
+  "source_summary": {
+    "vertex_count": 4,
+    "face_count": 0,
+    "triangle_count": 0,
+    "line_count": 0,
+    "vertex_property_count": 4,
+    "face_property_count": 0,
+    "attribute_fields": [
+      "分类",
+      "回波序号",
+      "回波总数",
+      "强度",
+      "红",
+      "绿",
+      "蓝"
+    ],
+    "bounds": {
+      "min": [
+        500000.1234567,
+        3400000.7654321,
+        102.3456789
+      ],
+      "max": [
+        500003.4234567,
+        3400003.4654321,
+        103.7456789
+      ]
+    }
+  },
+  "coordinate_transform": {
+    "rule": "保留源坐标",
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "metadata": {
+    "source_format": "CSV"
+  },
+  "lines": [],
+  "faces": [],
+  "vertex_properties": [
+    {
+      "强度": 1280,
+      "分类": 2,
+      "回波序号": 1,
+      "回波总数": 1,
+      "红": 42000,
+      "绿": 36000,
+      "蓝": 31000
+    },
+    {
+      "强度": 980,
+      "分类": 6,
+      "回波序号": 1,
+      "回波总数": 2,
+      "红": 32000,
+      "绿": 28000,
+      "蓝": 25000
+    },
+    {
+      "强度": 1620,
+      "分类": 9,
+      "回波序号": 2,
+      "回波总数": 2,
+      "红": 18000,
+      "绿": 26000,
+      "蓝": 42000
+    },
+    {
+      "强度": 760,
+      "分类": 5,
+      "回波序号": 1,
+      "回波总数": 1,
+      "红": 12000,
+      "绿": 34000,
+      "蓝": 15000
+    }
+  ],
+  "face_properties": []
+}

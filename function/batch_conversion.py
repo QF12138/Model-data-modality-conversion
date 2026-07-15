@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import csv
+import hashlib
+import json
 import time
 import threading
+import uuid
 from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
@@ -17,6 +21,14 @@ except Exception:  # pragma: no cover - 兼容直接运行或模块尚未放入�
         from model_format_conversion import convert_model_files as _convert_model_files  # type: ignore
     except Exception:
         _convert_model_files = None
+
+try:
+    from .rule_template_library import apply_template_to_data, get_template, template_fingerprint
+except Exception:  # pragma: no cover - 兼容直接运行
+    try:
+        from rule_template_library import apply_template_to_data, get_template, template_fingerprint  # type: ignore
+    except Exception:
+        apply_template_to_data = get_template = template_fingerprint = None
 
 
 # ============================================================================
@@ -417,7 +429,7 @@ def _execute_batch_run(job: BatchJob) -> dict[str, Any]:
         if not job.total:
             errors.append({"file": "", "message": "批次中没有可执行文件。", "retries": "0"})
             _append_log(logs, job, "ERROR", "批次中没有可执行文件。")
-        return {
+        result = {
             "status": status,
             "processed": 0,
             "success": 0,
@@ -430,13 +442,16 @@ def _execute_batch_run(job: BatchJob) -> dict[str, Any]:
             "artifacts": artifacts,
             "workflow": _finish_workflow(workflow, status),
         }
+        manifest_path = _write_batch_manifest(job, result)
+        result["outputs"] = [manifest_path]
+        return result
 
     if _convert_model_files is None:
         message = "未找到 function/model_format_conversion.py，无法执行真实格式转换。"
         for _, item in selected:
             errors.append({"file": item.name, "message": message, "retries": "0"})
             _append_log(logs, job, "ERROR", message, item.name)
-        return {
+        result = {
             "status": "已失败",
             "processed": len(selected),
             "success": 0,
@@ -449,6 +464,26 @@ def _execute_batch_run(job: BatchJob) -> dict[str, Any]:
             "artifacts": artifacts,
             "workflow": _finish_workflow(workflow, "已失败"),
         }
+        manifest_path = _write_batch_manifest(job, result)
+        result["outputs"] = [manifest_path]
+        return result
+
+    if job.config.template_name:
+        template = get_template(job.config.template_name) if get_template else None
+        if template is None:
+            message = f"规则模板不存在：{job.config.template_name}"
+            for _, item in selected:
+                errors.append({"file": item.name, "message": message, "retries": "0"})
+                _append_log(logs, job, "ERROR", message, item.name)
+            result = {
+                "status": "已失败", "processed": len(selected), "success": 0,
+                "failed": len(selected), "skipped": skipped_unselected, "retried": 0,
+                "outputs": [], "errors": errors, "logs": logs, "artifacts": [],
+                "workflow": _finish_workflow(workflow, "已失败", template_stats={"failed": len(selected)}),
+            }
+            manifest_path = _write_batch_manifest(job, result)
+            result["outputs"] = [manifest_path]
+            return result
 
     stop_event = threading.Event()
     max_workers = job.config.concurrency
@@ -514,7 +549,8 @@ def _execute_batch_run(job: BatchJob) -> dict[str, Any]:
     elapsed = time.perf_counter() - started
     _append_log(logs, job, "INFO", f"批次执行结束，耗时 {elapsed:.2f} 秒。")
 
-    return {
+    template_stats = _template_stats(artifacts)
+    result = {
         "status": status,
         "processed": processed,
         "success": success,
@@ -525,8 +561,11 @@ def _execute_batch_run(job: BatchJob) -> dict[str, Any]:
         "errors": errors,
         "logs": sorted(logs, key=lambda item: item.get("timestamp", "")),
         "artifacts": artifacts,
-        "workflow": _finish_workflow(workflow, status),
+        "workflow": _finish_workflow(workflow, status, template_stats=template_stats),
     }
+    manifest_path = _write_batch_manifest(job, result)
+    result["outputs"] = _deduplicate([*result["outputs"], manifest_path])
+    return result
 
 
 def _convert_one_file(
@@ -547,6 +586,25 @@ def _convert_one_file(
     output_root = Path(job.config.output_dir or "output").expanduser() / job.job_id
     file_output_dir = output_root / f"{sequence:03d}_{_safe_stem(source.stem)}"
     file_output_dir.mkdir(parents=True, exist_ok=True)
+
+    conversion_source = source
+    template_application = _apply_batch_template(job.config.template_name, source, file_output_dir)
+    if template_application["status"] == "failed":
+        message = str(template_application.get("message") or "规则模板应用失败。")
+        artifact = {
+            "source": str(source.resolve()), "status": "失败", "message": message,
+            "template_application": template_application,
+        }
+        _append_log(local_logs, job, "ERROR", message, file_entry.name)
+        return {
+            "state": "failed", "retries": 0, "outputs": _template_outputs(template_application),
+            "artifacts": [artifact], "logs": local_logs, "error": message,
+        }
+    if template_application["status"] == "applied":
+        conversion_source = Path(str(template_application["mapped_file"]))
+        _append_log(local_logs, job, "INFO", f"已应用模板“{job.config.template_name}”并生成映射中间文件。", file_entry.name)
+    elif job.config.template_name:
+        _append_log(local_logs, job, "INFO", str(template_application.get("message", "模板不适用，已保留原文件。")), file_entry.name)
 
     retries_done = 0
     last_error = "转换失败。"
@@ -572,7 +630,7 @@ def _convert_one_file(
         )
         try:
             report = _convert_model_files(
-                [str(source)],
+                [str(conversion_source)],
                 file_output_dir,
                 job.config.target_format,
                 coordinate_rule=job.config.coordinate_rule,
@@ -588,7 +646,11 @@ def _convert_one_file(
             }
 
         last_artifacts = [item for item in report.get("artifacts", []) if isinstance(item, dict)]
-        last_outputs = _extract_outputs(report)
+        for artifact in last_artifacts:
+            artifact["batch_source"] = str(source.resolve())
+            artifact["conversion_source"] = str(conversion_source.resolve())
+            artifact["template_application"] = template_application
+        last_outputs = _deduplicate([*_template_outputs(template_application), *_extract_outputs(report)])
         success_count = int(report.get("success_count", 0) or 0)
         failure_count = int(report.get("failure_count", 0) or 0)
 
@@ -630,7 +692,7 @@ def _convert_one_file(
                 "logs": local_logs,
                 "error": last_error,
             }
-        if attempt >= job.retry_policy.max_retries or not _is_retryable(last_error):
+        if attempt >= job.retry_policy.max_retries or not _is_retryable(last_error, job.retry_policy):
             break
 
         retries_done += 1
@@ -662,10 +724,100 @@ def _extract_outputs(report: dict[str, Any]) -> list[str]:
             value = artifact.get("output") or artifact.get("output_file")
             if value:
                 outputs.append(str(value))
+            for sidecar in artifact.get("sidecar_files", []) or []:
+                outputs.append(str(sidecar))
     manifest = report.get("manifest_path")
     if manifest:
         outputs.append(str(manifest))
     return _deduplicate(outputs)
+
+
+def _apply_batch_template(template_name: str, source: Path, output_dir: Path) -> dict[str, Any]:
+    """在格式转换前执行可审计的字段映射。
+
+    表格数据生成标准 CSV；GeoJSON 保留几何并只映射 properties。
+    网格/IFC 不强行表格化，但会在审计信息中明确记录 skipped。
+    """
+    base = {
+        "template": template_name, "status": "not_requested" if not template_name else "pending",
+        "source": str(source.resolve()), "mapped_file": "", "warnings": [], "errors": [],
+    }
+    if not template_name:
+        return base
+    if not (get_template and apply_template_to_data and template_fingerprint):
+        return {**base, "status": "failed", "message": "规则模板模块不可用。", "errors": ["规则模板模块不可用。"]}
+    template = get_template(template_name)
+    if template is None:
+        return {**base, "status": "failed", "message": f"规则模板不存在：{template_name}", "errors": ["模板不存在。"]}
+
+    suffix = source.suffix.lower()
+    source_format = {".csv": "CSV", ".txt": "TXT", ".json": "JSON", ".geojson": "GEOJSON"}.get(suffix, suffix.lstrip(".").upper())
+    allowed = {str(item).upper() for item in template.input_formats}
+    if suffix not in {".csv", ".txt", ".json", ".geojson"} or (allowed and source_format not in allowed):
+        return {
+            **base, "status": "skipped", "template_version": template.version,
+            "template_fingerprint": template_fingerprint(template),
+            "message": f"模板不适用于 {source_format} 文件，已保留原数据进行转换。",
+        }
+
+    try:
+        geometry_payload: dict[str, Any] | None = None
+        if suffix in {".json", ".geojson"}:
+            payload = json.loads(source.read_text(encoding="utf-8-sig"))
+            if isinstance(payload, dict) and isinstance(payload.get("features"), list):
+                geometry_payload = payload
+                rows = [dict(item.get("properties") or {}) for item in payload["features"] if isinstance(item, dict)]
+            elif isinstance(payload, list):
+                rows = [dict(item) for item in payload if isinstance(item, dict)]
+            elif isinstance(payload, dict):
+                rows = [payload]
+            else:
+                raise ValueError("JSON 顶层必须是对象、对象数组或 FeatureCollection。")
+        else:
+            delimiter = "\t" if suffix == ".txt" else ","
+            with source.open("r", encoding="utf-8-sig", newline="") as handle:
+                rows = list(csv.DictReader(handle, delimiter=delimiter))
+        mapped = apply_template_to_data(template_name, rows)
+        errors = [str(item) for item in mapped.get("errors", [])]
+        warnings = [str(item) for item in mapped.get("warnings", [])]
+        if errors:
+            return {
+                **base, "status": "failed", "template_version": template.version,
+                "template_fingerprint": template_fingerprint(template), "errors": errors,
+                "warnings": warnings, "quality": mapped.get("quality", {}),
+                "message": "模板映射质量校验失败：" + "；".join(errors[:4]),
+            }
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if geometry_payload is not None:
+            mapped_file = output_dir / f"{_safe_stem(source.stem)}_template_mapped.geojson"
+            features = geometry_payload.get("features", [])
+            for index, props in enumerate(mapped.get("rows", [])):
+                if index < len(features) and isinstance(features[index], dict):
+                    features[index]["properties"] = props
+            _atomic_json(mapped_file, geometry_payload)
+        else:
+            mapped_file = output_dir / f"{_safe_stem(source.stem)}_template_mapped.csv"
+            _atomic_csv(mapped_file, list(mapped.get("rows", [])))
+        return {
+            **base, "status": "applied", "template_version": template.version,
+            "template_fingerprint": template_fingerprint(template), "mapped_file": str(mapped_file.resolve()),
+            "mapped_sha256": _sha256(mapped_file), "source_sha256": _sha256(source),
+            "row_count": len(mapped.get("rows", [])), "fields_mapped": mapped.get("fields_mapped", []),
+            "warnings": warnings, "errors": [], "quality": mapped.get("quality", {}),
+            "message": f"已映射 {len(mapped.get('rows', []))} 条记录。",
+        }
+    except Exception as exc:
+        return {
+            **base, "status": "failed", "template_version": template.version,
+            "template_fingerprint": template_fingerprint(template), "errors": [str(exc)],
+            "message": f"模板映射异常：{exc}",
+        }
+
+
+def _template_outputs(application: dict[str, Any]) -> list[str]:
+    mapped = application.get("mapped_file")
+    return [str(mapped)] if mapped else []
 
 
 def _report_error_text(report: dict[str, Any]) -> str:
@@ -681,10 +833,13 @@ def _report_error_text(report: dict[str, Any]) -> str:
     return "；".join(messages[:4]) or str(report.get("status", "转换失败。"))
 
 
-def _is_retryable(message: str) -> bool:
+def _is_retryable(message: str, policy: RetryPolicy | None = None) -> bool:
     text = message.lower()
     non_retryable = ("不支持的目标格式", "当前未内置该源格式", "源文件不存在", "未选择待转换文件")
-    return not any(token.lower() in text for token in non_retryable)
+    if any(token.lower() in text for token in non_retryable):
+        return False
+    keywords = (policy.retryable_errors if policy else RetryPolicy().retryable_errors)
+    return any(str(token).lower() in text for token in keywords)
 
 
 # ============================================================================
@@ -729,6 +884,8 @@ def build_batch_report(job_ids: list[str] | None = None) -> dict[str, Any]:
             "retry_policy": asdict(job.retry_policy),
             "outputs": list(job.outputs),
             "errors": list(job.errors),
+            "artifacts": list(job.artifacts),
+            "logs": [asdict(item) for item in job.logs],
             "workflow": list(job.workflow),
         })
 
@@ -740,6 +897,9 @@ def build_batch_report(job_ids: list[str] | None = None) -> dict[str, Any]:
     attempted = total_success + total_failed
 
     return {
+        "schema_version": "2.0",
+        "report_type": "batch_conversion",
+        "report_id": f"BATCH-REPORT-{uuid.uuid4().hex[:12].upper()}",
         "generated_at": _ts(),
         "stats": manager.stats,
         "jobs": report_jobs,
@@ -852,13 +1012,58 @@ def size_fmt(size_bytes: int) -> str:
     return f"{size_bytes / 1024**3:.2f} GB"
 
 
-def _finish_workflow(workflow: list[dict[str, Any]], status: str) -> list[dict[str, Any]]:
+def _finish_workflow(
+    workflow: list[dict[str, Any]],
+    status: str,
+    template_stats: dict[str, int] | None = None,
+) -> list[dict[str, Any]]:
     final = []
     for step in workflow:
         item = dict(step)
         item["status"] = "completed" if status in ("已完成", "部分失败") else "failed"
+        if item.get("name") == WORKFLOW_STEPS[2] and template_stats is not None:
+            item["detail"] = (
+                f"模板已应用 {template_stats.get('applied', 0)} 个，"
+                f"不适用 {template_stats.get('skipped', 0)} 个，"
+                f"未请求 {template_stats.get('not_requested', 0)} 个，"
+                f"失败 {template_stats.get('failed', 0)} 个。"
+            )
         final.append(item)
     return final
+
+
+def _template_stats(artifacts: list[dict[str, Any]]) -> dict[str, int]:
+    stats = {"applied": 0, "skipped": 0, "not_requested": 0, "failed": 0}
+    for artifact in artifacts:
+        application = artifact.get("template_application", {}) if isinstance(artifact, dict) else {}
+        status = str(application.get("status", "not_requested"))
+        stats[status if status in stats else "failed"] += 1
+    return stats
+
+
+def _write_batch_manifest(job: BatchJob, result: dict[str, Any]) -> str:
+    output_root = Path(job.config.output_dir or "output").expanduser() / job.job_id
+    manifest_path = output_root / "batch_manifest.json"
+    payload = {
+        "schema_version": "2.0",
+        "manifest_type": "batch_conversion",
+        "job_id": job.job_id,
+        "generated_at": _ts(),
+        "name": job.name,
+        "status": result.get("status"),
+        "config": asdict(job.config),
+        "retry_policy": asdict(job.retry_policy),
+        "summary": {key: result.get(key, 0) for key in ("processed", "success", "failed", "skipped", "retried")},
+        "artifacts": result.get("artifacts", []),
+        "errors": result.get("errors", []),
+        "outputs": [
+            {"path": path, "sha256": _sha256(Path(path)) if Path(path).is_file() else ""}
+            for path in result.get("outputs", [])
+        ],
+        "workflow": result.get("workflow", []),
+    }
+    _atomic_json(manifest_path, payload)
+    return str(manifest_path.resolve())
 
 
 def _append_log(
@@ -874,6 +1079,36 @@ def _append_log(
 
 def _should_log(level: str, configured_level: str) -> bool:
     return _LOG_RANK.get(level, 1) >= _LOG_RANK.get(configured_level, 1)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _atomic_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(path)
+
+
+def _atomic_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    fields: list[str] = []
+    for row in rows:
+        for key in row:
+            if str(key) not in fields:
+                fields.append(str(key))
+    with temporary.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields or ["value"])
+        writer.writeheader()
+        writer.writerows(rows)
+    temporary.replace(path)
 
 
 def _safe_stem(value: str) -> str:

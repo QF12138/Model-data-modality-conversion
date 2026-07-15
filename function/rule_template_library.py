@@ -1484,6 +1484,8 @@ def build_template_report(
             "rule_count": rule_categories,
             "field_coverage": coverage,
             "tag_count": len(template.tags),
+            "fingerprint": template_fingerprint(template),
+            "validation": asdict(validate_template(template)),
         })
 
     matching.sort(key=lambda item: (item["score"], item["field_coverage"], item["version"]), reverse=True)
@@ -1533,6 +1535,8 @@ def _template_summary(template: RuleTemplate) -> dict[str, Any]:
         "attribute_rule_count": len(template.attribute_mappings),
         "author": template.author,
         "tags": template.tags,
+        "fingerprint": template_fingerprint(template),
+        "validation": asdict(validate_template(template)),
     }
 
 
@@ -1566,4 +1570,5 @@ __all__ = [
     "duplicate_template", "export_template", "export_template_library", "import_template",
     "load_template_directory", "apply_template_to_data", "apply_template_to_file",
     "analyze_input_files", "build_template_report", "get_example_files",
+    "audit_template_library", "template_fingerprint",
 ]
