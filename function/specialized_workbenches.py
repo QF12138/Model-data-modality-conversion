@@ -62,7 +62,7 @@ class SpecializedWorkbenchMixin:
     def _specialized_actions(self, parent: tk.Widget, execute_text: str, accent_style: str = "Blue.TButton") -> tk.Frame:
         bar = tk.Frame(parent, bg=self.PANEL)
         ttk.Button(bar, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
-        ttk.Button(bar, text="加载复杂示例", style="Tool.TButton", command=self._load_specialized_sample_data).pack(side="left", padx=(7, 0))
+        ttk.Button(bar, text="加载示例数据", style="Tool.TButton", command=self._load_specialized_sample_data).pack(side="left", padx=(7, 0))
         ttk.Button(bar, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
         ttk.Button(bar, text=execute_text, style=accent_style, command=self._run_stub).pack(side="right")
         return bar
@@ -201,7 +201,7 @@ class SpecializedWorkbenchMixin:
         body.grid(row=2, column=0, sticky="ew")
         body.columnconfigure(0, weight=36)
         body.columnconfigure(1, weight=64)
-        files = self._specialized_file_card(body, "多来源空间数据登记", "尚未加载坐标数据\n可添加 CSV、GeoJSON、OBJ 或加载复杂示例", 8)
+        files = self._specialized_file_card(body, "多来源空间数据登记", "尚未加载坐标数据\n可添加 CSV、GeoJSON、OBJ 或加载示例数据", 8)
         files.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         self._specialized_actions(files, "执行基准统一", "Blue.TButton").grid(row=3, column=0, sticky="ew", padx=12, pady=11)
         preview = self._specialized_canvas_card(body, "源参考系 → 目标参考系与残差视图", "coordinate", 300)
@@ -342,7 +342,7 @@ class SpecializedWorkbenchMixin:
         right = tk.Frame(work, bg=self.BG)
         right.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
         right.columnconfigure(0, weight=1)
-        files = self._specialized_file_card(right, "点云数据源", "点云视口为空\n添加 CSV/PLY 或加载复杂示例", 5)
+        files = self._specialized_file_card(right, "点云数据源", "点云视口为空\n添加 CSV/PLY 或加载示例数据", 5)
         files.grid(row=0, column=0, sticky="ew")
         pipeline = self._card(right)
         pipeline.grid(row=1, column=0, sticky="ew", pady=(8, 0))
@@ -509,7 +509,7 @@ class SpecializedWorkbenchMixin:
                 "local_detail": "局部网格视图为空\n等待基础模型与 ROI",
             }
             canvas.create_text(width / 2, height / 2 - 8, text=messages.get(kind, "视图为空"), fill="#81958f", font=(self.font_family, 10, "bold"), justify="center")
-            canvas.create_text(width / 2, height / 2 + 42, text="添加数据或加载复杂示例后显示", fill="#a4b3af", font=self.tiny_font)
+            canvas.create_text(width / 2, height / 2 + 42, text="添加数据或加载示例数据后显示", fill="#a4b3af", font=self.tiny_font)
             return
         if kind == "coordinate":
             self._draw_coordinate_preview(canvas, width, height)
