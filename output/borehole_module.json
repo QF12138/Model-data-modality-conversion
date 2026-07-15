@@ -1,0 +1,294 @@
+import pandas as pd
+import json
+from datetime import datetime
+
+
+# ======================================================
+# 岩性结构化
+# ======================================================
+def build_lithology(df):
+    lithology = []
+
+    for _, row in df.iterrows():
+        lithology.append({
+            "top": float(row["Top"]),
+            "bottom": float(row["Bottom"]),
+            "name": row["Lithology"]
+        })
+
+    return lithology
+
+
+# ======================================================
+# 地下水结构化
+# ======================================================
+def build_groundwater(record):
+
+    if record is None:
+        return {}
+
+    return {
+        "water_level": float(record["water_level"]),
+        "type": record["type"],
+        "flow_direction": record["flow_direction"],
+        "remark": record["remark"]
+    }
+
+
+# ======================================================
+# 工程指标结构化
+# ======================================================
+def build_engineering(record):
+
+    if record is None:
+        return {}
+
+    return {
+        "UCS": float(record["UCS"]),
+        "RQD": float(record["RQD"]),
+        "permeability": float(record["permeability"])
+    }
+
+
+# ======================================================
+# 建立统一Schema
+# ======================================================
+def build_schema(borehole, lithology, groundwater, engineering):
+
+    return {
+
+        "BH_ID": borehole["BH_ID"],
+
+        "location": {
+            "x": float(borehole["X"]),
+            "y": float(borehole["Y"]),
+            "z": float(borehole["Z"])
+        },
+
+        "lithology": lithology,
+
+        "groundwater": groundwater,
+
+        "engineering": engineering,
+
+        "created": datetime.now().isoformat()
+
+    }
+
+
+# ======================================================
+# 属性关联
+# ======================================================
+def merge_attribute(boreholes,
+                    lithology_df,
+                    groundwater_df,
+                    engineering_df):
+
+    result = []
+
+    for _, bh in boreholes.iterrows():
+
+        bhid = bh["BH_ID"]
+
+        # -----------------------
+        # 岩性
+        # -----------------------
+        lith_df = lithology_df[
+            lithology_df["BH_ID"] == bhid
+        ]
+
+        lithology = build_lithology(lith_df)
+
+        # -----------------------
+        # 地下水
+        # -----------------------
+        gw_df = groundwater_df[
+            groundwater_df["BH_ID"] == bhid
+        ]
+
+        groundwater = {}
+
+        if not gw_df.empty:
+            groundwater = build_groundwater(
+                gw_df.iloc[0].to_dict()
+            )
+
+        # -----------------------
+        # 工程指标
+        # -----------------------
+        eng_df = engineering_df[
+            engineering_df["BH_ID"] == bhid
+        ]
+
+        engineering = {}
+
+        if not eng_df.empty:
+            engineering = build_engineering(
+                eng_df.iloc[0].to_dict()
+            )
+
+        # -----------------------
+        # 建立Schema
+        # -----------------------
+        result.append(
+            build_schema(
+                bh,
+                lithology,
+                groundwater,
+                engineering
+            )
+        )
+
+    return result
+
+
+# ======================================================
+# 导出JSON
+# ======================================================
+def export_json(data, filename):
+
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(
+            data,
+            f,
+            ensure_ascii=False,
+            indent=4
+        )
+
+    print(f"\nJSON导出成功：{filename}")
+
+
+# ======================================================
+# 主程序
+# ======================================================
+def main():
+
+    # ==================================================
+    # 钻孔基本信息
+    # ==================================================
+    boreholes = pd.DataFrame([
+
+        {
+            "BH_ID": "BH001",
+            "X": 100,
+            "Y": 200,
+            "Z": 15
+        },
+
+        {
+            "BH_ID": "BH002",
+            "X": 180,
+            "Y": 260,
+            "Z": 18
+        }
+
+    ])
+
+
+    # ==================================================
+    # 岩性数据
+    # ==================================================
+    lithology = pd.DataFrame([
+
+        {
+            "BH_ID": "BH001",
+            "Top": 0,
+            "Bottom": 5,
+            "Lithology": "粉砂岩"
+        },
+
+        {
+            "BH_ID": "BH001",
+            "Top": 5,
+            "Bottom": 12,
+            "Lithology": "泥岩"
+        },
+
+        {
+            "BH_ID": "BH002",
+            "Top": 0,
+            "Bottom": 8,
+            "Lithology": "花岗岩"
+        },
+
+        {
+            "BH_ID": "BH002",
+            "Top": 8,
+            "Bottom": 16,
+            "Lithology": "灰岩"
+        }
+
+    ])
+
+
+    # ==================================================
+    # 地下水数据
+    # ==================================================
+    groundwater = pd.DataFrame([
+
+        {
+            "BH_ID": "BH001",
+            "water_level": 3.5,
+            "type": "潜水",
+            "flow_direction": "东北",
+            "remark": "稳定"
+        },
+
+        {
+            "BH_ID": "BH002",
+            "water_level": 5.8,
+            "type": "承压水",
+            "flow_direction": "西南",
+            "remark": "富水"
+        }
+
+    ])
+
+
+    # ==================================================
+    # 工程地质指标
+    # ==================================================
+    engineering = pd.DataFrame([
+
+        {
+            "BH_ID": "BH001",
+            "UCS": 85,
+            "RQD": 72,
+            "permeability": 0.02
+        },
+
+        {
+            "BH_ID": "BH002",
+            "UCS": 65,
+            "RQD": 60,
+            "permeability": 0.05
+        }
+
+    ])
+
+
+    # ==================================================
+    # 属性关联
+    # ==================================================
+    borehole_attribute = merge_attribute(
+        boreholes,
+        lithology,
+        groundwater,
+        engineering
+    )
+
+
+    # ==================================================
+    # 导出JSON
+    # ==================================================
+    export_json(
+        borehole_attribute,
+        "BoreholeAttribute.json"
+    )
+
+
+# ======================================================
+# 程序入口
+# ======================================================
+if __name__ == "__main__":
+    main()
