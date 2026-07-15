@@ -1,0 +1,144 @@
+# -*- coding:utf-8 -*-
+"""
+钻孔属性结构化模块
+
+功能：
+1. 读取钻孔CSV数据
+2. 岩性结构化
+3. 地下水结构化
+4. 工程参数结构化
+5. 建立统一JSON Schema
+6. 导出 BoreholeAttribute.json
+"""
+import os
+import json
+import pandas as pd
+from datetime import datetime
+
+# ======================================================
+# 路径配置 还原原始分层：根目录/example_source/borehole_module 放csv
+# ======================================================
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # .../function
+FUNCTION_DIR = CURRENT_DIR
+ROOT_DIR = os.path.dirname(FUNCTION_DIR)  # pythonProject钻孔
+
+# 数据csv存放路径：项目根目录/example_source/borehole_module
+DATA_DIR = os.path.join(ROOT_DIR, "example_source", "borehole_module")
+# 输出目录：项目根目录/output/borehole_module
+OUTPUT_DIR = os.path.join(ROOT_DIR, "output", "borehole_module")
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# ======================================================
+# 读取CSV文件（替换原read_excel）
+# ======================================================
+def load_data():
+    boreholes = pd.read_csv(os.path.join(DATA_DIR, "boreholes.csv"))
+    lithology = pd.read_csv(os.path.join(DATA_DIR, "lithology.csv"))
+    groundwater = pd.read_csv(os.path.join(DATA_DIR, "groundwater.csv"))
+    engineering = pd.read_csv(os.path.join(DATA_DIR, "test_parameter.csv"))
+    return boreholes, lithology, groundwater, engineering
+
+# ======================================================
+# 岩性结构化 修正列名匹配csv
+# ======================================================
+def build_lithology(df):
+    lithology = []
+    for _, row in df.iterrows():
+        lithology.append({
+            "top": float(row["depth_top"]),
+            "bottom": float(row["depth_bottom"]),
+            "name": row["lithology"]
+        })
+    return lithology
+
+# ======================================================
+# 地下水结构化 兼容缺失字段
+# ======================================================
+def build_groundwater(record):
+    if record is None:
+        return {}
+    return {
+        "water_level": float(record["water_level"]),
+        "type": record["type"],
+        "flow_direction": record.get("flow_direction", ""),
+        "remark": record.get("remark", "")
+    }
+
+# ======================================================
+# 工程参数结构化
+# ======================================================
+def build_engineering(record):
+    if record is None:
+        return {}
+    return {
+        "UCS": float(record["UCS"]),
+        "RQD": float(record["RQD"]),
+        "permeability": float(record["permeability"])
+    }
+
+# ======================================================
+# 统一JSON Schema
+# ======================================================
+def build_schema(borehole, lithology, groundwater, engineering):
+    return {
+        "BH_ID": borehole["BH_ID"],
+        "location": {
+            "x": float(borehole["X"]),
+            "y": float(borehole["Y"]),
+            "z": float(borehole["Z"])
+        },
+        "lithology": lithology,
+        "groundwater": groundwater,
+        "engineering": engineering,
+        "created": datetime.now().isoformat()
+    }
+
+# ======================================================
+# 多表关联拼接钻孔数据
+# ======================================================
+def merge_attribute(boreholes, lithology_df, groundwater_df, engineering_df):
+    result = []
+    for _, bh in boreholes.iterrows():
+        bhid = bh["BH_ID"]
+        # 匹配当前钻孔岩性分层
+        lith_df = lithology_df[lithology_df["BH_ID"] == bhid]
+        lith_data = build_lithology(lith_df)
+        # 匹配地下水
+        gw_df = groundwater_df[groundwater_df["BH_ID"] == bhid]
+        gw_data = {}
+        if not gw_df.empty:
+            gw_data = build_groundwater(gw_df.iloc[0].to_dict())
+        # 匹配工程参数
+        eng_df = engineering_df[engineering_df["BH_ID"] == bhid]
+        eng_data = {}
+        if not eng_df.empty:
+            eng_data = build_engineering(eng_df.iloc[0].to_dict())
+        # 组装单钻孔完整属性
+        result.append(build_schema(bh, lith_data, gw_data, eng_data))
+    return result
+
+# ======================================================
+# 导出JSON文件
+# ======================================================
+def export_json(data):
+    out_file = os.path.join(OUTPUT_DIR, "BoreholeAttribute.json")
+    with open(out_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+    print("=" * 60)
+    print(f"结构化完成，输出路径：{out_file}")
+    print("=" * 60)
+
+# ======================================================
+# 主执行函数
+# ======================================================
+def main():
+    print("读取CSV数据...")
+    boreholes, lithology, groundwater, engineering = load_data()
+    print("开始多表关联结构化...")
+    borehole_result = merge_attribute(boreholes, lithology, groundwater, engineering)
+    export_json(borehole_result)
+    print("全部处理完成！")
+
+if __name__ == "__main__":
+    main()
