@@ -1,0 +1,66 @@
+[
+    {
+        "BH_ID": "BH001",
+        "location": {
+            "x": 100.0,
+            "y": 200.0,
+            "z": 15.0
+        },
+        "lithology": [
+            {
+                "top": 0.0,
+                "bottom": 5.0,
+                "name": "粉砂岩"
+            },
+            {
+                "top": 5.0,
+                "bottom": 12.0,
+                "name": "泥岩"
+            }
+        ],
+        "groundwater": {
+            "water_level": 3.5,
+            "type": "潜水",
+            "flow_direction": "东北",
+            "remark": "稳定"
+        },
+        "engineering": {
+            "UCS": 85.0,
+            "RQD": 72.0,
+            "permeability": 0.02
+        },
+        "created": "2026-07-15T10:20:29.712649"
+    },
+    {
+        "BH_ID": "BH002",
+        "location": {
+            "x": 180.0,
+            "y": 260.0,
+            "z": 18.0
+        },
+        "lithology": [
+            {
+                "top": 0.0,
+                "bottom": 8.0,
+                "name": "花岗岩"
+            },
+            {
+                "top": 8.0,
+                "bottom": 16.0,
+                "name": "灰岩"
+            }
+        ],
+        "groundwater": {
+            "water_level": 5.8,
+            "type": "承压水",
+            "flow_direction": "西南",
+            "remark": "富水"
+        },
+        "engineering": {
+            "UCS": 65.0,
+            "RQD": 60.0,
+            "permeability": 0.05
+        },
+        "created": "2026-07-15T10:20:29.713168"
+    }
+]
