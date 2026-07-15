@@ -1,0 +1,141 @@
+# -*- coding:utf-8 -*-
+import os
+import math
+import pandas as pd
+
+# ====================== 全局配置（可统一修改） ======================
+RADIUS = 0.5       # 钻孔圆柱半径
+SEGMENTS = 32      # 圆柱分段数
+# 岩性默认颜色映射（程序自动扩充，无匹配岩性给灰色）
+DEFAULT_COLOR_MAP = {
+    "填土":      (0.78, 0.69, 0.50),
+    "黏土":      (0.65, 0.52, 0.40),
+    "砂岩":      (0.90, 0.82, 0.55),
+    "灰岩":      (0.85, 0.85, 0.80),
+    "花岗岩":    (0.60, 0.60, 0.62),
+    "碎石土":    (0.78, 0.69, 0.50),
+    "变质砂岩":  (0.90, 0.82, 0.55),
+    "板岩":      (0.35, 0.35, 0.35),
+    "断层角砾":  (0.70, 0.55, 0.42),
+    "压碎岩":    (0.55, 0.55, 0.55),
+}
+FALLBACK_COLOR = (0.5, 0.5, 0.5)  # 未知岩性默认灰色
+
+# ====================== 路径配置 ======================
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(CURRENT_DIR)
+DATA_DIR = os.path.join(ROOT_DIR, "example_source", "borehole_module")
+OUTPUT_3D_DIR = os.path.join(ROOT_DIR, "output", "borehole_3d")
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(OUTPUT_3D_DIR, exist_ok=True)
+
+# ====================== 读取CSV数据源 ======================
+def load_all_bore_data():
+    # 基础孔位坐标
+    df_bh = pd.read_csv(os.path.join(DATA_DIR, "boreholes.csv"))
+    # 岩性分层
+    df_lith = pd.read_csv(os.path.join(DATA_DIR, "lithology.csv"))
+    return df_bh, df_lith
+
+# ====================== 生成统一MTL材质文件 ======================
+def write_mtl(all_lith_names, save_path):
+    color_map = DEFAULT_COLOR_MAP.copy()
+    # 新增未知岩性填充默认灰色
+    for lith in all_lith_names:
+        if lith not in color_map:
+            color_map[lith] = FALLBACK_COLOR
+
+    with open(save_path, "w", encoding="utf-8") as f:
+        for rock, (r, g, b) in color_map.items():
+            f.write(f"newmtl {rock}\n")
+            f.write(f"Kd {r:.3f} {g:.3f} {b:.3f}\n")
+            f.write("Ka 0.2 0.2 0.2\n")
+            f.write("Ks 0.05 0.05 0.05\n")
+            f.write("Ns 10\n\n")
+    return color_map
+
+# ====================== 单钻孔生成OBJ ======================
+def generate_single_bore_obj(bh_id, x, y, z_ground, layer_df, color_map, out_dir):
+    obj_path = os.path.join(out_dir, f"{bh_id}.obj")
+    mtl_name = "borehole_mat.mtl"
+    mtl_ref_path = os.path.join(out_dir, mtl_name)
+
+    # 提取当前钻孔分层并按深度从上到下排序
+    layers = []
+    sub_df = layer_df[layer_df["BH_ID"] == bh_id].copy()
+    sub_df = sub_df.sort_values("depth_top", ascending=True)
+    for _, row in sub_df.iterrows():
+        top_z = z_ground - row["depth_top"]
+        bot_z = z_ground - row["depth_bottom"]
+        lith_name = row["lithology"]
+        layers.append((lith_name, top_z, bot_z))
+
+    vertex_idx = 1
+    with open(obj_path, "w", encoding="utf-8") as obj_f:
+        obj_f.write(f"mtllib {mtl_name}\n\n")
+
+        for layer_no, (rock, z_top, z_bot) in enumerate(layers):
+            obj_f.write(f"o {bh_id}_Layer{layer_no+1}_{rock}\n")
+            obj_f.write(f"usemtl {rock}\n")
+
+            top_ring = []
+            bot_ring = []
+            # 生成一圈顶点
+            for i in range(SEGMENTS):
+                angle = 2 * math.pi * i / SEGMENTS
+                cx = x + RADIUS * math.cos(angle)
+                cy = y + RADIUS * math.sin(angle)
+                # 顶面点
+                obj_f.write(f"v {cx:.4f} {cy:.4f} {z_top:.4f}\n")
+                top_ring.append(vertex_idx)
+                vertex_idx += 1
+                # 底面点
+                obj_f.write(f"v {cx:.4f} {cy:.4f} {z_bot:.4f}\n")
+                bot_ring.append(vertex_idx)
+                vertex_idx += 1
+            obj_f.write("\n")
+            # 三角面片
+            for i in range(SEGMENTS):
+                ni = (i + 1) % SEGMENTS
+                v1 = top_ring[i]
+                v2 = top_ring[ni]
+                v3 = bot_ring[ni]
+                v4 = bot_ring[i]
+                obj_f.write(f"f {v1} {v2} {v3}\n")
+                obj_f.write(f"f {v1} {v3} {v4}\n")
+            obj_f.write("\n")
+    print(f"已生成钻孔模型: {obj_path}")
+
+# ====================== 主流程 ======================
+def main():
+    print("正在读取钻孔CSV数据...")
+    df_bore, df_lith = load_all_bore_data()
+
+    # 收集全部出现过的岩性，用于生成材质
+    all_lithology = df_lith["lithology"].unique().tolist()
+    mtl_file = os.path.join(OUTPUT_3D_DIR, "borehole_mat.mtl")
+    color_dict = write_mtl(all_lithology, mtl_file)
+    print(f"材质文件生成完成: {mtl_file}")
+
+    # 循环每个钻孔批量生成模型
+    for _, bh_row in df_bore.iterrows():
+        bhid = bh_row["BH_ID"]
+        bx = bh_row["X"]
+        by = bh_row["Y"]
+        bz_surface = bh_row["Z"]  # 地表高程
+        generate_single_bore_obj(
+            bh_id=bhid,
+            x=bx,
+            y=by,
+            z_ground=bz_surface,
+            layer_df=df_lith,
+            color_map=color_dict,
+            out_dir=OUTPUT_3D_DIR
+        )
+
+    print("\n===== 全部钻孔3D模型导出完成 =====")
+    print(f"输出目录：{OUTPUT_3D_DIR}")
+    print("内含：统一材质文件 borehole_mat.mtl + 各钻孔独立obj")
+
+if __name__ == "__main__":
+    main()
