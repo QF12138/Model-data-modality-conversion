@@ -8,24 +8,22 @@
     "heatmap_limit": 800
   },
   "expected": {
-    "pair_count": 3,
-    "score": 70,
-    "total_checks": 40,
-    "passed_checks": 28,
+    "pair_count": 4,
+    "score": 73,
+    "total_checks": 52,
+    "passed_checks": 38,
     "visualization_modes": ["二维叠加", "三维并排", "剖切对比", "差异热图"],
-    "slice_profiles": 1,
-    "heatmap_points": 20,
-    "tunnel_xy_slice": {
-      "position": 1010.0,
-      "before_area": 5000.0,
-      "after_area": 5050.0,
-      "area_deviation": 0.01
-    },
-    "tunnel_heatmap": {
-      "max_distance": 3.0
+    "slice_profiles": 2,
+    "heatmap_points": 590,
+    "mount_st_helens_mesh": {
+      "before_vertices": 625,
+      "after_vertices": 289,
+      "before_faces": 1152,
+      "after_faces": 512,
+      "max_distance": 205.95141305900253
     },
     "known_differences": [
-      "tunnel_model.obj 整体 X 偏移且 X 跨度增加 1m",
+      "两组 USGS 真实地形 OBJ 均进行了网格简化、X 偏移和高程量化",
       "borehole_points.csv 少 1 个点且丢失 density 字段",
       "geologic_boundary.geojson 边界扩大且丢失 source 字段"
     ]

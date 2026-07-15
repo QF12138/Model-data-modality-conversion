@@ -22,16 +22,24 @@ class VisualComparisonTests(unittest.TestCase):
         self.after = sorted(str(path) for path in (EXAMPLES / "after").iterdir() if path.is_file())
 
     def test_snapshot_keeps_geometry_and_hash_for_visualization(self) -> None:
-        snapshot = extract_snapshot(EXAMPLES / "before" / "tunnel_model.obj")
+        snapshot = extract_snapshot(EXAMPLES / "before" / "grand_canyon_terrain.obj")
         self.assertTrue(snapshot.parse_ok)
-        self.assertEqual(8, len(snapshot.vertices))
-        self.assertEqual(6, len(snapshot.faces))
+        self.assertEqual(625, len(snapshot.vertices))
+        self.assertEqual(1152, len(snapshot.faces))
         self.assertEqual(64, len(snapshot.sha256))
-        self.assertEqual(100.0, snapshot.bounds.span_x)
+        self.assertGreater(snapshot.bounds.span_x, 8_000.0)
+        self.assertGreater(snapshot.bounds.span_z, 1_000.0)
 
     def test_cube_slice_has_real_profile_area_and_perimeter(self) -> None:
-        snapshot = extract_snapshot(EXAMPLES / "before" / "tunnel_model.obj")
-        profile = compute_slice(snapshot.vertices, snapshot.faces, axis="XY", position=1010.0)
+        vertices = [
+            (0, 0, 0), (100, 0, 0), (100, 50, 0), (0, 50, 0),
+            (0, 0, 20), (100, 0, 20), (100, 50, 20), (0, 50, 20),
+        ]
+        faces = [
+            [0, 1, 2, 3], [4, 7, 6, 5], [0, 4, 5, 1],
+            [1, 5, 6, 2], [2, 6, 7, 3], [4, 0, 3, 7],
+        ]
+        profile = compute_slice(vertices, faces, axis="XY", position=10.0)
         self.assertEqual(4, len(profile.points))
         self.assertAlmostEqual(5000.0, profile.area, places=5)
         self.assertAlmostEqual(300.0, profile.perimeter, places=5)
@@ -40,9 +48,9 @@ class VisualComparisonTests(unittest.TestCase):
         report = build_comparison_report(self.before, self.after, slice_axis="XY", slice_ratio=0.5)
         self.assertEqual("2.0", report["schema_version"])
         self.assertEqual(list(VIEW_MODES), report["visualization_summary"]["modes"])
-        self.assertEqual(3, report["visualization_summary"]["pair_count"])
+        self.assertEqual(4, report["visualization_summary"]["pair_count"])
         self.assertGreater(report["visualization_summary"]["heatmap_points"], 0)
-        self.assertEqual(1, report["visualization_summary"]["slice_profiles"])
+        self.assertEqual(2, report["visualization_summary"]["slice_profiles"])
         self.assertTrue(all(len(item["sha256"]) == 64 for item in report["files_before"] + report["files_after"]))
 
     def test_five_percent_example_baseline_is_current(self) -> None:
@@ -59,17 +67,20 @@ class VisualComparisonTests(unittest.TestCase):
         self.assertEqual(expected["passed_checks"], report["passed_checks"])
         self.assertEqual(expected["heatmap_points"], report["visualization_summary"]["heatmap_points"])
 
-    def test_obj_pair_slice_and_heatmap_quantify_known_change(self) -> None:
-        before = [str(EXAMPLES / "before" / "tunnel_model.obj")]
-        after = [str(EXAMPLES / "after" / "tunnel_model.obj")]
+    def test_real_terrain_pair_quantifies_mesh_simplification(self) -> None:
+        before = [str(EXAMPLES / "before" / "mount_st_helens_terrain.obj")]
+        after = [str(EXAMPLES / "after" / "mount_st_helens_terrain.obj")]
         report = build_comparison_report(before, after, slice_axis="XY", slice_ratio=0.5)
         visual = report["visualizations"][0]
         section = visual["slice_comparison"]
         heatmap = visual["difference_heatmap"]
-        self.assertAlmostEqual(5000.0, section["before"]["area"], places=5)
-        self.assertAlmostEqual(5050.0, section["after"]["area"], places=5)
-        self.assertAlmostEqual(0.01, section["area_deviation"], places=6)
-        self.assertAlmostEqual(3.0, heatmap["max_distance"], places=6)
+        self.assertEqual(625, report["files_before"][0]["vertices"])
+        self.assertEqual(289, report["files_after"][0]["vertices"])
+        self.assertEqual(1152, report["files_before"][0]["faces"])
+        self.assertEqual(512, report["files_after"][0]["faces"])
+        self.assertGreater(len(section["before"]["points"]), 50)
+        self.assertGreater(len(section["after"]["points"]), 30)
+        self.assertAlmostEqual(205.95141305900253, heatmap["max_distance"], places=6)
         self.assertGreater(heatmap["p95_distance"], 0)
 
     def test_two_dimensional_geojson_overlay_and_attribute_loss(self) -> None:
@@ -84,13 +95,13 @@ class VisualComparisonTests(unittest.TestCase):
         self.assertIn("source", losses[0]["value_before"])
 
     def test_slice_axis_and_ratio_are_respected(self) -> None:
-        before = [str(EXAMPLES / "before" / "tunnel_model.obj")]
-        after = [str(EXAMPLES / "after" / "tunnel_model.obj")]
+        before = [str(EXAMPLES / "before" / "mount_st_helens_terrain.obj")]
+        after = [str(EXAMPLES / "after" / "mount_st_helens_terrain.obj")]
         report = build_comparison_report(before, after, slice_axis="YZ", slice_ratio=0.25)
         section = report["visualizations"][0]["slice_comparison"]
         self.assertEqual("YZ", section["axis"])
-        self.assertAlmostEqual(500025.75, section["position"], places=6)
-        self.assertEqual(4, len(section["before"]["points"]))
+        self.assertAlmostEqual(1349.1095, section["position"], places=4)
+        self.assertGreater(len(section["before"]["points"]), 20)
 
     def test_unmatched_file_is_explicit_failure_not_self_comparison(self) -> None:
         report = build_comparison_report([self.before[0]], [])
