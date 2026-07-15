@@ -1,0 +1,4 @@
+﻿joint_id,borehole_id,depth_m,dip_direction_deg,dip_deg,aperture_mm,filling,roughness
+J01,BH-01,28.4,132,48,0.8,方解石,较粗糙
+J02,BH-01,34.7,305,67,1.5,泥质,平直
+J03,BH-01,45.2,88,32,0.3,无,粗糙

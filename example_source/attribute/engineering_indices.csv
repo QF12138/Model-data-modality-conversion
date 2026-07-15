@@ -1,0 +1,6 @@
+﻿borehole_id,layer_no,bearing_capacity_kpa,deformation_modulus_mpa,rock_mass_class,quality_grade
+BH-01,1,90,5.5,V,差
+BH-01,2,160,12.0,IV,较差
+BH-01,3,420,850,IV,较差
+BH-01,4,1200,4200,III,中等
+BH-01,5,2200,7600,II,良好

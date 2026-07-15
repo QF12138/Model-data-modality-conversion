@@ -1,0 +1,5 @@
+﻿sample_id,borehole_id,depth_m,test_type,value,unit
+S01,BH-01,7.2,天然含水率,18.6,%
+S02,BH-01,18.0,标准贯入击数,32,击
+S03,BH-01,31.5,单轴抗压强度,38.4,MPa
+S04,BH-01,47.0,单轴抗压强度,62.7,MPa

@@ -1,0 +1,25 @@
+{
+  "bounds": [
+    0,
+    120,
+    0,
+    100,
+    70,
+    130
+  ],
+  "cell_size_m": [
+    10,
+    10,
+    5
+  ],
+  "mesh_types": [
+    "FEM_tetra",
+    "FDM_hexa"
+  ],
+  "quality_threshold": 0.25,
+  "boundary_tags": [
+    "ground",
+    "bedrock",
+    "fault_F1"
+  ]
+}
