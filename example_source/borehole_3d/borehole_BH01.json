@@ -1,0 +1,27 @@
+{
+  "borehole_id": "BH01",
+  "project": "滨江综合交通枢纽工程",
+  "collar": {"x": 512345.20, "y": 3378921.60, "elevation": 86.40},
+  "azimuth_deg": 8.0,
+  "inclination_deg": 88.0,
+  "diameter_m": 0.13,
+  "total_depth_m": 42.0,
+  "groundwater": [{"date": "2026-05-18", "depth_m": 6.8, "type": "潜水稳定水位"}],
+  "layers": [
+    {"top_m": 0.0, "bottom_m": 2.2, "code": "Q4ml", "lithology": "杂填土", "color": [0.58,0.45,0.30]},
+    {"top_m": 2.2, "bottom_m": 8.5, "code": "Q4al-s", "lithology": "粉质黏土", "color": [0.72,0.52,0.34]},
+    {"top_m": 8.5, "bottom_m": 17.6, "code": "Q4al-g", "lithology": "中砂夹砾", "color": [0.90,0.78,0.42]},
+    {"top_m": 17.6, "bottom_m": 29.8, "code": "J2s-1", "lithology": "强风化砂岩", "color": [0.66,0.42,0.28]},
+    {"top_m": 29.8, "bottom_m": 42.0, "code": "J2s-2", "lithology": "中风化砂岩", "color": [0.48,0.30,0.22]}
+  ],
+  "tests": [
+    {"depth_m": 5.2, "type": "标准贯入", "value": 9, "unit": "击"},
+    {"depth_m": 12.4, "type": "标准贯入", "value": 18, "unit": "击"},
+    {"depth_m": 23.0, "type": "岩石单轴抗压", "value": 12.8, "unit": "MPa"},
+    {"depth_m": 35.5, "type": "岩石单轴抗压", "value": 34.6, "unit": "MPa"}
+  ],
+  "discontinuities": [
+    {"depth_m": 22.6, "dip_direction_deg": 128, "dip_deg": 54, "aperture_mm": 0.4, "filling": "铁锰质"},
+    {"depth_m": 33.2, "dip_direction_deg": 276, "dip_deg": 38, "aperture_mm": 0.2, "filling": "无"}
+  ]
+}

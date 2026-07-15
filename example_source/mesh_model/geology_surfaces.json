@@ -1,0 +1,12 @@
+{
+  "model_name":"station_foundation_zone",
+  "extent":{"xmin":0,"xmax":60,"ymin":0,"ymax":40,"zmin":-24,"zmax":0},
+  "grid":{"dx":5,"dy":5},
+  "surfaces":[
+    {"name":"ground","base_z":0.0,"ax":0.015,"ay":-0.010,"wave":0.25},
+    {"name":"weathered_base","base_z":-8.0,"ax":-0.025,"ay":0.018,"wave":0.55},
+    {"name":"bedrock_base","base_z":-20.0,"ax":0.010,"ay":0.012,"wave":0.40}
+  ],
+  "fault":{"name":"F1","point":[32,0,-4],"strike_deg":18,"dip_deg":72},
+  "target_element_size_m":5.0
+}

@@ -1,0 +1,3 @@
+borehole_id,observed_at,water_depth_m,water_elevation_m,water_type,temperature_c
+BH01,2026-05-16T09:30:00,7.15,79.25,初见水位,18.2
+BH01,2026-05-18T09:30:00,6.80,79.60,稳定水位,18.0
