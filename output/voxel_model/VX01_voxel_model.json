@@ -1,0 +1,40 @@
+{
+  "model_id": "VX01",
+  "grid": {
+    "origin": [
+      0,
+      0,
+      -24
+    ],
+    "size": [
+      60,
+      40,
+      24
+    ],
+    "voxel_size": [
+      5,
+      5,
+      3
+    ],
+    "dimensions": [
+      12,
+      8,
+      8
+    ],
+    "cell_count": 768
+  },
+  "interpolation": {
+    "method": "inverse_distance",
+    "power": 2.0,
+    "max_neighbors": 6,
+    "sample_count": 15
+  },
+  "lithology_counts": {
+    "clay": 216,
+    "fill": 25,
+    "moderate_sandstone": 84,
+    "sand_gravel": 182,
+    "weathered_sandstone": 261
+  },
+  "attribute_file": "VX01_voxels.csv"
+}

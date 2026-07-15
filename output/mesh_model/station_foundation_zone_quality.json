@@ -1,0 +1,27 @@
+{
+  "model": "station_foundation_zone",
+  "mesh_type": "structured_hexahedral",
+  "nodes": 351,
+  "elements": 192,
+  "element_size_m": [
+    5,
+    5
+  ],
+  "layers": 2,
+  "fault_constraint": {
+    "name": "F1",
+    "point": [
+      32,
+      0,
+      -4
+    ],
+    "strike_deg": 18,
+    "dip_deg": 72
+  },
+  "checks": {
+    "negative_volume": 0,
+    "orphan_nodes": 0,
+    "connectivity": "passed",
+    "boundary_fit": "passed"
+  }
+}

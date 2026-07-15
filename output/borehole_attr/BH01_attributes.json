@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0",
+  "borehole": {
+    "id": "BH01",
+    "total_depth_m": 42.0,
+    "layer_count": 5
+  },
+  "lithology_layers": [
+    {
+      "borehole_id": "BH01",
+      "top_m": 0.0,
+      "bottom_m": 2.2,
+      "stratum_code": "Q4ml",
+      "lithology": "杂填土",
+      "weathering": "无",
+      "water_state": "稍湿",
+      "density_g_cm3": 1.78,
+      "cohesion_kpa": 8.0,
+      "friction_deg": 18.0,
+      "permeability_m_s": 2.5e-05,
+      "modulus_mpa": 12.0,
+      "spt_n": 4.0,
+      "rock_ucs_mpa": null
+    },
+    {
+      "borehole_id": "BH01",
+      "top_m": 2.2,
+      "bottom_m": 8.5,
+      "stratum_code": "Q4al-s",
+      "lithology": "粉质黏土",
+      "weathering": "无",
+      "water_state": "湿-饱和",
+      "density_g_cm3": 1.91,
+      "cohesion_kpa": 31.0,
+      "friction_deg": 16.0,
+      "permeability_m_s": 8e-08,
+      "modulus_mpa": 28.0,
+      "spt_n": 9.0,
+      "rock_ucs_mpa": null
+    },
+    {
+      "borehole_id": "BH01",
+      "top_m": 8.5,
+      "bottom_m": 17.6,
+      "stratum_code": "Q4al-g",
+      "lithology": "中砂夹砾",
+      "weathering": "无",
+      "water_state": "饱和",
+      "density_g_cm3": 2.02,
+      "cohesion_kpa": 2.0,
+      "friction_deg": 32.0,
+      "permeability_m_s": 0.00032,
+      "modulus_mpa": 55.0,
+      "spt_n": 18.0,
+      "rock_ucs_mpa": null
+    },
+    {
+      "borehole_id": "BH01",
+      "top_m": 17.6,
+      "bottom_m": 29.8,
+      "stratum_code": "J2s-1",
+      "lithology": "砂岩",
+      "weathering": "强风化",
+      "water_state": "裂隙水",
+      "density_g_cm3": 2.28,
+      "cohesion_kpa": 120.0,
+      "friction_deg": 35.0,
+      "permeability_m_s": 1.6e-06,
+      "modulus_mpa": 650.0,
+      "spt_n": null,
+      "rock_ucs_mpa": 12.8
+    },
+    {
+      "borehole_id": "BH01",
+      "top_m": 29.8,
+      "bottom_m": 42.0,
+      "stratum_code": "J2s-2",
+      "lithology": "砂岩",
+      "weathering": "中风化",
+      "water_state": "微量裂隙水",
+      "density_g_cm3": 2.48,
+      "cohesion_kpa": 420.0,
+      "friction_deg": 41.0,
+      "permeability_m_s": 3.5e-08,
+      "modulus_mpa": 4200.0,
+      "spt_n": null,
+      "rock_ucs_mpa": 34.6
+    }
+  ],
+  "groundwater": {
+    "records": [
+      {
+        "borehole_id": "BH01",
+        "observed_at": "2026-05-16T09:30:00",
+        "water_depth_m": 7.15,
+        "water_elevation_m": 79.25,
+        "water_type": "初见水位",
+        "temperature_c": 18.2
+      },
+      {
+        "borehole_id": "BH01",
+        "observed_at": "2026-05-18T09:30:00",
+        "water_depth_m": 6.8,
+        "water_elevation_m": 79.6,
+        "water_type": "稳定水位",
+        "temperature_c": 18.0
+      }
+    ],
+    "stable_depth_m": 6.8
+  },
+  "engineering_summary": {
+    "density_range_g_cm3": [
+      1.78,
+      2.48
+    ],
+    "permeability_range_m_s": [
+      3.5e-08,
+      0.00032
+    ],
+    "rock_layers": 2
+  },
+  "spatial_relation": {
+    "object_key": "borehole:BH01",
+    "join_key": "borehole_id",
+    "depth_reference": "collar_downward_m"
+  },
+  "quality": {
+    "complete": true,
+    "issues": []
+  }
+}
