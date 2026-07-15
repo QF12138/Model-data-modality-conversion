@@ -53,6 +53,10 @@ from function.model_format_conversion import (
 )
 from function.obj_renderer import ObjModel, RenderState, load_models, transform_vertices, collect_face_depths, face_visible, project_ortho, parse_obj
 from function.obj_renderer import rotate_x as _rot_x, rotate_y as _rot_y
+from function.borehole_3d import build_borehole_3d
+from function.borehole_attr import structure_borehole_attributes
+from function.mesh_model import generate_mesh_model
+from function.voxel_model import generate_voxel_model
 
 
 APP_TITLE = "地质环境模型数据模态转换工具包"
@@ -5007,7 +5011,10 @@ class GeoConversionApp(tk.Tk):
             if not was_running and not self._batch_running:
                 self._record_current_operation()
             return
-        if self._is_preprocessing_module():
+        if (self._is_borehole_3d_module() or self._is_borehole_attr_module()
+                or self._is_mesh_model_module() or self._is_voxel_model_module()):
+            self._run_geology_generation()
+        elif self._is_preprocessing_module():
             self._run_preprocessing()
         elif self._is_semantic_module():
             self._run_semantic()
@@ -5168,6 +5175,68 @@ class GeoConversionApp(tk.Tk):
 
     def _is_format_conversion_module(self) -> bool:
         return self.active_module.name == "模型格式转换与输出模块"
+
+    def _is_borehole_3d_module(self) -> bool:
+        return self.active_module.name == "钻孔数据三维化模块"
+
+    def _is_borehole_attr_module(self) -> bool:
+        return self.active_module.name == "钻孔属性结构化模块"
+
+    def _is_mesh_model_module(self) -> bool:
+        return self.active_module.name == "网格模型生成模块"
+
+    def _is_voxel_model_module(self) -> bool:
+        return self.active_module.name == "体素模型生成模块"
+
+    def _run_geology_generation(self) -> None:
+        self._apply_params()
+        root = Path(__file__).resolve().parent
+        name = self.active_module.name
+        try:
+            if self._is_borehole_3d_module():
+                source = Path(self.selected_files[0]) if self.selected_files else root / "example_source" / "borehole_3d" / "borehole_BH01.json"
+                report = build_borehole_3d(source, root / "output" / "borehole_3d")
+                task_name = "borehole_3d"
+            elif self._is_borehole_attr_module():
+                files = [Path(item) for item in self.selected_files]
+                log = next((f for f in files if "log" in f.stem.lower()), root / "example_source" / "borehole_attr" / "BH01_log.csv")
+                water = next((f for f in files if "water" in f.stem.lower()), root / "example_source" / "borehole_attr" / "BH01_water.csv")
+                report = structure_borehole_attributes(log, water, root / "output" / "borehole_attr")
+                task_name = "borehole_attr"
+            elif self._is_mesh_model_module():
+                source = Path(self.selected_files[0]) if self.selected_files else root / "example_source" / "mesh_model" / "geology_surfaces.json"
+                report = generate_mesh_model(source, root / "output" / "mesh_model")
+                task_name = "mesh_model"
+            else:
+                files = [Path(item) for item in self.selected_files]
+                samples = next((f for f in files if f.suffix.lower() == ".csv"), root / "example_source" / "voxel_model" / "samples.csv")
+                config = next((f for f in files if f.suffix.lower() == ".json"), root / "example_source" / "voxel_model" / "config.json")
+                report = generate_voxel_model(samples, config, root / "output" / "voxel_model")
+                task_name = "voxel_model"
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            self.run_completed = False
+            self.run_status_var.set("处理失败")
+            self.status_var.set(f"{name}执行失败：{exc}")
+            self._append_log(f"执行失败：{exc}")
+            self._render_progress_strip()
+            self._render_current_page()
+            return
+        self.quality_report = report
+        self.run_completed = report.get("status") in {"success", "warning"}
+        self.run_status_var.set("处理完成" if self.run_completed else "处理失败")
+        summary = report.get("summary", {})
+        self.status_var.set(f"{name}完成：生成 {len(report.get('output_files', []))} 个成果文件")
+        self.task_payload_text = json.dumps({
+            "task": task_name, "project": self.project_var.get(), "module": name,
+            "input_files": report.get("source_files", self.selected_files), "parameters": self.param_values,
+            "response": report, "mysql_tables": list(self.active_module.mysql_tables),
+            "backend_endpoint": BACKEND_ENDPOINTS["run_task"],
+        }, ensure_ascii=False, indent=2)
+        self._append_log(f"{name}执行完成；摘要：{json.dumps(summary, ensure_ascii=False)}")
+        for path in report.get("output_files", []):
+            self._append_log(f"输出成果：{path}")
+        self._render_progress_strip()
+        self._render_current_page()
 
     def _run_format_conversion(self) -> None:
         self.param_values.update(
