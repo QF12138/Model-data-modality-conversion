@@ -1,0 +1,19 @@
+{
+  "status": "success",
+  "cell_count": 1440,
+  "empty_ratio": 0.0,
+  "interpolation": "inverse_distance_weighting",
+  "lithology_classes": 3,
+  "bounds": [
+    [
+      0,
+      0,
+      70
+    ],
+    [
+      120,
+      100,
+      60
+    ]
+  ]
+}

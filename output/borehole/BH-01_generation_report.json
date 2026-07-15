@@ -1,0 +1,13 @@
+{
+  "status": "success",
+  "layer_count": 5,
+  "test_count": 4,
+  "joint_count": 3,
+  "vertex_count": 160,
+  "face_count": 80,
+  "outputs": [
+    "BH-01_borehole_3d.obj",
+    "BH-01_borehole_3d.mtl",
+    "BH-01_spatial_index.json"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "format": "regular_voxel_grid",
+  "dimensions": [
+    12,
+    10,
+    12
+  ],
+  "origin": [
+    0,
+    0,
+    70
+  ],
+  "voxel_size": [
+    10,
+    10,
+    5
+  ],
+  "cell_count": 1440,
+  "attributes": [
+    "lithology_code",
+    "density_g_cm3",
+    "permeability_m_d"
+  ],
+  "data_file": "geologic_voxel_cells.csv",
+  "crs": "EPSG:4547"
+}

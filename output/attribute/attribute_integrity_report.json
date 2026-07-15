@@ -1,0 +1,11 @@
+{
+  "status": "success",
+  "records": 5,
+  "required_field_completeness": 1.0,
+  "orphan_relations": 0,
+  "range_warnings": 0,
+  "outputs": [
+    "BH-01_structured_attributes.json",
+    "BH-01_layer_attribute_table.csv"
+  ]
+}

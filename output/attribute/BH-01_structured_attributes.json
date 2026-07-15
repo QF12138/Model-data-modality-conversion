@@ -1,0 +1,216 @@
+{
+  "schema_version": "1.0",
+  "primary_key": "layer_id",
+  "boreholes": {
+    "BH-01": {
+      "layers": [
+        {
+          "layer_id": "BH-01-L01",
+          "borehole_id": "BH-01",
+          "depth_interval_m": [
+            0.0,
+            4.8
+          ],
+          "spatial_ref": {
+            "x": 512340.25,
+            "y": 3378456.7,
+            "top_elevation_m": 128.6
+          },
+          "lithology": {
+            "name": "杂填土",
+            "weathering": "松散"
+          },
+          "physical_mechanical": {
+            "density_g_cm3": 1.85,
+            "cohesion_kpa": 18.0,
+            "friction_angle_deg": 12.0,
+            "permeability_m_d": 6.2
+          },
+          "engineering": {
+            "borehole_id": "BH-01",
+            "layer_no": "1",
+            "bearing_capacity_kpa": "90",
+            "deformation_modulus_mpa": "5.5",
+            "rock_mass_class": "V",
+            "quality_grade": "差"
+          }
+        },
+        {
+          "layer_id": "BH-01-L02",
+          "borehole_id": "BH-01",
+          "depth_interval_m": [
+            4.8,
+            12.5
+          ],
+          "spatial_ref": {
+            "x": 512340.25,
+            "y": 3378456.7,
+            "top_elevation_m": 123.8
+          },
+          "lithology": {
+            "name": "粉质黏土",
+            "weathering": "可塑"
+          },
+          "physical_mechanical": {
+            "density_g_cm3": 1.94,
+            "cohesion_kpa": 24.0,
+            "friction_angle_deg": 18.0,
+            "permeability_m_d": 5.6
+          },
+          "engineering": {
+            "borehole_id": "BH-01",
+            "layer_no": "2",
+            "bearing_capacity_kpa": "160",
+            "deformation_modulus_mpa": "12.0",
+            "rock_mass_class": "IV",
+            "quality_grade": "较差"
+          }
+        },
+        {
+          "layer_id": "BH-01-L03",
+          "borehole_id": "BH-01",
+          "depth_interval_m": [
+            12.5,
+            25.3
+          ],
+          "spatial_ref": {
+            "x": 512340.25,
+            "y": 3378456.7,
+            "top_elevation_m": 116.1
+          },
+          "lithology": {
+            "name": "强风化砂岩",
+            "weathering": "碎裂"
+          },
+          "physical_mechanical": {
+            "density_g_cm3": 2.18,
+            "cohesion_kpa": 35.0,
+            "friction_angle_deg": 28.0,
+            "permeability_m_d": 3.1
+          },
+          "engineering": {
+            "borehole_id": "BH-01",
+            "layer_no": "3",
+            "bearing_capacity_kpa": "420",
+            "deformation_modulus_mpa": "850",
+            "rock_mass_class": "IV",
+            "quality_grade": "较差"
+          }
+        },
+        {
+          "layer_id": "BH-01-L04",
+          "borehole_id": "BH-01",
+          "depth_interval_m": [
+            25.3,
+            42.0
+          ],
+          "spatial_ref": {
+            "x": 512340.25,
+            "y": 3378456.7,
+            "top_elevation_m": 103.3
+          },
+          "lithology": {
+            "name": "中风化砂岩",
+            "weathering": "较完整"
+          },
+          "physical_mechanical": {
+            "density_g_cm3": 2.42,
+            "cohesion_kpa": 52.0,
+            "friction_angle_deg": 41.0,
+            "permeability_m_d": 1.4
+          },
+          "engineering": {
+            "borehole_id": "BH-01",
+            "layer_no": "4",
+            "bearing_capacity_kpa": "1200",
+            "deformation_modulus_mpa": "4200",
+            "rock_mass_class": "III",
+            "quality_grade": "中等"
+          }
+        },
+        {
+          "layer_id": "BH-01-L05",
+          "borehole_id": "BH-01",
+          "depth_interval_m": [
+            42.0,
+            58.0
+          ],
+          "spatial_ref": {
+            "x": 512340.25,
+            "y": 3378456.7,
+            "top_elevation_m": 86.6
+          },
+          "lithology": {
+            "name": "微风化砂岩",
+            "weathering": "完整"
+          },
+          "physical_mechanical": {
+            "density_g_cm3": 2.58,
+            "cohesion_kpa": 68.0,
+            "friction_angle_deg": 55.0,
+            "permeability_m_d": 0.6
+          },
+          "engineering": {
+            "borehole_id": "BH-01",
+            "layer_no": "5",
+            "bearing_capacity_kpa": "2200",
+            "deformation_modulus_mpa": "7600",
+            "rock_mass_class": "II",
+            "quality_grade": "良好"
+          }
+        }
+      ],
+      "groundwater": [
+        {
+          "borehole_id": "BH-01",
+          "measure_date": "2026-06-18",
+          "stable_depth_m": "8.35",
+          "water_elevation_m": "120.25",
+          "aquifer": "粉质黏土-强风化砂岩接触带",
+          "water_type": "HCO3-Ca型"
+        }
+      ],
+      "tests": [
+        {
+          "sample_id": "S01",
+          "borehole_id": "BH-01",
+          "depth_m": "7.2",
+          "test_type": "天然含水率",
+          "value": "18.6",
+          "unit": "%"
+        },
+        {
+          "sample_id": "S02",
+          "borehole_id": "BH-01",
+          "depth_m": "18.0",
+          "test_type": "标准贯入击数",
+          "value": "32",
+          "unit": "击"
+        },
+        {
+          "sample_id": "S03",
+          "borehole_id": "BH-01",
+          "depth_m": "31.5",
+          "test_type": "单轴抗压强度",
+          "value": "38.4",
+          "unit": "MPa"
+        },
+        {
+          "sample_id": "S04",
+          "borehole_id": "BH-01",
+          "depth_m": "47.0",
+          "test_type": "单轴抗压强度",
+          "value": "62.7",
+          "unit": "MPa"
+        }
+      ]
+    }
+  },
+  "relations": [
+    {
+      "source": "layer_id",
+      "target": "BH-01_borehole_3d.obj",
+      "relation": "spatial_member"
+    }
+  ]
+}
