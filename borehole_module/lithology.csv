@@ -1,0 +1,6 @@
+BH_ID,depth_top,depth_bottom,lithology
+BH001,0,8,填土
+BH001,8,35,砂岩
+BH001,35,80,花岗岩
+BH002,0,15,黏土
+BH002,15,60,灰岩
