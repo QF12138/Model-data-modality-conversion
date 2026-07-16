@@ -1,0 +1,10 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"unit":"Q4","value":1},"geometry":{"type":"Polygon","coordinates":[[[500000,3400000],[500030,3400000],[500030,3400030],[500000,3400030],[500000,3400000]]]}},
+    {"type":"Feature","properties":{"unit":"J2","value":2},"geometry":{"type":"Polygon","coordinates":[[[500030,3400000],[500075,3400000],[500080,3400040],[500050,3400060],[500030,3400030],[500030,3400000]]]}},
+    {"type":"Feature","properties":{"unit":"T3","value":3},"geometry":{"type":"Polygon","coordinates":[[[500075,3400000],[500125,3400000],[500125,3400050],[500080,3400040],[500075,3400000]]]}},
+    {"type":"Feature","properties":{"unit":"FaultZone","value":8},"geometry":{"type":"Polygon","coordinates":[[[500045,3400055],[500060,3400045],[500135,3400110],[500120,3400120],[500045,3400055]]]}},
+    {"type":"Feature","properties":{"unit":"WaterRich","value":6},"geometry":{"type":"Polygon","coordinates":[[[500000,3400060],[500050,3400060],[500070,3400120],[500010,3400120],[500000,3400060]],[[500020,3400080],[500035,3400080],[500038,3400095],[500022,3400095],[500020,3400080]]]}}
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "roi_bbox": [8, 8, -5, 22, 22, 2],
+  "transition_rings": 1,
+  "engineering_object": "tunnel_fault_crossing_zone",
+  "detail_levels": {
+    "fault_core": 2,
+    "tunnel_portal": 2,
+    "transition_zone": 1
+  },
+  "quality_limits": {
+    "degenerate_faces": 0,
+    "non_manifold_edges": 0,
+    "max_face_growth_ratio": 8.0
+  }
+}

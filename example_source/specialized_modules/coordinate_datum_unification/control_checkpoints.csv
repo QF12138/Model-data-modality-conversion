@@ -1,0 +1,6 @@
+point_id,x,y,z,source_crs,chainage_m,quality_role
+C01,116.391300,39.907500,42.80,EPSG:4326,0,origin_check
+C02,116.397300,39.909900,46.30,EPSG:4326,600,midline_check
+C03,116.403200,39.911900,49.35,EPSG:4326,1100,end_check
+C04,116.396250,39.912600,47.02,EPSG:4326,520,off_alignment_check
+C05,116.399900,39.906800,44.95,EPSG:4326,835,off_alignment_check

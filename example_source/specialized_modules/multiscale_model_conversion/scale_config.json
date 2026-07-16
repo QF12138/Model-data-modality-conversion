@@ -1,0 +1,8 @@
+{
+  "crop_bbox": [0, 0, -2, 40, 40, 15],
+  "cluster_size": 6.0,
+  "refine_iterations": 0,
+  "scale_chain": ["regional_1_50000", "engineering_1_5000", "local_1_500"],
+  "protected_boundaries": ["fault_surface", "model_extent"],
+  "accuracy_limits": {"max_vertex_error": 8.0, "boundary_error": 2.0}
+}

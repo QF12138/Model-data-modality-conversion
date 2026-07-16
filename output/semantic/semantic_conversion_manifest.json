@@ -1,23 +1,23 @@
 {
   "schema_version": "2.0",
-  "run_id": "SEM-20260713082458-16C56D82",
-  "checked_at": "2026-07-13T08:24:58",
+  "run_id": "SEM-20260713234815-3461239D",
+  "checked_at": "2026-07-13T23:48:15",
   "files": [
     {
-      "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_project_dictionary.csv",
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_project_dictionary.csv",
       "name": "semantic_sample_project_dictionary.csv",
       "type": ".csv",
       "status": "已加载项目字典",
-      "source_sha256": "439e8e01d5d6b4b201cf173d8e101c05e79f7068ecde1ec88d7daf90a48d4451",
+      "source_sha256": "3c8da637256c593436092406d48f60e19beee9e7aae4792014ef9b3694e9a7bd",
       "dictionary_terms": 8,
       "is_dictionary": true
     },
     {
-      "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_attributes.csv",
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_attributes.csv",
       "name": "semantic_sample_attributes.csv",
       "type": ".csv",
       "status": "已转换",
-      "source_sha256": "e6621fdb91b496d87e96ffb70f76a6272243663a437ef49915ba63413b7f82ea",
+      "source_sha256": "dbf91fb37c30c1546d1d0dab00bf7c5f3a42339242375f19275ed79670c6ac4e",
       "row_count": 5,
       "field_count": 11,
       "semantic_fields": {
@@ -29,14 +29,14 @@
         "围岩等级": "围岩等级",
         "指标名称": "工程地质指标"
       },
-      "normalized_output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_attributes_semantic_normalized.csv"
+      "normalized_output": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_attributes_semantic_normalized.csv"
     },
     {
-      "path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_features.geojson",
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_features.geojson",
       "name": "semantic_sample_features.geojson",
       "type": ".geojson",
       "status": "已转换",
-      "source_sha256": "19d2a360fca02815a160df7fee82d4ac53843de3cac7a3267956f9e32c2250c8",
+      "source_sha256": "25d1f148e6b04a1f1770c68fb62731d9f6629509fc11044e69a94cb02be5f964",
       "json_type": "FeatureCollection",
       "feature_count": 2,
       "semantic_fields": {
@@ -48,7 +48,7 @@
         "围岩级别": "围岩等级",
         "试验指标": "工程地质指标"
       },
-      "normalized_output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_features_semantic_normalized.geojson"
+      "normalized_output": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_features_semantic_normalized.geojson"
     }
   ],
   "mappings": [
@@ -1173,8 +1173,8 @@
     }
   ],
   "normalized_files": [
-    "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_attributes_semantic_normalized.csv",
-    "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_features_semantic_normalized.geojson"
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_attributes_semantic_normalized.csv",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_features_semantic_normalized.geojson"
   ],
   "total_terms": 49,
   "domain_stats": {
@@ -1276,22 +1276,22 @@
         "围岩等级",
         "工程地质指标"
       ],
-      "loaded_from": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_library.json"
+      "loaded_from": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_library.json"
     }
   },
   "custom_dictionary_terms": 8,
   "output_artifacts": [
     {
-      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_attributes.csv",
-      "source_sha256": "e6621fdb91b496d87e96ffb70f76a6272243663a437ef49915ba63413b7f82ea",
-      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_attributes_semantic_normalized.csv",
+      "source": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_attributes.csv",
+      "source_sha256": "dbf91fb37c30c1546d1d0dab00bf7c5f3a42339242375f19275ed79670c6ac4e",
+      "output": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_attributes_semantic_normalized.csv",
       "output_sha256": "d16885d11b33d5980c163e9fe152af5c6c2771a6cd7555be79ce555ab48cae7e",
       "size_bytes": 4201
     },
     {
-      "source": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_features.geojson",
-      "source_sha256": "19d2a360fca02815a160df7fee82d4ac53843de3cac7a3267956f9e32c2250c8",
-      "output": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_features_semantic_normalized.geojson",
+      "source": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_sample_features.geojson",
+      "source_sha256": "25d1f148e6b04a1f1770c68fb62731d9f6629509fc11044e69a94cb02be5f964",
+      "output": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_sample_features_semantic_normalized.geojson",
       "output_sha256": "6724373775a2c31e5a74d98443185e19ba8157f1eb864bfb213fba8b1a531282",
       "size_bytes": 5787
     }
@@ -1309,7 +1309,7 @@
     "synonym_strategy": "规范优先",
     "conflict_resolution": "人工复核",
     "target_code_system": "PROJECT",
-    "output_dir": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic"
+    "output_dir": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic"
   },
   "library_metadata": {
     "name": "地质环境模型项目级语义库",
@@ -1325,7 +1325,7 @@
       "围岩等级",
       "工程地质指标"
     ],
-    "loaded_from": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_library.json"
+    "loaded_from": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_library.json"
   },
   "library_audit": {
     "valid": true,
@@ -1387,7 +1387,7 @@
           "围岩等级",
           "工程地质指标"
         ],
-        "loaded_from": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_library.json"
+        "loaded_from": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\example_source\\semantic\\semantic_library.json"
       }
     }
   },
@@ -1397,5 +1397,5 @@
   "grade": "优秀",
   "issue_count": 0,
   "file_count": 3,
-  "manifest_path": "D:\\modeldata\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_conversion_manifest.json"
+  "manifest_path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\semantic\\semantic_conversion_manifest.json"
 }

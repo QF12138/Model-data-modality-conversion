@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "MAP-Q",
+      "properties": {"layer": "stratum", "geology_type": "Quaternary"},
+      "geometry": {"type": "Polygon", "coordinates": [[[500000,3400000,100],[500120,3400000,101],[500120,3400120,103],[500000,3400120,102],[500000,3400000,100]]]}
+    },
+    {
+      "type": "Feature",
+      "id": "MAP-J2",
+      "properties": {"layer": "stratum", "geology_type": "Jurassic_sandstone"},
+      "geometry": {"type": "Polygon", "coordinates": [[[500120,3400000,101],[500260,3400020,104],[500245,3400145,108],[500120,3400120,103],[500120,3400000,101]]]}
+    },
+    {
+      "type": "Feature",
+      "id": "MAP-C1",
+      "properties": {"layer": "contact", "geology_type": "unconformity"},
+      "geometry": {"type": "LineString", "coordinates": [[500035,3400015,100],[500105,3400060,101],[500180,3400095,103],[500250,3400125,106]]}
+    },
+    {
+      "type": "Feature",
+      "id": "MAP-F1",
+      "properties": {"layer": "fault", "geology_type": "normal_fault"},
+      "geometry": {"type": "LineString", "coordinates": [[500060,3399980,112],[500110,3400065,96],[500165,3400150,78]]}
+    },
+    {
+      "type": "Feature",
+      "id": "MAP-WATER",
+      "properties": {"layer": "hydrogeology", "geology_type": "groundwater_zone"},
+      "geometry": {"type": "Polygon", "coordinates": [[[500020,3400030,99],[500100,3400040,100],[500155,3400095,100],[500080,3400110,99],[500020,3400030,99]]]}
+    }
+  ]
+}

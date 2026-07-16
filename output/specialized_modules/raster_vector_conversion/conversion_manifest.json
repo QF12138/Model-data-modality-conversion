@@ -1,0 +1,74 @@
+{
+  "module": "栅格与矢量转换模块",
+  "status": "完成",
+  "score": 100,
+  "grade": "优秀",
+  "file_count": 3,
+  "output_count": 4,
+  "outputs": [
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\raster_vector_conversion\\dem_slope_classes_vectorized.geojson",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\raster_vector_conversion\\geology_polygons_rasterized.asc",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\raster_vector_conversion\\hazard_index_vectorized.geojson",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\raster_vector_conversion\\spatial_accuracy_report.json"
+  ],
+  "artifacts": [
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\raster_vector_conversion\\dem_slope_classes_vectorized.geojson",
+      "name": "dem_slope_classes_vectorized.geojson",
+      "sha256": "ec4673b5102a35dae4783e97c0a26e5e3d16a3f75d6c32c461d3ef611bf8fbb6",
+      "size_bytes": 36266
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\raster_vector_conversion\\geology_polygons_rasterized.asc",
+      "name": "geology_polygons_rasterized.asc",
+      "sha256": "55ab0c728081596dd31396b108cb48d69678cdcef83d7360bed6aa89a10a1d19",
+      "size_bytes": 700
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\raster_vector_conversion\\hazard_index_vectorized.geojson",
+      "name": "hazard_index_vectorized.geojson",
+      "sha256": "2925a54a0347acc0be785c801787a426b0ee1b6283dc52f3fd110eda9cdfd2f3",
+      "size_bytes": 36747
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\raster_vector_conversion\\spatial_accuracy_report.json",
+      "name": "spatial_accuracy_report.json",
+      "sha256": "d13f0e51d2319ab8586417e712928e67629da8a46ef1158e43d881bdb88c9277",
+      "size_bytes": 739
+    }
+  ],
+  "metrics": {
+    "raster_to_vector_files": 2,
+    "vector_to_raster_files": 1,
+    "dem_slope_classes.asc": {
+      "raster_rows": 8,
+      "raster_columns": 10,
+      "active_cells": 75,
+      "vector_components": 1,
+      "cellsize": 10.0
+    },
+    "geology_polygons.geojson": {
+      "vector_features": 5,
+      "raster_rows": 12,
+      "raster_columns": 14,
+      "populated_cells": 98,
+      "resolution": 10.0,
+      "coverage_ratio": 0.5833333333333334
+    },
+    "hazard_index.asc": {
+      "raster_rows": 10,
+      "raster_columns": 12,
+      "active_cells": 76,
+      "vector_components": 1,
+      "cellsize": 10.0
+    }
+  },
+  "parameters": {
+    "direction": "自动双向",
+    "resolution": 10.0,
+    "boundary_threshold": 1.0,
+    "attribute_mapping": "value"
+  },
+  "issues": [],
+  "issue_count": 0
+}

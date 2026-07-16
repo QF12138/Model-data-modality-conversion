@@ -1,0 +1,8 @@
+{
+  "classification_rules": [
+    {"class": "ground", "z_min": -1000, "z_max": 1.0},
+    {"class": "slope_surface", "z_min": 1.0, "z_max": 5.0},
+    {"class": "high_feature", "z_min": 5.0, "z_max": 1000}
+  ]
+}
+

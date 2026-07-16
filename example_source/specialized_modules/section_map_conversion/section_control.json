@@ -1,0 +1,17 @@
+{
+  "origin": [500000.0, 3400000.0, 0.0],
+  "azimuth_deg": 72.0,
+  "horizontal_scale": 1.0,
+  "vertical_scale": 1.0,
+  "crs": "EPSG:4547",
+  "control_points": [
+    {"id": "CP01", "map": [0, 0], "world": [500000, 3400000, 100]},
+    {"id": "CP02", "map": [200, 0], "world": [500190.21, 3400061.80, 94.5]},
+    {"id": "CP03", "map": [0, 120], "world": [499962.92, 3400114.13, 102]}
+  ],
+  "section_definitions": [
+    {"section_id": "SEC-A", "azimuth_deg": 72.0, "length": 200},
+    {"section_id": "SEC-B", "azimuth_deg": 35.0, "length": 160},
+    {"section_id": "SEC-C", "azimuth_deg": 110.0, "length": 140}
+  ]
+}

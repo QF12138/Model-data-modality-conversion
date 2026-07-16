@@ -1,0 +1,14 @@
+{
+  "type":"FeatureCollection",
+  "features":[
+    {"type":"Feature","id":"U-01","properties":{"unit_id":"U-01","target_type":"surface_cell"},"geometry":{"type":"Polygon","coordinates":[[[0,0,0],[20,0,0],[20,15,0],[0,15,0],[0,0,0]]]}},
+    {"type":"Feature","id":"U-02","properties":{"unit_id":"U-02","target_type":"surface_cell"},"geometry":{"type":"Polygon","coordinates":[[[20,0,0],[40,0,0],[40,15,0],[20,15,0],[20,0,0]]]}},
+    {"type":"Feature","id":"U-03","properties":{"unit_id":"U-03","target_type":"surface_cell"},"geometry":{"type":"Polygon","coordinates":[[[40,0,0],[60,0,0],[60,15,0],[40,15,0],[40,0,0]]]}},
+    {"type":"Feature","id":"U-04","properties":{"unit_id":"U-04","target_type":"mesh_cell"},"geometry":{"type":"Polygon","coordinates":[[[0,15,0],[20,15,0],[20,30,0],[0,30,0],[0,15,0]]]}},
+    {"type":"Feature","id":"U-05","properties":{"unit_id":"U-05","target_type":"mesh_cell"},"geometry":{"type":"Polygon","coordinates":[[[20,15,0],[40,15,0],[40,30,0],[20,30,0],[20,15,0]]]}},
+    {"type":"Feature","id":"U-06","properties":{"unit_id":"U-06","target_type":"mesh_cell"},"geometry":{"type":"Polygon","coordinates":[[[40,15,0],[60,15,0],[60,30,0],[40,30,0],[40,15,0]]]}},
+    {"type":"Feature","id":"U-07","properties":{"unit_id":"U-07","target_type":"voxel_top"},"geometry":{"type":"Polygon","coordinates":[[[0,30,0],[20,30,0],[20,45,0],[0,45,0],[0,30,0]]]}},
+    {"type":"Feature","id":"U-08","properties":{"unit_id":"U-08","target_type":"voxel_top"},"geometry":{"type":"Polygon","coordinates":[[[20,30,0],[40,30,0],[40,45,0],[20,45,0],[20,30,0]]]}},
+    {"type":"Feature","id":"U-09","properties":{"unit_id":"U-09","target_type":"voxel_top"},"geometry":{"type":"Polygon","coordinates":[[[40,30,0],[60,30,0],[60,45,0],[40,45,0],[40,30,0]]]}}
+  ]
+}

@@ -1,0 +1,11 @@
+point_id,x,y,z,source_crs,chainage_m,source_datum,unit
+L01,0,0,41.92,LOCAL,0,project_2018,m
+L02,100.02,0.15,42.37,LOCAL,100,project_2018,m
+L03,200.05,0.31,43.18,LOCAL,200,project_2018,m
+L04,300.10,0.50,43.76,LOCAL,300,project_2018,m
+L05,400.16,0.74,44.31,LOCAL,400,project_2018,m
+L06,500.23,1.02,44.88,LOCAL,500,project_2018,m
+L07,600.31,1.35,45.44,LOCAL,600,project_2018,m
+L08,700.42,1.71,46.08,LOCAL,700,project_2018,m
+L09,800.55,2.12,46.61,LOCAL,800,project_2018,m
+L10,900.70,2.58,47.19,LOCAL,900,project_2018,m

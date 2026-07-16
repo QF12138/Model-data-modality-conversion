@@ -1,0 +1,74 @@
+{
+  "metrics": {
+    "model_count": 2,
+    "models": [
+      {
+        "source": "base_engineering_model.obj",
+        "output": "base_engineering_model_local_detail.obj",
+        "roi_bbox": [
+          8.0,
+          8.0,
+          -5.0,
+          22.0,
+          22.0,
+          2.0
+        ],
+        "refinement_levels": 1,
+        "transition_rings": 1,
+        "selected_base_faces": 16,
+        "source_vertices": 16,
+        "source_faces": 18,
+        "output_vertices": 45,
+        "output_faces": 66,
+        "face_growth_ratio": 3.6666666666666665,
+        "degenerate_faces": 0,
+        "boundary_edges": 26,
+        "non_manifold_edges": 0,
+        "min_edge_length": 5.0,
+        "max_edge_length": 14.142135623730951,
+        "mean_edge_length": 5.885976254314492
+      },
+      {
+        "source": "tunnel_portal.obj",
+        "output": "tunnel_portal_local_detail.obj",
+        "roi_bbox": [
+          8.0,
+          8.0,
+          -5.0,
+          22.0,
+          22.0,
+          2.0
+        ],
+        "refinement_levels": 1,
+        "transition_rings": 1,
+        "selected_base_faces": 18,
+        "source_vertices": 12,
+        "source_faces": 18,
+        "output_vertices": 41,
+        "output_faces": 72,
+        "face_growth_ratio": 4.0,
+        "degenerate_faces": 0,
+        "boundary_edges": 8,
+        "non_manifold_edges": 0,
+        "min_edge_length": 1.4142135623730951,
+        "max_edge_length": 4.47213595499958,
+        "mean_edge_length": 2.52999786443086
+      }
+    ],
+    "constraint_features": 4,
+    "constraint_types": {
+      "fault_core": 1,
+      "tunnel_axis": 1,
+      "slope_break": 1,
+      "monitoring_zone": 1
+    },
+    "total_source_faces": 36,
+    "total_output_faces": 138
+  },
+  "issues": [],
+  "parameters": {
+    "levels": 1,
+    "transition_rings": 1,
+    "method": "三角形中点细分"
+  }
+}

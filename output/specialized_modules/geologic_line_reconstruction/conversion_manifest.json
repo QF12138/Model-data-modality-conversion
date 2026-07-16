@@ -1,0 +1,56 @@
+{
+  "module": "地质解释线重建模块",
+  "status": "完成",
+  "score": 92,
+  "grade": "优秀",
+  "file_count": 1,
+  "output_count": 3,
+  "outputs": [
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geologic_line_reconstruction\\reconstructed_boundaries.geojson",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geologic_line_reconstruction\\breakpoint_anomalies.geojson",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geologic_line_reconstruction\\reconstruction_quality.json"
+  ],
+  "artifacts": [
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geologic_line_reconstruction\\reconstructed_boundaries.geojson",
+      "name": "reconstructed_boundaries.geojson",
+      "sha256": "98feaa272ddf97b32457c135c515fa1963425590852ab582eec50591708020d4",
+      "size_bytes": 7387
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geologic_line_reconstruction\\breakpoint_anomalies.geojson",
+      "name": "breakpoint_anomalies.geojson",
+      "sha256": "1d1db95a30223d6cd03495845c4dc05e7c5a9a7fb1509fcb06f7fbec324274e4",
+      "size_bytes": 1420
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geologic_line_reconstruction\\reconstruction_quality.json",
+      "name": "reconstruction_quality.json",
+      "sha256": "b05da24f6def3e1bb49a191f13e4cade023f8a4ab93de6fdce96b1458fa66323",
+      "size_bytes": 175
+    }
+  ],
+  "metrics": {
+    "source_segments": 13,
+    "reconstructed_parts": 6,
+    "joined_gaps": 7,
+    "anomaly_endpoints": 4,
+    "length_change_ratio": 0.008089740374295884,
+    "continuity_rate": 1.0
+  },
+  "parameters": {
+    "algorithm": "端点匹配+平滑",
+    "smoothing_iterations": 1,
+    "connection_tolerance": 1.0,
+    "boundary_constraint": "保持地质类型与接触关系"
+  },
+  "issues": [
+    {
+      "severity": "警告",
+      "code": "UNCONNECTED_ENDPOINTS",
+      "file": "全部",
+      "message": "仍有 4 个异常断点需人工复核"
+    }
+  ],
+  "issue_count": 1
+}

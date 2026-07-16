@@ -1,0 +1,494 @@
+{
+  "type": "FeatureCollection",
+  "name": "positioned_geological_sections_and_maps",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "MAP-Q",
+      "properties": {
+        "layer": "stratum",
+        "geology_type": "Quaternary",
+        "source_file": "map_features.geojson"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              500000,
+              3400000,
+              100
+            ],
+            [
+              500120,
+              3400000,
+              101
+            ],
+            [
+              500120,
+              3400120,
+              103
+            ],
+            [
+              500000,
+              3400120,
+              102
+            ],
+            [
+              500000,
+              3400000,
+              100
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "MAP-J2",
+      "properties": {
+        "layer": "stratum",
+        "geology_type": "Jurassic_sandstone",
+        "source_file": "map_features.geojson"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              500120,
+              3400000,
+              101
+            ],
+            [
+              500260,
+              3400020,
+              104
+            ],
+            [
+              500245,
+              3400145,
+              108
+            ],
+            [
+              500120,
+              3400120,
+              103
+            ],
+            [
+              500120,
+              3400000,
+              101
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "MAP-C1",
+      "properties": {
+        "layer": "contact",
+        "geology_type": "unconformity",
+        "source_file": "map_features.geojson"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            500035,
+            3400015,
+            100
+          ],
+          [
+            500105,
+            3400060,
+            101
+          ],
+          [
+            500180,
+            3400095,
+            103
+          ],
+          [
+            500250,
+            3400125,
+            106
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "MAP-F1",
+      "properties": {
+        "layer": "fault",
+        "geology_type": "normal_fault",
+        "source_file": "map_features.geojson"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            500060,
+            3399980,
+            112
+          ],
+          [
+            500110,
+            3400065,
+            96
+          ],
+          [
+            500165,
+            3400150,
+            78
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "MAP-WATER",
+      "properties": {
+        "layer": "hydrogeology",
+        "geology_type": "groundwater_zone",
+        "source_file": "map_features.geojson"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              500020,
+              3400030,
+              99
+            ],
+            [
+              500100,
+              3400040,
+              100
+            ],
+            [
+              500155,
+              3400095,
+              100
+            ],
+            [
+              500080,
+              3400110,
+              99
+            ],
+            [
+              500020,
+              3400030,
+              99
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "STRATUM-Q",
+      "properties": {
+        "section_id": "SEC-A",
+        "feature_id": "STRATUM-Q",
+        "geology_type": "stratum_boundary",
+        "source_file": "section_lines.csv",
+        "positioning": "控制点/基线定位"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            500000.0,
+            3400000.0,
+            105.0
+          ],
+          [
+            500047.55282581475,
+            3400015.450849719,
+            102.5
+          ],
+          [
+            500095.1056516295,
+            3400030.9016994373,
+            99.0
+          ],
+          [
+            500142.65847744426,
+            3400046.352549156,
+            96.8
+          ],
+          [
+            500190.211303259,
+            3400061.803398875,
+            94.5
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "FAULT-F1",
+      "properties": {
+        "section_id": "SEC-A",
+        "feature_id": "FAULT-F1",
+        "geology_type": "fault",
+        "source_file": "section_lines.csv",
+        "positioning": "控制点/基线定位"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            500019.0211303259,
+            3400006.1803398873,
+            110.0
+          ],
+          [
+            500042.79754323326,
+            3400013.905764747,
+            95.0
+          ],
+          [
+            500066.57395614067,
+            3400021.631189606,
+            82.0
+          ],
+          [
+            500090.350369048,
+            3400029.356614466,
+            70.0
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "WATER-TABLE",
+      "properties": {
+        "section_id": "SEC-A",
+        "feature_id": "WATER-TABLE",
+        "geology_type": "groundwater",
+        "source_file": "section_lines.csv",
+        "positioning": "控制点/基线定位"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            500000.0,
+            3400000.0,
+            101.8
+          ],
+          [
+            500047.55282581475,
+            3400015.450849719,
+            100.6
+          ],
+          [
+            500095.1056516295,
+            3400030.9016994373,
+            98.7
+          ],
+          [
+            500142.65847744426,
+            3400046.352549156,
+            97.2
+          ],
+          [
+            500190.211303259,
+            3400061.803398875,
+            95.8
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "STRATUM-J2",
+      "properties": {
+        "section_id": "SEC-B",
+        "feature_id": "STRATUM-J2",
+        "geology_type": "stratum_boundary",
+        "source_file": "section_lines.csv",
+        "positioning": "控制点/基线定位"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            500000.0,
+            3400000.0,
+            112.0
+          ],
+          [
+            500022.943057454,
+            3400032.7660817713,
+            108.5
+          ],
+          [
+            500045.8861149081,
+            3400065.532163543,
+            105.2
+          ],
+          [
+            500068.8291723621,
+            3400098.2982453145,
+            103.4
+          ],
+          [
+            500091.7722298162,
+            3400131.0643270863,
+            100.0
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "FAULT-F2",
+      "properties": {
+        "section_id": "SEC-B",
+        "feature_id": "FAULT-F2",
+        "geology_type": "fault",
+        "source_file": "section_lines.csv",
+        "positioning": "控制点/基线定位"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            500031.5467039993,
+            3400045.053362436,
+            118.0
+          ],
+          [
+            500040.1503505446,
+            3400057.3406431004,
+            104.0
+          ],
+          [
+            500050.4747263989,
+            3400072.0853798976,
+            89.5
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CONTACT-C1",
+      "properties": {
+        "section_id": "SEC-C",
+        "feature_id": "CONTACT-C1",
+        "geology_type": "contact",
+        "source_file": "section_lines.csv",
+        "positioning": "控制点/基线定位"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            500000.0,
+            3400000.0,
+            96.0
+          ],
+          [
+            500032.88924172753,
+            3399988.0292949835,
+            94.8
+          ],
+          [
+            500065.778483455,
+            3399976.0585899674,
+            91.2
+          ],
+          [
+            500098.66772518255,
+            3399964.087884951,
+            87.0
+          ],
+          [
+            500131.55696691,
+            3399952.1171799344,
+            83.5
+          ]
+        ]
+      }
+    }
+  ],
+  "conversion_metadata": {
+    "positioning": "控制点/基线定位",
+    "layer_mapping": "自动",
+    "vector_tolerance": 0.01,
+    "control": {
+      "origin": [
+        500000.0,
+        3400000.0,
+        0.0
+      ],
+      "azimuth_deg": 72.0,
+      "horizontal_scale": 1.0,
+      "vertical_scale": 1.0,
+      "crs": "EPSG:4547",
+      "control_points": [
+        {
+          "id": "CP01",
+          "map": [
+            0,
+            0
+          ],
+          "world": [
+            500000,
+            3400000,
+            100
+          ]
+        },
+        {
+          "id": "CP02",
+          "map": [
+            200,
+            0
+          ],
+          "world": [
+            500190.21,
+            3400061.8,
+            94.5
+          ]
+        },
+        {
+          "id": "CP03",
+          "map": [
+            0,
+            120
+          ],
+          "world": [
+            499962.92,
+            3400114.13,
+            102
+          ]
+        }
+      ],
+      "section_definitions": [
+        {
+          "section_id": "SEC-A",
+          "azimuth_deg": 72.0,
+          "length": 200
+        },
+        {
+          "section_id": "SEC-B",
+          "azimuth_deg": 35.0,
+          "length": 160
+        },
+        {
+          "section_id": "SEC-C",
+          "azimuth_deg": 110.0,
+          "length": 140
+        }
+      ]
+    }
+  }
+}

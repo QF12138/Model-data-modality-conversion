@@ -1,0 +1,60 @@
+{
+  "module": "地质属性映射模块",
+  "status": "完成",
+  "score": 100,
+  "grade": "优秀",
+  "file_count": 2,
+  "output_count": 3,
+  "outputs": [
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geological_attribute_mapping\\attributed_model.geojson",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geological_attribute_mapping\\attribute_mapping_lineage.csv",
+    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geological_attribute_mapping\\mapping_method_report.json"
+  ],
+  "artifacts": [
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geological_attribute_mapping\\attributed_model.geojson",
+      "name": "attributed_model.geojson",
+      "sha256": "602f5d18e196b861cbbda2d919e75b85b0b6f0a56c7297640efa9267298deb18",
+      "size_bytes": 8931
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geological_attribute_mapping\\attribute_mapping_lineage.csv",
+      "name": "attribute_mapping_lineage.csv",
+      "sha256": "0ec9425a804f3a317ad5fe5b8a76ee38e859ec5d19a3893d895a824023300753",
+      "size_bytes": 9144
+    },
+    {
+      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\geological_attribute_mapping\\mapping_method_report.json",
+      "name": "mapping_method_report.json",
+      "sha256": "7babac7597d24ad6e0e3c330aab323c031ad149f6e7bb194e424a34dd837069a",
+      "size_bytes": 476
+    }
+  ],
+  "metrics": {
+    "sample_count": 24,
+    "model_units": 9,
+    "mapped_values": 63,
+    "unmapped_values": 0,
+    "coverage_ratio": 1.0,
+    "method_counts": {
+      "nearest": 18,
+      "idw_power_2": 45
+    }
+  },
+  "parameters": {
+    "mapping_fields": [
+      "lithology",
+      "permeability",
+      "density",
+      "elastic_modulus",
+      "cohesion",
+      "friction_angle",
+      "water_state"
+    ],
+    "interpolation_method": "IDW",
+    "search_radius": 100.0,
+    "trace_identifier": "自动生成"
+  },
+  "issues": [],
+  "issue_count": 0
+}

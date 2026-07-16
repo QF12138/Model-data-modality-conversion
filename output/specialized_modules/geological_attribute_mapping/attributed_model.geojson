@@ -1,0 +1,444 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "U-01",
+      "properties": {
+        "unit_id": "U-01",
+        "target_type": "surface_cell",
+        "lithology": "clay",
+        "permeability": 0.00033403680568789803,
+        "density": 1.9922449194729626,
+        "elastic_modulus": 536.6057983152438,
+        "cohesion": 41.38527564115751,
+        "friction_angle": 21.978663333886622,
+        "water_state": "dry"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              20,
+              0,
+              0
+            ],
+            [
+              20,
+              15,
+              0
+            ],
+            [
+              0,
+              15,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "U-02",
+      "properties": {
+        "unit_id": "U-02",
+        "target_type": "surface_cell",
+        "lithology": "silt",
+        "permeability": 0.000538378653433996,
+        "density": 2.1818753916985756,
+        "elastic_modulus": 3153.540573881729,
+        "cohesion": 78.63896039414838,
+        "friction_angle": 28.50860427485308,
+        "water_state": "moist"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              20,
+              0,
+              0
+            ],
+            [
+              40,
+              0,
+              0
+            ],
+            [
+              40,
+              15,
+              0
+            ],
+            [
+              20,
+              15,
+              0
+            ],
+            [
+              20,
+              0,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "U-03",
+      "properties": {
+        "unit_id": "U-03",
+        "target_type": "surface_cell",
+        "lithology": "sandstone",
+        "permeability": 0.0005820233090049627,
+        "density": 2.2719163229318076,
+        "elastic_modulus": 3803.9968466737164,
+        "cohesion": 95.68779511944103,
+        "friction_angle": 30.374590189788762,
+        "water_state": "dry"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              40,
+              0,
+              0
+            ],
+            [
+              60,
+              0,
+              0
+            ],
+            [
+              60,
+              15,
+              0
+            ],
+            [
+              40,
+              15,
+              0
+            ],
+            [
+              40,
+              0,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "U-04",
+      "properties": {
+        "unit_id": "U-04",
+        "target_type": "mesh_cell",
+        "lithology": "gravel",
+        "permeability": 0.0022238410676612736,
+        "density": 2.084370176300543,
+        "elastic_modulus": 913.0374408102128,
+        "cohesion": 36.270374650207344,
+        "friction_angle": 32.114286382863995,
+        "water_state": "saturated"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              15,
+              0
+            ],
+            [
+              20,
+              15,
+              0
+            ],
+            [
+              20,
+              30,
+              0
+            ],
+            [
+              0,
+              30,
+              0
+            ],
+            [
+              0,
+              15,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "U-05",
+      "properties": {
+        "unit_id": "U-05",
+        "target_type": "mesh_cell",
+        "lithology": "silty_sand",
+        "permeability": 0.0007309692661984455,
+        "density": 2.206867865419495,
+        "elastic_modulus": 2915.499516869405,
+        "cohesion": 78.8476392862639,
+        "friction_angle": 29.821830100354784,
+        "water_state": "moist"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              20,
+              15,
+              0
+            ],
+            [
+              40,
+              15,
+              0
+            ],
+            [
+              40,
+              30,
+              0
+            ],
+            [
+              20,
+              30,
+              0
+            ],
+            [
+              20,
+              15,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "U-06",
+      "properties": {
+        "unit_id": "U-06",
+        "target_type": "mesh_cell",
+        "lithology": "sandstone",
+        "permeability": 0.0012199226943296788,
+        "density": 2.2144578116563096,
+        "elastic_modulus": 3298.881854895964,
+        "cohesion": 79.2425757850308,
+        "friction_angle": 29.031516352920757,
+        "water_state": "dry"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              40,
+              15,
+              0
+            ],
+            [
+              60,
+              15,
+              0
+            ],
+            [
+              60,
+              30,
+              0
+            ],
+            [
+              40,
+              30,
+              0
+            ],
+            [
+              40,
+              15,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "U-07",
+      "properties": {
+        "unit_id": "U-07",
+        "target_type": "voxel_top",
+        "lithology": "gravel",
+        "permeability": 0.002098843519482927,
+        "density": 2.1407330797684083,
+        "elastic_modulus": 1258.1641657408472,
+        "cohesion": 47.713234472027885,
+        "friction_angle": 33.268645285158826,
+        "water_state": "saturated"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              30,
+              0
+            ],
+            [
+              20,
+              30,
+              0
+            ],
+            [
+              20,
+              45,
+              0
+            ],
+            [
+              0,
+              45,
+              0
+            ],
+            [
+              0,
+              30,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "U-08",
+      "properties": {
+        "unit_id": "U-08",
+        "target_type": "voxel_top",
+        "lithology": "weathered_sandstone",
+        "permeability": 0.0009301830689846171,
+        "density": 2.266168204923274,
+        "elastic_modulus": 4258.482718899322,
+        "cohesion": 95.30820617913135,
+        "friction_angle": 31.699239290638214,
+        "water_state": "moist"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              20,
+              30,
+              0
+            ],
+            [
+              40,
+              30,
+              0
+            ],
+            [
+              40,
+              45,
+              0
+            ],
+            [
+              20,
+              45,
+              0
+            ],
+            [
+              20,
+              30,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "U-09",
+      "properties": {
+        "unit_id": "U-09",
+        "target_type": "voxel_top",
+        "lithology": "mudstone",
+        "permeability": 0.0014311640245182908,
+        "density": 2.1741847156999614,
+        "elastic_modulus": 2295.193640429612,
+        "cohesion": 67.96005037876739,
+        "friction_angle": 27.49266680214883,
+        "water_state": "moist"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              40,
+              30,
+              0
+            ],
+            [
+              60,
+              30,
+              0
+            ],
+            [
+              60,
+              45,
+              0
+            ],
+            [
+              40,
+              45,
+              0
+            ],
+            [
+              40,
+              30,
+              0
+            ]
+          ]
+        ]
+      }
+    }
+  ],
+  "attribute_mapping_metadata": {
+    "fields": [
+      "lithology",
+      "permeability",
+      "density",
+      "elastic_modulus",
+      "cohesion",
+      "friction_angle",
+      "water_state"
+    ],
+    "requested_method": "IDW",
+    "search_radius": 100.0,
+    "source_samples": [
+      "attribute_samples.csv"
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "metrics": {
+    "model_count": 2,
+    "models": [
+      {
+        "source": "fault_surface.obj",
+        "output": "fault_surface_engineering.obj",
+        "source_vertices": 16,
+        "source_faces": 18,
+        "output_vertices": 16,
+        "output_faces": 18,
+        "vertex_ratio": 1.0,
+        "face_ratio": 1.0,
+        "max_vertex_error": 0.0,
+        "mean_vertex_error": 0.0,
+        "bounds": [
+          5.0,
+          0.0,
+          0.0,
+          35.0,
+          36.0,
+          12.0
+        ]
+      },
+      {
+        "source": "regional_surface.obj",
+        "output": "regional_surface_engineering.obj",
+        "source_vertices": 25,
+        "source_faces": 32,
+        "output_vertices": 25,
+        "output_faces": 32,
+        "vertex_ratio": 1.0,
+        "face_ratio": 1.0,
+        "max_vertex_error": 0.0,
+        "mean_vertex_error": 0.0,
+        "bounds": [
+          0.0,
+          0.0,
+          0.0,
+          40.0,
+          40.0,
+          9.0
+        ]
+      }
+    ],
+    "total_source_faces": 50,
+    "total_output_faces": 50,
+    "max_error": 0.0
+  },
+  "issues": []
+}
