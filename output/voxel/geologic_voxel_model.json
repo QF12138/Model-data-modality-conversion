@@ -1,0 +1,27 @@
+{
+  "format": "MagicaVoxel .vox + regular_voxel_grid attributes",
+  "dimensions": [
+    12,
+    10,
+    12
+  ],
+  "origin": [
+    0,
+    0,
+    70
+  ],
+  "voxel_size": [
+    10,
+    10,
+    5
+  ],
+  "cell_count": 1440,
+  "attributes": [
+    "lithology_code",
+    "density_g_cm3",
+    "permeability_m_d"
+  ],
+  "data_file": "geologic_voxel_cells.csv",
+  "visualization_file": "geologic_voxel_model.vox",
+  "crs": "EPSG:4547"
+}

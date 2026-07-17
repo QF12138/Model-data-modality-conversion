@@ -1,0 +1,18 @@
+newmtl layer_1
+Kd 0.62 0.47 0.32
+
+newmtl layer_2
+Kd 0.76 0.62 0.38
+
+newmtl layer_3
+Kd 0.69 0.42 0.23
+
+newmtl layer_4
+Kd 0.54 0.34 0.2
+
+newmtl layer_5
+Kd 0.39 0.25 0.16
+
+newmtl groundwater
+Kd 0.15 0.55 0.92
+d 0.65

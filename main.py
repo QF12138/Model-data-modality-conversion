@@ -53,8 +53,13 @@ from function.model_format_conversion import (
 )
 from function.specialized_modules import MODULE_SLUGS, example_directory, run_specialized_module
 from function.specialized_workbenches import SpecializedWorkbenchMixin
+from function.geology_workbenches import GeologyWorkbenchMixin
 from function.obj_renderer import ObjModel, RenderState, load_models, transform_vertices, collect_face_depths, face_visible, project_ortho, parse_obj
 from function.obj_renderer import rotate_x as _rot_x, rotate_y as _rot_y
+from function.borehole_3d import generate as build_borehole_3d
+from function.borehole_attr import structure_borehole_attributes
+from function.mesh_model import generate as generate_mesh_model
+from function.voxel_model import generate as generate_voxel_model
 
 
 APP_TITLE = "地质环境模型数据模态转换工具包"
@@ -75,6 +80,21 @@ BACKEND_ENDPOINTS = {
     "task_status": "GET /api/conversion-tasks/{task_id}",
     "quality_report": "GET /api/quality-reports/{task_id}",
     "version_archive": "POST /api/model-versions",
+}
+
+MODULE_DATA_DIRECTORIES = {
+    "数据预处理与质量清洗模块": "preprocessing_examples",
+    "地质语义编码转换模块": "semantic",
+    "转换规则模板库模块": "rule_template_examples",
+    "钻孔数据三维化模块": "borehole",
+    "钻孔属性结构化模块": "borehole_attr",
+    "网格模型生成模块": "mesh",
+    "体素模型生成模块": "voxel",
+    "模型质量校验模块": "model_quality",
+    "模型格式转换与输出模块": "model_format_conversion",
+    "自动化批量转换模块": "batch_conversion_examples",
+    "可视化预览与对比检查模块": "visual_comparison_examples",
+    "模型版本管理与成果追溯模块": "version_management_examples",
 }
 
 
@@ -472,7 +492,7 @@ class BackendClient:
         )
 
 
-class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
+class GeoConversionApp(GeologyWorkbenchMixin, SpecializedWorkbenchMixin, tk.Tk):
     """仿照“预测结果汇总研判”界面重新设计的 Tkinter 前端。"""
 
     BG = "#eef2f1"
@@ -494,7 +514,7 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
     RED = "#d34234"
     AMBER = "#d88213"
 
-    PAGE_NAMES = ("工作台", "参数配置", "预览检查", "任务与追溯", "后端接口")
+    PAGE_NAMES = ("工作台",)
 
     def __init__(self) -> None:
         super().__init__()
@@ -837,6 +857,14 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
             fg=self.TEAL_DARK,
             font=(self.font_family, 9, "bold"),
         ).pack(side="left", padx=(5, 0))
+        self.module_settings_button = ttk.Button(
+            hero_right,
+            text="参数设置",
+            style="Tool.TButton",
+            command=self._open_module_parameter_dialog,
+        )
+        self.module_settings_button.grid(row=3, column=0, sticky="e", pady=(8, 0))
+        self._refresh_module_parameter_button()
 
         self.progress_host = tk.Frame(panel, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1)
         self.progress_host.grid(row=1, column=0, sticky="ew", pady=(0, 7))
@@ -948,108 +976,158 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
             )
 
     def _switch_page(self, page_name: str) -> None:
+        if page_name not in self.PAGE_NAMES:
+            return
         self.current_page = page_name
         self._render_current_page()
 
+    def _refresh_module_parameter_button(self) -> None:
+        """Only expose parameter editing for modules that define parameters."""
+        if not hasattr(self, "module_settings_button"):
+            return
+        if self.active_module.parameters:
+            self.module_settings_button.grid()
+        else:
+            self.module_settings_button.grid_remove()
+
+    def _open_module_parameter_dialog(self) -> None:
+        """Edit active-module parameters without restoring a global configuration page."""
+        if not self.active_module.parameters:
+            return
+
+        dialog = tk.Toplevel(self)
+        dialog.title(f"{self.active_module.name} · 参数设置")
+        dialog.transient(self)
+        dialog.resizable(False, False)
+        dialog.configure(bg=self.PANEL)
+        dialog.columnconfigure(0, weight=1)
+
+        tk.Label(
+            dialog,
+            text="参数设置",
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=self.section_font,
+        ).grid(row=0, column=0, sticky="w", padx=18, pady=(16, 4))
+        tk.Label(
+            dialog,
+            text="仅作用于当前功能模块。",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=self.small_font,
+        ).grid(row=1, column=0, sticky="w", padx=18, pady=(0, 10))
+
+        form = tk.Frame(dialog, bg=self.PANEL)
+        form.grid(row=2, column=0, sticky="ew", padx=18)
+        form.columnconfigure(1, weight=1)
+        defaults = self._parameter_defaults()
+        dialog_vars: dict[str, tk.StringVar] = {}
+        for row, name in enumerate(self.active_module.parameters):
+            tk.Label(
+                form,
+                text=name,
+                bg=self.PANEL,
+                fg=self.TEXT,
+                font=(self.font_family, 9, "bold"),
+                anchor="w",
+            ).grid(row=row, column=0, sticky="w", padx=(0, 12), pady=6)
+            value = self.param_values.get(name, defaults.get(name, "默认"))
+            variable = tk.StringVar(value=value)
+            dialog_vars[name] = variable
+            ttk.Entry(form, textvariable=variable, width=38).grid(row=row, column=1, sticky="ew", pady=6)
+
+        actions = tk.Frame(dialog, bg=self.PANEL)
+        actions.grid(row=3, column=0, sticky="e", padx=18, pady=(12, 16))
+
+        def apply_and_close() -> None:
+            self.param_values.update({name: variable.get().strip() for name, variable in dialog_vars.items()})
+            if self._is_format_conversion_module():
+                self.conversion_target_var.set(self.param_values.get("目标格式", self.conversion_target_var.get()))
+                self.conversion_coordinate_var.set(self.param_values.get("坐标输出规则", self.conversion_coordinate_var.get()))
+                self.conversion_attribute_var.set(self.param_values.get("属性保留规则", self.conversion_attribute_var.get()))
+                self.conversion_output_var.set(self.param_values.get("成果目录", self.conversion_output_var.get()))
+            self._append_log(f"已应用 {len(self.param_values)} 项参数配置。")
+            self.status_var.set("参数配置已应用")
+            self.run_status_var.set("参数已配置")
+            dialog.destroy()
+
+        ttk.Button(actions, text="取消", style="Tool.TButton", command=dialog.destroy).pack(side="left")
+        ttk.Button(actions, text="应用参数", style="Primary.TButton", command=apply_and_close).pack(
+            side="left", padx=(8, 0)
+        )
+        dialog.grab_set()
+
     def _render_current_page(self) -> None:
         self._stop_3d_preview()
-        for child in self.content_host.winfo_children():
-            child.destroy()
+        previous_host = self.content_host
+        next_host = tk.Frame(self.content_canvas, bg=self.BG)
+        next_host.columnconfigure(0, weight=1)
+        next_host.rowconfigure(0, weight=1)
+        self.content_host = next_host
+        self._page_swap_in_progress = True
+        try:
+            visible_pages = self.PAGE_NAMES
+            for button in self.page_buttons.values():
+                button.pack_forget()
+            for name in visible_pages:
+                self.page_buttons[name].pack(side="left")
+            if self.current_page not in self.PAGE_NAMES:
+                self.current_page = "工作台"
 
-        # 版本管理页只承担查询、对比、回溯和归档；其他模块按能力显示页签。
-        hide_preview = (
-            self._is_preprocessing_module() or self._is_semantic_module()
-            or self._is_template_module() or self._is_batch_module()
-            or self._is_comparison_module()
-        )
-        visible_pages = ("工作台",) if self._is_version_module() else tuple(
-            name for name in self.PAGE_NAMES if not (hide_preview and name == "预览检查")
-        )
-        for button in self.page_buttons.values():
-            button.pack_forget()
-        for name in visible_pages:
-            self.page_buttons[name].pack(side="left")
-        if self._is_version_module() and self.current_page != "工作台":
-            self.current_page = "工作台"
+            for name, button in self.page_buttons.items():
+                active = name == self.current_page
+                button.configure(
+                    bg=self.TEAL_SOFT if active else self.PANEL,
+                    fg=self.TEAL_DARK if active else self.MUTED,
+                    font=(self.font_family, 9, "bold" if active else "normal"),
+                )
+            self.overview_button.configure(bg=self.TEAL if self.current_page == "工作台" else self.SIDEBAR_ITEM)
 
-        for name, button in self.page_buttons.items():
-            active = name == self.current_page
-            button.configure(
-                bg=self.TEAL_SOFT if active else self.PANEL,
-                fg=self.TEAL_DARK if active else self.MUTED,
-                font=(self.font_family, 9, "bold" if active else "normal"),
+            if self._is_preprocessing_module() and self.current_page == "工作台":
+                self._render_preprocessing_page()
+                return
+            if self._is_semantic_module() and self.current_page == "工作台":
+                self._render_semantic_page()
+                return
+            if self._is_template_module() and self.current_page == "工作台":
+                self._render_template_page()
+                return
+            if self._is_batch_module() and self.current_page == "工作台":
+                self._render_batch_page()
+                return
+            if self._is_comparison_module() and self.current_page == "工作台":
+                self._render_comparison_page()
+                return
+            if self._is_version_module() and self.current_page == "工作台":
+                self._render_version_page()
+                return
+            if self._is_quality_module() and self.current_page == "工作台":
+                self._render_model_quality_page()
+                return
+            if self._is_format_conversion_module() and self.current_page == "工作台":
+                self._render_format_conversion_page()
+                return
+            if self._is_geology_module() and self.current_page == "工作台":
+                self._render_geology_workbench()
+                return
+            if self._is_specialized_module() and self.current_page == "工作台":
+                self._render_specialized_workbench()
+                return
+            self._render_dashboard_page()
+        finally:
+            self._page_swap_in_progress = False
+            self.content_canvas.itemconfigure(self._content_win_id, window=next_host)
+            next_host.bind(
+                "<Configure>",
+                lambda _event: self.content_canvas.configure(scrollregion=self.content_canvas.bbox("all")),
             )
-        self.overview_button.configure(bg=self.TEAL if self.current_page == "工作台" else self.SIDEBAR_ITEM)
-
-        if self._is_preprocessing_module() and self.current_page == "工作台":
-            self._render_preprocessing_page()
+            if previous_host.winfo_exists():
+                previous_host.destroy()
             self._refresh_content_scrollregion()
-            return
-        # 数据预处理模块不需要预览检查页，直接回到工作台
-        if self._is_preprocessing_module() and self.current_page == "预览检查":
-            self.current_page = "工作台"
-            self._render_preprocessing_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_semantic_module() and self.current_page == "工作台":
-            self._render_semantic_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_semantic_module() and self.current_page == "预览检查":
-            self.current_page = "工作台"
-            self._render_semantic_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_template_module() and self.current_page == "工作台":
-            self._render_template_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_template_module() and self.current_page == "预览检查":
-            self.current_page = "工作台"
-            self._render_template_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_batch_module() and self.current_page == "工作台":
-            self._render_batch_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_batch_module() and self.current_page == "预览检查":
-            self.current_page = "工作台"
-            self._render_batch_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_comparison_module() and self.current_page == "工作台":
-            self._render_comparison_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_version_module() and self.current_page == "工作台":
-            self._render_version_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_quality_module() and self.current_page == "工作台":
-            self._render_model_quality_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_format_conversion_module() and self.current_page == "工作台":
-            self._render_format_conversion_page()
-            self._refresh_content_scrollregion()
-            return
-        if self._is_specialized_module() and self.current_page == "工作台":
-            self._render_specialized_workbench()
-            self._refresh_content_scrollregion()
-            return
-
-        renderers = {
-            "工作台": self._render_dashboard_page,
-            "参数配置": self._render_params_page,
-            "预览检查": self._render_preview_page,
-            "任务与追溯": self._render_task_page,
-            "后端接口": self._render_backend_page,
-        }
-        renderers[self.current_page]()
-        self._refresh_content_scrollregion()
 
     def _refresh_content_scrollregion(self) -> None:
+        if getattr(self, "_page_swap_in_progress", False):
+            return
         self.update_idletasks()
         self.content_canvas.itemconfigure(self._content_win_id, width=self.content_canvas.winfo_width())
         self.content_canvas.configure(scrollregion=self.content_canvas.bbox("all"))
@@ -1131,10 +1209,6 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         source_actions = tk.Frame(source_card, bg=self.PANEL)
         source_actions.grid(row=3, column=0, sticky="ew", padx=12, pady=11)
         ttk.Button(source_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
-        if self._is_specialized_module():
-            ttk.Button(source_actions, text="加载示例", style="Blue.TButton", command=self._load_specialized_sample_data).pack(
-                side="left", padx=(7, 0)
-            )
         ttk.Button(source_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         # 中：与模块匹配的转换流程图和运行状态。
@@ -1236,8 +1310,7 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
 
         input_actions = tk.Frame(input_card, bg=self.PANEL)
         input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
-        ttk.Button(input_actions, text="加载示例数据", style="Primary.TButton", command=self._load_preprocessing_sample_data).pack(side="left")
-        ttk.Button(input_actions, text="添加数据", style="Tool.TButton", command=self._choose_files).pack(side="left", padx=(7, 0))
+        ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
@@ -1422,7 +1495,6 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         input_actions = tk.Frame(input_card, bg=self.PANEL)
         input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
         ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
-        ttk.Button(input_actions, text="加载示例", style="Blue.TButton", command=self._load_semantic_sample_data).pack(side="left", padx=(7, 0))
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
@@ -1741,7 +1813,6 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         input_actions = tk.Frame(filter_card, bg=self.PANEL)
         input_actions.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 9))
         ttk.Button(input_actions, text="添加数据", style="Primary.TButton", command=self._choose_files).pack(side="left")
-        ttk.Button(input_actions, text="加载示例", style="Blue.TButton", command=self._load_template_sample_data).pack(side="left", padx=(7, 0))
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
@@ -1941,7 +2012,6 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         btn_row.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
         ttk.Button(btn_row, text="添加文件", style="Primary.TButton", command=self._choose_files).pack(side="left")
         ttk.Button(btn_row, text="添加目录", style="Tool.TButton", command=self._choose_batch_directory).pack(side="left", padx=(5, 0))
-        ttk.Button(btn_row, text="加载示例", style="Tool.TButton", command=self._load_batch_sample_data).pack(side="left", padx=(5, 0))
         ttk.Button(btn_row, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(5, 0))
 
         # 已加载文件概览
@@ -2162,7 +2232,6 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         btn_row = tk.Frame(left_card, bg=self.PANEL)
         btn_row.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 8))
         ttk.Button(btn_row, text="添加文件", style="Primary.TButton", command=self._choose_files).pack(side="left")
-        ttk.Button(btn_row, text="加载示例", style="Blue.TButton", command=self._load_comparison_sample_data).pack(side="left", padx=7)
         ttk.Button(btn_row, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left")
 
         # 文件快照表
@@ -2482,16 +2551,10 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         btn_grid.columnconfigure(1, weight=1)
         ttk.Button(
             btn_grid,
-            text="加载示例数据",
-            style="Primary.TButton",
-            command=self._load_version_sample_data,
-        ).grid(row=0, column=0, sticky="ew", padx=(0, 4), pady=(0, 6))
-        ttk.Button(
-            btn_grid,
             text="清空当前文件",
             style="Tool.TButton",
             command=self._clear_version_files,
-        ).grid(row=0, column=1, sticky="ew", padx=(4, 0), pady=(0, 6))
+        ).grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 6))
         ttk.Button(
             btn_grid,
             text="添加来源文件",
@@ -2592,7 +2655,7 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
                     ),
                 )
         else:
-            ver_tree.insert("", "end", values=("暂无", "加载示例或创建版本后显示", "-", "-", "-", "-", "-"))
+            ver_tree.insert("", "end", values=("暂无", "添加文件或创建版本后显示", "-", "-", "-", "-", "-"))
 
         action_row = tk.Frame(mid_card, bg=self.PANEL)
         action_row.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
@@ -2941,8 +3004,7 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
 
         input_actions = tk.Frame(input_card, bg=self.PANEL)
         input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
-        ttk.Button(input_actions, text="加载示例数据", style="Primary.TButton", command=self._load_quality_sample_data).pack(side="left")
-        ttk.Button(input_actions, text="添加文件", style="Tool.TButton", command=self._choose_files).pack(side="left", padx=7)
+        ttk.Button(input_actions, text="添加文件", style="Primary.TButton", command=self._choose_files).pack(side="left")
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left")
 
         file_tree = ttk.Treeview(
@@ -3123,8 +3185,7 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         ).grid(row=1, column=0, sticky="ew", padx=13, pady=(0, 10))
         input_actions = tk.Frame(input_card, bg=self.PANEL)
         input_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 9))
-        ttk.Button(input_actions, text="加载示例数据", style="Primary.TButton", command=self._load_format_conversion_sample_data).pack(side="left")
-        ttk.Button(input_actions, text="添加文件", style="Tool.TButton", command=self._choose_files).pack(side="left", padx=(7, 0))
+        ttk.Button(input_actions, text="添加文件", style="Primary.TButton", command=self._choose_files).pack(side="left")
         ttk.Button(input_actions, text="清空", style="Tool.TButton", command=self._clear_files).pack(side="left", padx=(7, 0))
 
         file_tree = ttk.Treeview(
@@ -4065,12 +4126,18 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
 
     # ---------- 三维 OBJ 模型预览 ----------
 
-    def _start_3d_preview(self, canvas: tk.Canvas) -> None:
+    def _start_3d_preview(
+        self,
+        canvas: tk.Canvas,
+        model_files: list[str] | None = None,
+        show_footer: bool = True,
+    ) -> None:
         """初始化三维预览：加载模型、绑定交互、启动动画。"""
         self._stop_3d_preview()
-        self._3d_models = load_models(self.selected_files)
+        self._3d_models = load_models(model_files if model_files is not None else self.selected_files)
         self._3d_state = RenderState()
         self._3d_preview_canvas = canvas
+        self._3d_show_footer = show_footer
 
         # 鼠标交互
         canvas.bind("<ButtonPress-1>", self._3d_on_press)
@@ -4091,10 +4158,13 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
 
     def _stop_3d_preview(self) -> None:
         """停止动画并释放模型数据。"""
-        if self._3d_anim_id is not None:
-            self.after_cancel(self._3d_anim_id)
-            self._3d_anim_id = None
-        self._3d_models.clear()
+        animation_id = self.__dict__.get("_3d_anim_id")
+        if animation_id is not None:
+            self.after_cancel(animation_id)
+        self.__dict__["_3d_anim_id"] = None
+        models = self.__dict__.get("_3d_models")
+        if isinstance(models, list):
+            models.clear()
 
     def _3d_tick(self, canvas: tk.Canvas) -> None:
         """动画帧：自动旋转 + 重绘。"""
@@ -4103,7 +4173,12 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
             and (self._is_quality_module() or self._is_format_conversion_module())
         )
         comparison_preview = self.current_page == "工作台" and self._is_comparison_module()
-        if not (regular_preview or comparison_preview):
+        geology_preview = (
+            self.current_page == "工作台"
+            and self._is_mesh_model_module()
+            and self.run_completed
+        )
+        if not (regular_preview or comparison_preview or geology_preview):
             self._stop_3d_preview()
             return
         if self._3d_state.auto_spin:
@@ -4231,7 +4306,8 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         quality_issues = self.quality_report.get("issue_count", 0) if self.quality_report else 0
         if quality_issues:
             info = f"⚠ 发现 {quality_issues} 项缺陷/异常  |  {info}"
-        canvas.create_text(width / 2, height - 14, text=info, fill=self.RED if quality_issues else self.MUTED, font=self.tiny_font)
+        if getattr(self, "_3d_show_footer", True):
+            canvas.create_text(width / 2, height - 14, text=info, fill=self.RED if quality_issues else self.MUTED, font=self.tiny_font)
 
     def _draw_comparison_model_grid(self, canvas: tk.Canvas, width: float, height: float) -> None:
         """在对比模块中为每个已导入 OBJ 建立独立三维视口。"""
@@ -4398,6 +4474,13 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
             y = y0 + idx * 38
             if y > height - 50:
                 break
+            if not isinstance(item, dict):
+                path = Path(str(item))
+                item = {
+                    "name": path.name,
+                    "type": path.suffix.lower() or "unknown",
+                    "status": "已生成" if path.is_file() else "待检查",
+                }
             status = str(item.get("status", ""))
             accent = self.GREEN if status == "已检查" else self.AMBER if status == "待检查" else self.RED if status == "解析失败" else self.MUTED
             canvas.create_rectangle(panel_x + 4, y, width - 30, y + 28, fill="#ffffff", outline=self.BORDER)
@@ -4451,8 +4534,19 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
             result.extend(p)
         return tuple(result)
 
+    def _active_module_data_directory(self) -> Path:
+        """Return the current module's prepared data directory for file selection."""
+        project_root = Path(__file__).resolve().parent
+        if self._is_specialized_module():
+            directory = example_directory(project_root, self.active_module.name)
+        else:
+            directory_name = MODULE_DATA_DIRECTORIES.get(self.active_module.name, "")
+            directory = project_root / "example_source" / directory_name if directory_name else project_root / "example_source"
+        return directory if directory.is_dir() else project_root
+
     def _choose_files(self) -> None:
-        files = list(filedialog.askopenfilenames(title="选择源数据文件"))
+        data_directory = self._active_module_data_directory()
+        files = list(filedialog.askopenfilenames(title="选择源数据文件", initialdir=str(data_directory)))
         if not files:
             return
         for file_path in files:
@@ -4472,7 +4566,9 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         self.selected_files = merged
 
     def _choose_version_source_files(self) -> None:
-        files = list(filedialog.askopenfilenames(title="选择版本来源数据文件"))
+        files = list(filedialog.askopenfilenames(
+            title="选择版本来源数据文件", initialdir=str(self._active_module_data_directory())
+        ))
         if not files:
             return
         added = 0
@@ -4492,7 +4588,9 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         self._render_current_page()
 
     def _choose_version_output_files(self) -> None:
-        files = list(filedialog.askopenfilenames(title="选择版本输出成果文件"))
+        files = list(filedialog.askopenfilenames(
+            title="选择版本输出成果文件", initialdir=str(self._active_module_data_directory())
+        ))
         if not files:
             return
         added = 0
@@ -4748,7 +4846,9 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
 
     def _choose_batch_directory(self) -> None:
         """递归添加一个目录；可重复点击以组成多目录批次。"""
-        directory = filedialog.askdirectory(title="选择待批量导入的目录")
+        directory = filedialog.askdirectory(
+            title="选择待批量导入的目录", initialdir=str(self._active_module_data_directory())
+        )
         if not directory:
             return
         entries = scan_directory_flat(directory, recursive=True, max_files=500, format_category="全部")
@@ -4905,7 +5005,7 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
             self._append_log("未选择模板，无法执行规则映射。")
             return
         if not self.selected_files:
-            self.status_var.set("请先添加数据或加载示例数据")
+            self.status_var.set("请先添加数据")
             return
 
         output_dir = Path(self.param_values.get("成果目录") or (Path(__file__).resolve().parent / "output" / "rule_template_results"))
@@ -5028,9 +5128,10 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         self.quality_report = None
         self.conversion_report = None
         self.version_report = None
-        self.task_payload_text = "任务状态：待配置\n\n请添加数据或加载示例后执行处理。\n"
+        self.task_payload_text = "任务状态：待配置\n\n请添加数据后执行处理。\n"
         if hasattr(self, "_3d_models"):
-            self._3d_models = []
+            self._stop_3d_preview()
+            self._3d_preview_canvas = None
         self.run_status_var.set("待处理")
         message = f"已清空 {count} 个数据文件，报告与预览已重置。" if count else "当前模块已重置为空白状态。"
         self._append_log(message)
@@ -5066,7 +5167,10 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
             if not was_running and not self._batch_running:
                 self._record_current_operation()
             return
-        if self._is_preprocessing_module():
+        if (self._is_borehole_3d_module() or self._is_borehole_attr_module()
+                or self._is_mesh_model_module() or self._is_voxel_model_module()):
+            self._run_geology_generation()
+        elif self._is_preprocessing_module():
             self._run_preprocessing()
         elif self._is_semantic_module():
             self._run_semantic()
@@ -5239,9 +5343,12 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
         if not self.selected_files:
             self.run_completed = False
             self.run_status_var.set("缺少输入数据")
-            self.status_var.set("请先添加数据或加载当前模块示例")
+            self.status_var.set("请先添加当前模块数据")
             return
-        output_root = Path(self.param_values.get("成果目录") or (Path(__file__).resolve().parent / "output" / "specialized_modules"))
+        output_root = Path(
+            self.param_values.get("成果目录")
+            or (Path(__file__).resolve().parent / "output" / "specialized_modules")
+        )
         self._append_log(f"开始执行 {self.active_module.name}，成果目录：{output_root}")
         try:
             report = run_specialized_module(
@@ -5257,7 +5364,12 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
                 "score": 0,
                 "grade": "需复核",
                 "outputs": [],
-                "issues": [{"severity": "严重", "code": "MODULE_EXECUTION_FAILED", "file": "全部", "message": str(exc)}],
+                "issues": [{
+                    "severity": "严重",
+                    "code": "MODULE_EXECUTION_FAILED",
+                    "file": "全部",
+                    "message": str(exc),
+                }],
             }
             self.run_completed = False
             self.run_status_var.set("执行失败")
@@ -5268,7 +5380,9 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
             return
         self.quality_report = report
         self.run_completed = bool(report.get("outputs")) and not any(
-            item.get("severity") == "严重" for item in report.get("issues", []) if isinstance(item, dict)
+            item.get("severity") == "严重"
+            for item in report.get("issues", [])
+            if isinstance(item, dict)
         )
         self.run_status_var.set(str(report.get("status", "完成")))
         self.status_var.set(
@@ -5296,10 +5410,102 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
                 )
         for issue in report.get("issues", []):
             if isinstance(issue, dict):
-                self._append_log(f"[{issue.get('severity', '')}] {issue.get('code', '')}：{issue.get('message', '')}")
+                self._append_log(
+                    f"[{issue.get('severity', '')}] {issue.get('code', '')}：{issue.get('message', '')}"
+                )
         self._render_progress_strip()
         self._render_current_page()
 
+    def _is_borehole_3d_module(self) -> bool:
+        return self.active_module.name == "钻孔数据三维化模块"
+
+    def _is_borehole_attr_module(self) -> bool:
+        return self.active_module.name == "钻孔属性结构化模块"
+
+    def _is_mesh_model_module(self) -> bool:
+        return self.active_module.name == "网格模型生成模块"
+
+    def _is_voxel_model_module(self) -> bool:
+        return self.active_module.name == "体素模型生成模块"
+
+    def _run_geology_generation(self) -> None:
+        self._apply_params()
+        root = Path(__file__).resolve().parent
+        name = self.active_module.name
+
+        def source_directory(default_name: str) -> Path:
+            if not self.selected_files:
+                return root / "example_source" / default_name
+            source = Path(self.selected_files[0])
+            return source if source.is_dir() else source.parent
+
+        try:
+            if self._is_borehole_3d_module():
+                report = build_borehole_3d(
+                    source_directory("borehole"),
+                    root / "output" / "borehole",
+                )
+                task_name = "borehole_3d"
+            elif self._is_borehole_attr_module():
+                files = [Path(item) for item in self.selected_files]
+                log = next(
+                    (file for file in files if "log" in file.stem.lower()),
+                    root / "example_source" / "borehole_attr" / "BH01_log.csv",
+                )
+                water = next(
+                    (file for file in files if "water" in file.stem.lower()),
+                    root / "example_source" / "borehole_attr" / "BH01_water.csv",
+                )
+                report = structure_borehole_attributes(log, water, root / "output" / "borehole_attr")
+                task_name = "borehole_attr"
+            elif self._is_mesh_model_module():
+                report = generate_mesh_model(
+                    source_directory("mesh"),
+                    root / "output" / "mesh",
+                )
+                task_name = "mesh_model"
+            else:
+                report = generate_voxel_model(
+                    source_directory("voxel"),
+                    root / "output" / "voxel",
+                )
+                task_name = "voxel_model"
+        except (OSError, ValueError, KeyError, TypeError, IndexError, json.JSONDecodeError) as exc:
+            self.run_completed = False
+            self.run_status_var.set("处理失败")
+            self.status_var.set(f"{name}执行失败：{exc}")
+            self._append_log(f"执行失败：{exc}")
+            self._render_progress_strip()
+            self._render_current_page()
+            return
+
+        output_files = list(report.get("output_files", report.get("files", [])))
+        report["output_files"] = output_files
+        self.quality_report = report
+        self.run_completed = report.get("status") in {"success", "warning"}
+        if self.run_completed and self._is_voxel_model_module():
+            self._prepare_voxel_preview()
+        self.run_status_var.set("处理完成" if self.run_completed else "处理失败")
+        self.status_var.set(f"{name}完成：生成 {len(output_files)} 个成果文件")
+        self.task_payload_text = json.dumps(
+            {
+                "task": task_name,
+                "project": self.project_var.get(),
+                "module": name,
+                "input_files": report.get("source_files", self.selected_files),
+                "parameters": self.param_values,
+                "response": report,
+                "mysql_tables": list(self.active_module.mysql_tables),
+                "backend_endpoint": BACKEND_ENDPOINTS["run_task"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        self._append_log(f"{name}执行完成；摘要：{json.dumps(report.get('summary', {}), ensure_ascii=False)}")
+        for path in output_files:
+            self._append_log(f"输出成果：{path}")
+        self._render_progress_strip()
+        self._render_current_page()
     def _run_format_conversion(self) -> None:
         self.param_values.update(
             {
@@ -5502,7 +5708,7 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
             self.status_var.set("已有批量任务正在执行，请稍候")
             return
         if not self.selected_files:
-            self.status_var.set("请先加载示例数据、添加目录或添加文件")
+            self.status_var.set("请先添加目录或添加文件")
             self.run_status_var.set("缺少输入数据")
             return
 
@@ -5816,7 +6022,7 @@ class GeoConversionApp(SpecializedWorkbenchMixin, tk.Tk):
                 "3. 属性完整性检查\n"
                 "4. 一致性检查\n"
                 "5. 坐标精度检查\n\n"
-                "可先点击“加载示例数据”，再执行质量校验。"
+                "请先点击“添加文件”，再执行质量校验。"
             )
         failed = [item["name"] for item in report.get("categories", []) if item.get("status") != "通过"]
         if not failed:
@@ -6500,6 +6706,7 @@ li {{ margin: 6px 0; }}
         self.conversion_report = None
         self.param_values = {}
         self.param_vars.clear()
+        self._refresh_module_parameter_button()
         if module.name != "转换规则模板库模块":
             self.selected_template_name = ""
         if not keep_page:
@@ -6527,7 +6734,7 @@ li {{ margin: 6px 0; }}
         tk.Label(bar, textvariable=self.status_var, bg="#dde9e6", fg="#516660", anchor="w", padx=12, font=self.small_font).grid(
             row=0, column=0, sticky="nsew"
         )
-        tk.Label(bar, text="地质模型转换工作台 · MySQL 与算法服务接口已预留", bg="#dde9e6", fg=self.TEAL, padx=12, font=self.small_font).grid(
+        tk.Label(bar, text="地质模型转换工作台", bg="#dde9e6", fg=self.TEAL, padx=12, font=self.small_font).grid(
             row=0, column=1, sticky="e"
         )
 

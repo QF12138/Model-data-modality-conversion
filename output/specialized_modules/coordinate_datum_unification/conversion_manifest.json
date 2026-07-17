@@ -1,45 +1,24 @@
 {
   "module": "坐标与基准统一模块",
-  "status": "完成",
-  "score": 100,
-  "grade": "优秀",
-  "file_count": 4,
-  "output_count": 4,
+  "status": "需复核",
+  "score": 70,
+  "grade": "需复核",
+  "file_count": 1,
+  "output_count": 1,
   "outputs": [
-    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\coordinate_datum_unification\\control_checkpoints_unified.csv",
-    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\coordinate_datum_unification\\local_engineering_control_unified.csv",
-    "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\coordinate_datum_unification\\survey_points_unified.csv",
     "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\coordinate_datum_unification\\coordinate_transform_parameters.json"
   ],
   "artifacts": [
     {
-      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\coordinate_datum_unification\\control_checkpoints_unified.csv",
-      "name": "control_checkpoints_unified.csv",
-      "sha256": "82d41ed26421f14494cc1038615d745c027ad8e421824c882164936a3567c6e3",
-      "size_bytes": 646
-    },
-    {
-      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\coordinate_datum_unification\\local_engineering_control_unified.csv",
-      "name": "local_engineering_control_unified.csv",
-      "sha256": "5104bd6eff1b7e90352d6c0de333c3c9184e3012e14d9c133eff16ea93767728",
-      "size_bytes": 1177
-    },
-    {
-      "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\coordinate_datum_unification\\survey_points_unified.csv",
-      "name": "survey_points_unified.csv",
-      "sha256": "67d60424f52de8e378d05a3667add088ba664a08145ac0ccec771019e3b3dd08",
-      "size_bytes": 1236
-    },
-    {
       "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\coordinate_datum_unification\\coordinate_transform_parameters.json",
       "name": "coordinate_transform_parameters.json",
-      "sha256": "3cd6ad8377ab01ca258e80b471f2daadd38ba1e9051de12aa0473feb1413c899",
-      "size_bytes": 981
+      "sha256": "b795ba2c2ec5bed27ef694e48cfed2e2ebad8cfde34b9295888fe64fe71961d6",
+      "size_bytes": 154
     }
   ],
   "metrics": {
-    "converted_points": 27,
-    "converted_files": 3,
+    "converted_points": 0,
+    "converted_files": 0,
     "max_numeric_residual": 0.0,
     "target_crs": "EPSG:3857"
   },
@@ -49,6 +28,13 @@
     "unit": "m",
     "tolerance": 0.01
   },
-  "issues": [],
-  "issue_count": 0
+  "issues": [
+    {
+      "severity": "严重",
+      "file": "survey_points.csv",
+      "code": "UNSUPPORTED_CRS",
+      "message": "暂不支持 LOCAL → EPSG:3857；请在配置文件中提供 affine 参数"
+    }
+  ],
+  "issue_count": 1
 }

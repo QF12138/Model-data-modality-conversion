@@ -1,0 +1,21 @@
+{
+  "crs": "EPSG:4547",
+  "origin": [
+    0,
+    0,
+    70
+  ],
+  "size": [
+    120,
+    100,
+    60
+  ],
+  "voxel_size": [
+    10,
+    10,
+    5
+  ],
+  "nodata": -9999,
+  "interpolation": "inverse_distance_weighting",
+  "power": 2
+}

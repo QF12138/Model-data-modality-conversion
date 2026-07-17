@@ -1,0 +1,5 @@
+numpy>=1.26,<2
+Pillow>=10,<11
+trimesh>=4.6,<5
+pyglet>=1.5,<2
+py-vox-io==0.1

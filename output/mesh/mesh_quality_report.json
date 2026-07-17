@@ -1,0 +1,35 @@
+{
+  "status": "success",
+  "node_count": 1859,
+  "cell_count": 1440,
+  "surface_face_count": 768,
+  "cell_type": "hexahedron",
+  "minimum_scaled_jacobian": 1.0,
+  "distorted_cell_ratio": 0.0,
+  "boundary_conformity": "passed",
+  "configuration": {
+    "bounds": [
+      0,
+      120,
+      0,
+      100,
+      70,
+      130
+    ],
+    "cell_size_m": [
+      10,
+      10,
+      5
+    ],
+    "mesh_types": [
+      "FEM_tetra",
+      "FDM_hexa"
+    ],
+    "quality_threshold": 0.25,
+    "boundary_tags": [
+      "ground",
+      "bedrock",
+      "fault_F1"
+    ]
+  }
+}

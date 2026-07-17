@@ -3,7 +3,7 @@
   "status": "完成",
   "score": 100,
   "grade": "优秀",
-  "file_count": 3,
+  "file_count": 1,
   "output_count": 3,
   "outputs": [
     "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\standardized_point_cloud.csv",
@@ -14,37 +14,37 @@
     {
       "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\standardized_point_cloud.csv",
       "name": "standardized_point_cloud.csv",
-      "sha256": "64591bd721ae9e2cad9c8adb03bb3d2765eb91f2b0d1da3d650608327168c882",
-      "size_bytes": 4114
+      "sha256": "fe1bddbaaa42321a96eda336a38cd7b84bb21e4085a95618b537bec48266ec34",
+      "size_bytes": 2330
     },
     {
       "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\classified_point_cloud.ply",
       "name": "classified_point_cloud.ply",
-      "sha256": "331c707e6280a8bc72c84980027884aa31572d31664b30e1b94b30226ac962d7",
-      "size_bytes": 1014
+      "sha256": "8b6791b65fa7cacc9f795db32c70bab45f94ff15dcc086bb4d547d3a0e9ad6b1",
+      "size_bytes": 696
     },
     {
       "path": "D:\\VGE\\Project\\Model-data-modality-conversion\\Model-data-modality-conversion\\output\\specialized_modules\\point_cloud_conversion\\point_cloud_statistics.json",
       "name": "point_cloud_statistics.json",
-      "sha256": "569a4e6774b0537c7ec9745f9552041cf5aab4c203e4bebc9adb0bb186979480",
-      "size_bytes": 272
+      "sha256": "ddc10230859b67128dc46dfe7ec382282cab88dfefb4615306880b83e327eff0",
+      "size_bytes": 252
     }
   ],
   "metrics": {
-    "input_points": 90,
-    "output_points": 78,
-    "retention_ratio": 0.8666666666666667,
+    "input_points": 60,
+    "output_points": 48,
+    "retention_ratio": 0.8,
     "voxel_spacing": 1.0,
     "classes": {
-      "ground": 9,
-      "slope_surface": 42,
-      "high_feature": 27
+      "ground": 16,
+      "surface": 16,
+      "high_feature": 16
     },
     "bounds": [
       0.0,
-      0.0,
+      0.05,
       0.15,
-      15.0,
+      5.1,
       9.0,
       9.6
     ]

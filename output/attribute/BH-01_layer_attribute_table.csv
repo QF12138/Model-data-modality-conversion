@@ -1,0 +1,6 @@
+﻿layer_id,lithology,top_m,bottom_m,density_g_cm3,cohesion_kpa,friction_angle_deg,bearing_capacity_kpa,rock_mass_class
+BH-01-L01,杂填土,0.0,4.8,1.85,18.0,12.0,90,V
+BH-01-L02,粉质黏土,4.8,12.5,1.94,24.0,18.0,160,IV
+BH-01-L03,强风化砂岩,12.5,25.3,2.18,35.0,28.0,420,IV
+BH-01-L04,中风化砂岩,25.3,42.0,2.42,52.0,41.0,1200,III
+BH-01-L05,微风化砂岩,42.0,58.0,2.58,68.0,55.0,2200,II

@@ -26,6 +26,13 @@ class FakeVar:
 
 
 class SpecializedUiTests(unittest.TestCase):
+    def test_every_module_has_an_existing_default_data_directory(self) -> None:
+        app = object.__new__(GeoConversionApp)
+        for module in FEATURE_MODULES:
+            app.active_module = module
+            directory = GeoConversionApp._active_module_data_directory(app)
+            self.assertTrue(directory.is_dir(), module.name)
+
     def test_eight_modules_have_distinct_workbench_renderers(self) -> None:
         self.assertEqual(set(MODULE_SLUGS), set(SPECIALIZED_WORKBENCH_METHODS))
         self.assertEqual(8, len(set(SPECIALIZED_WORKBENCH_METHODS.values())))

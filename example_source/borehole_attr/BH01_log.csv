@@ -1,0 +1,6 @@
+borehole_id,top_m,bottom_m,stratum_code,lithology,weathering,water_state,density_g_cm3,cohesion_kpa,friction_deg,permeability_m_s,modulus_mpa,spt_n,rock_ucs_mpa
+BH01,0.0,2.2,Q4ml,杂填土,无,稍湿,1.78,8,18,2.5e-5,12,4,
+BH01,2.2,8.5,Q4al-s,粉质黏土,无,湿-饱和,1.91,31,16,8.0e-8,28,9,
+BH01,8.5,17.6,Q4al-g,中砂夹砾,无,饱和,2.02,2,32,3.2e-4,55,18,
+BH01,17.6,29.8,J2s-1,砂岩,强风化,裂隙水,2.28,120,35,1.6e-6,650,,12.8
+BH01,29.8,42.0,J2s-2,砂岩,中风化,微量裂隙水,2.48,420,41,3.5e-8,4200,,34.6
